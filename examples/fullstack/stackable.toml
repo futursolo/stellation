@@ -1,0 +1,6 @@
+# Configures development server
+[dev-server]
+# The binary name of server
+bin-name = "example-fullstack-server"
+# The address that the development server listens to
+listen = "localhost:5000"

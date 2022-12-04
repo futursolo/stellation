@@ -9,13 +9,19 @@ rust-version = "1.65"
 [dependencies]
 yew = { version = "0.20", features = ["ssr"] }
 futures = { version = "0.3", default-features = false, features = ["std"] }
+typed-builder = "0.11.0"
 
 # Hyper Server and Tower Service.
 hyper = { version = "0.14.23", features = ["runtime", "server", "http1"], optional = true }
-tower-service = { version = "0.3.2", optional = true }
+tower = { version = "0.4", features = ["util"], optional = true }
 warp = { version = "0.3.3", default-features = false, optional = true }
 tokio = { version = "1", optional = true }
 
+# Command Line Tools
+anyhow = { version = "1", optional = true }
+clap = { version = "4.0.29", features = ["derive"], optional = true }
+
 [features]
-tower-service = ["dep:tower-service", "dep:warp", "dep:tokio"]
-hyper-server = ["dep:hyper"]
+tower-service = ["dep:tower", "dep:warp", "dep:tokio", "dep:hyper"]
+hyper-server = ["dep:hyper", "tower-service"]
+cli = ["dep:clap", "dep:anyhow", "hyper-server"]

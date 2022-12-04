@@ -1,17 +1,15 @@
 [package]
-name = "example-fullstack-server"
+name = "stackctl"
 version = "0.1.0"
 edition = "2021"
-publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1"
-stackable-backend = { version = "0.1.0", path = "../../../crates/stackable-backend", features = ["cli"] }
+anyhow = "1.0.66"
+clap = { version = "4.0.29", features = ["derive"] }
+serde = { version = "1.0.148", features = ["derive"] }
 tokio = { version = "1.22.0", features = ["full"] }
+toml = "0.5.9"
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-
-# Example Workspace
-example-fullstack-app = { path = "../app" }

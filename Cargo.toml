@@ -3,4 +3,7 @@ members = [
     "crates/*",
     "examples/fullstack/*",
 ]
+exclude = [
+    "examples/fullstack/.stackable"
+]
 resolver = "2"

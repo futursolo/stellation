@@ -8,7 +8,7 @@ use hyper::server::accept::Accept;
 use hyper::server::conn::AddrIncoming;
 use hyper::{Body, Request, Response};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tower_service::Service;
+use tower::Service;
 use yew::platform::Runtime;
 
 // An executor to process requests on the Yew runtime.

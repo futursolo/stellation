@@ -45,9 +45,12 @@ where
 
 #[cfg(feature = "tower-service")]
 mod feat_tower_service {
+    use std::convert::Infallible;
+    use std::future::Future;
+
     use futures::channel::oneshot as sync_oneshot;
-    use hyper::Body;
-    use tower_service::Service;
+    use hyper::{Body, Request, Response};
+    use tower::{Service, ServiceExt};
     use warp::Filter;
     use yew::platform::{LocalHandle, Runtime};
 
@@ -91,7 +94,16 @@ mod feat_tower_service {
             rx.await.expect("renderer panicked?")
         }
 
-        pub fn into_tower_service(self) -> impl Service<hyper::Request<Body>> {
+        pub fn into_tower_service(
+            self,
+        ) -> impl 'static
+               + Clone
+               + Service<
+            Request<Body>,
+            Response = Response<Body>,
+            Error = Infallible,
+            Future = impl 'static + Send + Future<Output = Result<Response<Body>, Infallible>>,
+        > {
             let Self { create_props, .. } = self;
 
             let index_html_s: Arc<str> = Arc::from("");
@@ -105,7 +117,7 @@ mod feat_tower_service {
 
             let routes = index_html_f;
 
-            warp::service(routes)
+            warp::service(routes).boxed_clone()
         }
     }
 }

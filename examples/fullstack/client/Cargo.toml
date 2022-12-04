@@ -7,3 +7,9 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+stackable-frontend = { version = "0.1.0", path = "../../../crates/stackable-frontend" }
+
+# Example Workspace
+example-fullstack-app = { path = "../app" }
+tracing-web = "0.1.2"
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
