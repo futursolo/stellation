@@ -8,6 +8,9 @@ mod endpoint;
 mod server;
 
 #[cfg(feature = "cli")]
+mod dev_env;
+
+#[cfg(feature = "cli")]
 pub use cli::Cli;
 pub use endpoint::Endpoint;
 #[cfg(feature = "hyper-server")]

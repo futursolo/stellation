@@ -102,6 +102,7 @@ impl Stackctl {
             .arg(&self.manifest.dev_server.bin_name)
             .current_dir(&workspace_dir)
             .env("STACKCTL_LISTEN_ADDR", &self.manifest.dev_server.listen)
+            .env("STACKCTL_DEV_SERVER_BUILD_PATH", &dev_server_build_dir)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())

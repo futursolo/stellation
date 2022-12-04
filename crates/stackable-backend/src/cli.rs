@@ -1,10 +1,10 @@
-use std::env;
 use std::net::ToSocketAddrs;
 
 use anyhow::{anyhow, Context};
 use typed_builder::TypedBuilder;
 use yew::BaseComponent;
 
+use crate::dev_env::DevEnv;
 use crate::{Endpoint, Server};
 
 #[derive(Debug, TypedBuilder)]
@@ -23,10 +23,13 @@ where
     where
         F: 'static + Clone + Send + Fn() -> COMP::Properties,
     {
-        let Self { endpoint } = self;
-
-        let addr = env::var("STACKCTL_LISTEN_ADDR")
+        let Self { mut endpoint } = self;
+        let dev_env = DevEnv::from_env()
             .context("starting backend without development server is not yet implemented!")?;
+
+        endpoint.set_dev_env(dev_env.clone());
+
+        let addr = dev_env.listen_addr;
         Server::<()>::bind(
             addr.to_socket_addrs()
                 .context("failed to parse address")

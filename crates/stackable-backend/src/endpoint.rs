@@ -4,12 +4,16 @@ use std::sync::Arc;
 
 use yew::prelude::*;
 
+use crate::dev_env::DevEnv;
+
 pub struct Endpoint<COMP, F>
 where
     COMP: BaseComponent,
 {
     create_props: F,
     _marker: PhantomData<COMP>,
+    #[cfg(feature = "tower-service")]
+    dev_env: Option<DevEnv>,
 }
 
 impl<COMP, F> fmt::Debug for Endpoint<COMP, F>
@@ -39,6 +43,8 @@ where
         Self {
             create_props: f,
             _marker: PhantomData,
+            #[cfg(feature = "tower-service")]
+            dev_env: None,
         }
     }
 }
@@ -47,11 +53,13 @@ where
 mod feat_tower_service {
     use std::convert::Infallible;
     use std::future::Future;
+    use std::path::Path;
 
     use futures::channel::oneshot as sync_oneshot;
     use hyper::{Body, Request, Response};
-    use tower::{Service, ServiceExt};
-    use warp::Filter;
+    use tokio::fs;
+    use tower::Service;
+    use warp::{Filter, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
@@ -61,7 +69,7 @@ mod feat_tower_service {
         F: 'static + Clone + Send + Fn() -> COMP::Properties,
     {
         async fn render_html_inner(
-            index_html_s: Arc<str>,
+            index_html_path: Arc<Path>,
             create_props: F,
             tx: sync_oneshot::Sender<String>,
         ) where
@@ -72,16 +80,21 @@ mod feat_tower_service {
                 .render()
                 .await;
 
+            // With development server, we read index.html every time.
+            let index_html_s = fs::read_to_string(&index_html_path)
+                .await
+                .expect("TODO: implement failure.");
+
             let s = index_html_s.replace("<!--%STACKABLE_BODY%-->", &body_s);
 
             let _ = tx.send(s);
         }
 
-        async fn render_html(index_html_s: Arc<str>, create_props: F) -> String {
+        async fn render_html(index_html_path: Arc<Path>, create_props: F) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
             let create_render_inner = move || async move {
-                Self::render_html_inner(index_html_s, create_props, tx).await;
+                Self::render_html_inner(index_html_path, create_props, tx).await;
             };
 
             // We spawn into a local runtime early for higher efficiency.
@@ -91,7 +104,11 @@ mod feat_tower_service {
                 None => Runtime::default().spawn_pinned(create_render_inner),
             }
 
-            rx.await.expect("renderer panicked?")
+            warp::reply::html(rx.await.expect("renderer panicked?"))
+        }
+
+        pub fn set_dev_env(&mut self, e: DevEnv) {
+            self.dev_env = Some(e);
         }
 
         pub fn into_tower_service(
@@ -105,19 +122,25 @@ mod feat_tower_service {
             Future = impl 'static + Send + Future<Output = Result<Response<Body>, Infallible>>,
         > {
             let Self { create_props, .. } = self;
-
-            let index_html_s: Arc<str> = Arc::from("");
+            let dev_server_build_path = self
+                .dev_env
+                .expect("running without development server is not implemented")
+                .dev_server_build_path;
+            let index_html_path: Arc<Path> = Arc::from(dev_server_build_path.join("index.html"));
 
             let index_html_f = warp::get().then(move || {
-                let index_html_s = index_html_s.clone();
+                let index_html_path = index_html_path.clone();
                 let create_props = create_props.clone();
 
-                Self::render_html(index_html_s, create_props)
+                Self::render_html(index_html_path, create_props)
             });
 
-            let routes = index_html_f;
-
-            warp::service(routes).boxed_clone()
+            let routes = warp::path::end()
+                .and(index_html_f.clone())
+                .or(warp::fs::dir(dev_server_build_path))
+                .or(index_html_f)
+                .with(warp::trace::request());
+            warp::service(routes)
         }
     }
 }
