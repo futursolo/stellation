@@ -1,14 +1,10 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod endpoint;
+#[cfg(feature = "hyper-server")]
+mod server;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use endpoint::Endpoint;
+#[cfg(feature = "hyper-server")]
+pub use server::Server;
