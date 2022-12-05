@@ -10,6 +10,7 @@ rust-version = "1.65"
 yew = { version = "0.20", features = ["ssr"] }
 futures = { version = "0.3", default-features = false, features = ["std"] }
 typed-builder = "0.11.0"
+bounce = { version = "0.5", features = ["helmet", "ssr"] }
 
 # Hyper Server and Tower Service.
 hyper = { version = "0.14.23", features = ["runtime", "server", "http1"], optional = true }

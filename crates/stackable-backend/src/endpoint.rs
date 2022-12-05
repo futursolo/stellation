@@ -55,6 +55,7 @@ mod feat_tower_service {
     use std::future::Future;
     use std::path::Path;
 
+    use bounce::helmet::render_static;
     use futures::channel::oneshot as sync_oneshot;
     use hyper::{Body, Request, Response};
     use tokio::fs;
@@ -63,6 +64,7 @@ mod feat_tower_service {
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
+    use crate::root::{StackableRoot, StackableRootProps};
     impl<COMP, F> Endpoint<COMP, F>
     where
         COMP: BaseComponent,
@@ -76,16 +78,35 @@ mod feat_tower_service {
             F: 'static + Clone + Send + Fn() -> COMP::Properties,
         {
             let props = create_props();
-            let body_s = yew::LocalServerRenderer::<COMP>::with_props(props)
+            let children = html! {
+                <COMP ..props />
+            };
+
+            let (reader, writer) = render_static();
+
+            let body_s =
+                yew::LocalServerRenderer::<StackableRoot>::with_props(StackableRootProps {
+                    children,
+                    helmet_writer: writer,
+                })
                 .render()
                 .await;
+
+            let mut head_s = String::new();
+            let helmet_tags = reader.render().await;
+
+            for tag in helmet_tags {
+                let _ = tag.write_static(&mut head_s);
+            }
 
             // With development server, we read index.html every time.
             let index_html_s = fs::read_to_string(&index_html_path)
                 .await
                 .expect("TODO: implement failure.");
 
-            let s = index_html_s.replace("<!--%STACKABLE_BODY%-->", &body_s);
+            let s = index_html_s
+                .replace("<!--%STACKABLE_HEAD%-->", &head_s)
+                .replace("<!--%STACKABLE_BODY%-->", &body_s);
 
             let _ = tx.send(s);
         }

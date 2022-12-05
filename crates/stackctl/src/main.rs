@@ -10,9 +10,11 @@ use anyhow::{bail, Context, Result};
 use clap::Parser;
 use cli::{Cli, Command};
 use manifest::Manifest;
+use stackable_backend::DevEnv;
 use tokio::fs;
 use tokio::signal::ctrl_c;
 use tokio::time::sleep;
+use tracing::Level;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
@@ -96,18 +98,25 @@ impl Stackctl {
             http_listen_addr
         );
 
-        let _server_proc = Command::new("cargo")
+        let dev_env = DevEnv {
+            listen_addr: self.manifest.dev_server.listen.to_string(),
+            dev_server_build_path: dev_server_build_dir.clone(),
+        };
+
+        let mut server_cmd = Command::new("cargo");
+
+        server_cmd
             .arg("run")
             .arg("--bin")
             .arg(&self.manifest.dev_server.bin_name)
             .current_dir(&workspace_dir)
-            .env("STACKCTL_LISTEN_ADDR", &self.manifest.dev_server.listen)
-            .env("STACKCTL_DEV_SERVER_BUILD_PATH", &dev_server_build_dir)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
-            .kill_on_drop(true)
-            .spawn()?;
+            .kill_on_drop(true);
+        dev_env.set_env(&mut server_cmd);
+
+        let _server_proc = server_cmd.spawn()?;
 
         // TODO: wait until the backend connects.
         sleep(Duration::from_secs(1)).await;
@@ -144,8 +153,13 @@ impl Stackctl {
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(EnvFilter::from_env("STACKCTL_LOG"))
+        .with(tracing_subscriber::fmt::layer().pretty())
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(Level::INFO.into())
+                .with_env_var("STACKCTL_LOG")
+                .from_env_lossy(),
+        )
         .init();
 
     let cli = Cli::parse();

@@ -3,15 +3,17 @@
 
 #[cfg(feature = "cli")]
 mod cli;
-mod endpoint;
+#[cfg(feature = "cli")]
+mod dev_env;
+pub mod endpoint;
+mod root;
 #[cfg(feature = "hyper-server")]
 mod server;
 
 #[cfg(feature = "cli")]
-mod dev_env;
-
-#[cfg(feature = "cli")]
 pub use cli::Cli;
+#[cfg(feature = "cli")]
+pub use dev_env::DevEnv;
 pub use endpoint::Endpoint;
 #[cfg(feature = "hyper-server")]
 pub use server::Server;

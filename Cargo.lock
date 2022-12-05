@@ -63,6 +63,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfa8873f51c92e232f9bac4065cddef41b714152812bfc5f7672ba16d6ef8cd9"
 
 [[package]]
+name = "bounce"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3dd911674674301e400f9c9f73af93adcd594b3953a69d591375f18f9c43129"
+dependencies = [
+ "anymap2",
+ "bounce-macros",
+ "futures",
+ "gloo",
+ "html-escape",
+ "once_cell",
+ "serde",
+ "wasm-bindgen",
+ "web-sys",
+ "yew",
+]
+
+[[package]]
+name = "bounce-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46f97af8a9e12ec9a88ba3c15d0bb5b960e9ead44a1b9097d32809e2db48d5de"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -239,6 +269,7 @@ checksum = "38390104763dc37a5145a53c29c63c1290b5d316d6086ec32c293f6736051bb0"
 dependencies = [
  "futures-channel",
  "futures-core",
+ "futures-executor",
  "futures-io",
  "futures-sink",
  "futures-task",
@@ -260,6 +291,17 @@ name = "futures-core"
 version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04909a7a7e4633ae6c4a9ab280aeb86da1236243a77b694a49eacd659a4bd3ac"
+
+[[package]]
+name = "futures-executor"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7acc85df6714c176ab5edf386123fafe217be88c0840ec11f199441134a074e2"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "futures-util",
+]
 
 [[package]]
 name = "futures-io"
@@ -376,6 +418,7 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8d5564e570a38b43d78bdc063374a0c3098c4f0d64005b12f9bbe87e869b6d7"
 dependencies = [
+ "futures-channel",
  "gloo-events",
  "js-sys",
  "wasm-bindgen",
@@ -449,6 +492,8 @@ version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98c4a8d6391675c6b2ee1a6c8d06e8e2d03605c44cec1270675985a4c2a5500b"
 dependencies = [
+ "futures-channel",
+ "futures-core",
  "js-sys",
  "wasm-bindgen",
 ]
@@ -1129,19 +1174,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "stackable"
-version = "0.1.0"
-dependencies = [
- "stackable-backend",
- "stackable-bridge",
- "stackable-frontend",
-]
-
-[[package]]
 name = "stackable-backend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bounce",
  "clap",
  "futures",
  "hyper",
@@ -1159,11 +1196,17 @@ version = "0.1.0"
 [[package]]
 name = "stackable-core"
 version = "0.1.0"
+dependencies = [
+ "bounce",
+ "yew",
+]
 
 [[package]]
 name = "stackable-frontend"
 version = "0.1.0"
 dependencies = [
+ "bounce",
+ "stackable-core",
  "yew",
 ]
 
@@ -1174,6 +1217,7 @@ dependencies = [
  "anyhow",
  "clap",
  "serde",
+ "stackable-backend",
  "tokio",
  "toml",
  "tracing",
