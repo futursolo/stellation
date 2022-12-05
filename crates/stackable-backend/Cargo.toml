@@ -26,6 +26,7 @@ anyhow = { version = "1", optional = true }
 clap = { version = "4.0.29", features = ["derive"], optional = true }
 
 [features]
-tower-service = ["dep:tower", "dep:warp", "dep:tokio", "dep:hyper"]
-hyper-server = ["dep:hyper", "tower-service"]
+warp-filter = ["dep:warp", "dep:tokio"]
+tower-service = ["warp-filter", "dep:tower", "dep:hyper"]
+hyper-server = ["tower-service"]
 cli = ["dep:clap", "dep:anyhow", "hyper-server"]

@@ -49,20 +49,17 @@ where
     }
 }
 
-#[cfg(feature = "tower-service")]
-mod feat_tower_service {
+#[cfg(feature = "warp-filter")]
+mod feat_warp_filter {
     use std::collections::HashMap;
-    use std::convert::Infallible;
     use std::future::Future;
     use std::path::Path;
 
     use bounce::helmet::render_static;
     use futures::channel::oneshot as sync_oneshot;
-    use hyper::{Body, Request, Response};
     use tokio::fs;
-    use tower::Service;
     use warp::path::FullPath;
-    use warp::{Filter, Reply};
+    use warp::{Filter, Rejection, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
@@ -143,15 +140,14 @@ mod feat_tower_service {
             self.dev_env = Some(e);
         }
 
-        pub fn into_tower_service(
+        pub fn into_warp_filter(
             self,
-        ) -> impl 'static
-               + Clone
-               + Service<
-            Request<Body>,
-            Response = Response<Body>,
-            Error = Infallible,
-            Future = impl 'static + Send + Future<Output = Result<Response<Body>, Infallible>>,
+        ) -> impl Clone
+               + Send
+               + Filter<
+            Extract = impl Reply,
+            Error = Rejection,
+            Future = impl Future<Output = Result<impl Reply, Rejection>>,
         > {
             let Self { create_props, .. } = self;
             let dev_server_build_path = self
@@ -170,11 +166,40 @@ mod feat_tower_service {
                 },
             );
 
-            let routes = warp::path::end()
+            warp::path::end()
                 .and(index_html_f.clone())
                 .or(warp::fs::dir(dev_server_build_path))
                 .or(index_html_f)
-                .with(warp::trace::request());
+                .with(warp::trace::request())
+        }
+    }
+}
+
+#[cfg(feature = "tower-service")]
+mod feat_tower_service {
+    use std::convert::Infallible;
+    use std::future::Future;
+
+    use hyper::{Body, Request, Response};
+    use tower::Service;
+
+    use super::*;
+    impl<COMP, F> Endpoint<COMP, F>
+    where
+        COMP: BaseComponent,
+        F: 'static + Clone + Send + Fn() -> COMP::Properties,
+    {
+        pub fn into_tower_service(
+            self,
+        ) -> impl 'static
+               + Clone
+               + Service<
+            Request<Body>,
+            Response = Response<Body>,
+            Error = Infallible,
+            Future = impl 'static + Send + Future<Output = Result<Response<Body>, Infallible>>,
+        > {
+            let routes = self.into_warp_filter();
             warp::service(routes)
         }
     }
