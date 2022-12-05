@@ -1,6 +1,7 @@
 use bounce::helmet::HelmetBridge;
 use bounce::BounceRoot;
 use yew::prelude::*;
+use yew_router::BrowserRouter;
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct StackableRootProps {
@@ -13,8 +14,10 @@ pub fn StackableRoot(props: &StackableRootProps) -> Html {
     let StackableRootProps { children } = props.clone();
     html! {
         <BounceRoot>
-            <HelmetBridge />
-            {children}
+            <BrowserRouter>
+                <HelmetBridge />
+                {children}
+            </BrowserRouter>
         </BounceRoot>
     }
 }

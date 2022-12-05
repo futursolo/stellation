@@ -10,3 +10,4 @@ rust-version = "1.65"
 yew = { version = "0.20", features = ["csr", "hydration"] }
 stackable-core = { path = "../stackable-core", version = "0.1.0" }
 bounce = { version = "0.5", features = ["helmet"] }
+yew-router = "0.17"

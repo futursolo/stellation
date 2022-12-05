@@ -7,10 +7,13 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-yew = { version = "0.20", features = ["ssr"] }
 futures = { version = "0.3", default-features = false, features = ["std"] }
 typed-builder = "0.11.0"
+
+# Yew / Component Related
+yew = { version = "0.20", features = ["ssr"] }
 bounce = { version = "0.5", features = ["helmet", "ssr"] }
+yew-router = "0.17"
 
 # Hyper Server and Tower Service.
 hyper = { version = "0.14.23", features = ["runtime", "server", "http1"], optional = true }

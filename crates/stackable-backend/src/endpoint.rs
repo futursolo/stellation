@@ -51,6 +51,7 @@ where
 
 #[cfg(feature = "tower-service")]
 mod feat_tower_service {
+    use std::collections::HashMap;
     use std::convert::Infallible;
     use std::future::Future;
     use std::path::Path;
@@ -60,6 +61,7 @@ mod feat_tower_service {
     use hyper::{Body, Request, Response};
     use tokio::fs;
     use tower::Service;
+    use warp::path::FullPath;
     use warp::{Filter, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
@@ -72,6 +74,8 @@ mod feat_tower_service {
     {
         async fn render_html_inner(
             index_html_path: Arc<Path>,
+            path: String,
+            queries: HashMap<String, String>,
             create_props: F,
             tx: sync_oneshot::Sender<String>,
         ) where
@@ -88,6 +92,8 @@ mod feat_tower_service {
                 yew::LocalServerRenderer::<StackableRoot>::with_props(StackableRootProps {
                     children,
                     helmet_writer: writer,
+                    path,
+                    queries,
                 })
                 .render()
                 .await;
@@ -111,11 +117,16 @@ mod feat_tower_service {
             let _ = tx.send(s);
         }
 
-        async fn render_html(index_html_path: Arc<Path>, create_props: F) -> impl Reply {
+        async fn render_html(
+            index_html_path: Arc<Path>,
+            path: String,
+            queries: HashMap<String, String>,
+            create_props: F,
+        ) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
             let create_render_inner = move || async move {
-                Self::render_html_inner(index_html_path, create_props, tx).await;
+                Self::render_html_inner(index_html_path, path, queries, create_props, tx).await;
             };
 
             // We spawn into a local runtime early for higher efficiency.
@@ -149,12 +160,15 @@ mod feat_tower_service {
                 .dev_server_build_path;
             let index_html_path: Arc<Path> = Arc::from(dev_server_build_path.join("index.html"));
 
-            let index_html_f = warp::get().then(move || {
-                let index_html_path = index_html_path.clone();
-                let create_props = create_props.clone();
+            let index_html_f = warp::get().and(warp::path::full()).and(warp::query()).then(
+                move |path: FullPath, queries: HashMap<String, String>| {
+                    let index_html_path = index_html_path.clone();
+                    let create_props = create_props.clone();
+                    let path = path.as_str().to_string();
 
-                Self::render_html(index_html_path, create_props)
-            });
+                    Self::render_html(index_html_path, path, queries, create_props)
+                },
+            );
 
             let routes = warp::path::end()
                 .and(index_html_f.clone())
