@@ -5,6 +5,7 @@ mod bridge_remote;
 pub mod resolvers;
 pub mod types;
 
+#[cfg(feature = "resolvable")]
 pub use bridge_local::LocalBridge;
 #[cfg(feature = "resolvable")]
 pub use bridge_local::LocalBridge as Bridge;

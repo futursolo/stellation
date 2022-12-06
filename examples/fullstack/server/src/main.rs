@@ -1,3 +1,4 @@
+use example_fullstack_api::create_bridge;
 use stackable_backend::{Cli, Endpoint};
 use tracing::Level;
 use tracing_subscriber::prelude::*;
@@ -19,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     Cli::builder()
-        .endpoint(Endpoint::<ServerApp>::new())
+        .endpoint(Endpoint::<ServerApp>::new().with_bridge(create_bridge()))
         .build()
         .run()
         .await?;

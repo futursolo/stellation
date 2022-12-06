@@ -245,7 +245,9 @@ dependencies = [
 name = "example-fullstack-client"
 version = "0.1.0"
 dependencies = [
+ "example-fullstack-api",
  "example-fullstack-app",
+ "gloo",
  "stackable-frontend",
  "tracing-subscriber",
  "tracing-web",
@@ -257,6 +259,7 @@ name = "example-fullstack-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "example-fullstack-api",
  "example-fullstack-app",
  "stackable-backend",
  "tokio",

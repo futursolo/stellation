@@ -16,3 +16,4 @@ yew = "0.20.0"
 
 # Example Workspace
 example-fullstack-app = { path = "../app" }
+example-fullstack-api = { path = "../api", features = ["resolvable"] }

@@ -9,8 +9,13 @@ publish = false
 [dependencies]
 stackable-frontend = { version = "0.1.0", path = "../../../crates/stackable-frontend" }
 yew = "0.20.0"
+gloo = "0.8"
+
+# Logging
+tracing-web = "0.1.2"
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 # Example Workspace
 example-fullstack-app = { path = "../app" }
-tracing-web = "0.1.2"
-tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
+example-fullstack-api = { path = "../api" }
+

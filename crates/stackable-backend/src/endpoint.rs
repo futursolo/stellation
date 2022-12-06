@@ -199,21 +199,11 @@ mod feat_warp_filter {
                     }
                 });
 
-            let mut routes = warp::path::end()
-                .and(index_html_f.clone())
-                .or(warp::fs::dir(dev_server_build_path)
-                    .then(|m: File| async move { m.into_response() })
-                    .boxed())
-                .unify()
-                .or(index_html_f)
-                .unify()
-                .boxed();
-
-            if let Some(m) = bridge {
+            let bridge_f = bridge.map(|m| {
                 let bridge = Arc::new(m);
 
-                let bridge_f = warp::post()
-                    .and(warp::path::path("_bridge"))
+                warp::path::path("_bridge")
+                    .and(warp::post())
                     .and(header("X-Bridge-Type-Idx"))
                     .and(header::exact_ignore_case(
                         "content-type",
@@ -243,10 +233,23 @@ mod feat_warp_filter {
                             )
                             .into_response()
                         }
-                    });
+                    })
+            });
 
-                routes = routes.or(bridge_f).unify().boxed();
+            let mut routes = warp::path::end().and(index_html_f.clone()).boxed();
+
+            if let Some(m) = bridge_f {
+                routes = routes.or(m).unify().boxed();
             }
+
+            let routes = routes
+                .or(warp::fs::dir(dev_server_build_path)
+                    .then(|m: File| async move { m.into_response() })
+                    .boxed())
+                .unify()
+                .or(index_html_f)
+                .unify()
+                .boxed();
 
             routes.with(warp::trace::request())
         }
