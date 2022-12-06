@@ -2,6 +2,7 @@ use core::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use stackable_bridge::bridge::Bridge;
 use yew::prelude::*;
 
 use crate::dev_env::DevEnv;
@@ -17,6 +18,7 @@ where
     COMP: BaseComponent,
 {
     affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
+    bridge: Option<Bridge>,
     _marker: PhantomData<COMP>,
     #[cfg(feature = "tower-service")]
     dev_env: Option<DevEnv>,
@@ -61,10 +63,16 @@ where
             affix_context: SendFn::<ServerAppProps<()>, ServerAppProps<CTX>>::new(move || {
                 Box::new(create_context.clone())
             }),
+            bridge: None,
             #[cfg(feature = "tower-service")]
             dev_env: None,
             _marker: PhantomData,
         }
+    }
+
+    pub fn with_bridge(mut self, bridge: Bridge) -> Self {
+        self.bridge = Some(bridge);
+        self
     }
 }
 
@@ -75,9 +83,12 @@ mod feat_warp_filter {
 
     use bounce::helmet::render_static;
     use futures::channel::oneshot as sync_oneshot;
+    use hyper::body::Bytes;
     use tokio::fs;
+    use warp::body::bytes;
+    use warp::fs::File;
     use warp::path::FullPath;
-    use warp::{Filter, Rejection, Reply};
+    use warp::{header, Filter, Rejection, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
@@ -159,7 +170,11 @@ mod feat_warp_filter {
             Error = Rejection,
             Future = impl Future<Output = Result<impl Reply, Rejection>>,
         > {
-            let Self { affix_context, .. } = self;
+            let Self {
+                affix_context,
+                bridge,
+                ..
+            } = self;
             let dev_server_build_path = self
                 .dev_env
                 .expect("running without development server is not implemented")
@@ -177,14 +192,51 @@ mod feat_warp_filter {
                     let affix_context = affix_context.clone();
                     let props = ServerAppProps::from_warp_request(path, raw_queries);
 
-                    Self::render_html(index_html_path, props, affix_context)
+                    async move {
+                        Self::render_html(index_html_path, props, affix_context)
+                            .await
+                            .into_response()
+                    }
                 });
 
-            warp::path::end()
+            let mut routes = warp::path::end()
                 .and(index_html_f.clone())
-                .or(warp::fs::dir(dev_server_build_path))
+                .or(warp::fs::dir(dev_server_build_path)
+                    .then(|m: File| async move { m.into_response() })
+                    .boxed())
+                .unify()
                 .or(index_html_f)
-                .with(warp::trace::request())
+                .unify()
+                .boxed();
+
+            if let Some(m) = bridge {
+                let bridge = Arc::new(m);
+                let bridge_f = warp::post()
+                    .and(warp::path::path("_bridge"))
+                    .and(header("X-Bridge-Type-Idx"))
+                    .and(bytes())
+                    .then(move |index: usize, input: Bytes| {
+                        let bridge = bridge.clone();
+                        let (tx, rx) = sync_oneshot::channel();
+
+                        let resolve_encoded = move || async move {
+                            let output = bridge.resolve_encoded(index, &input).await;
+                            let _ = tx.send(output);
+                        };
+
+                        match LocalHandle::try_current() {
+                            Some(handle) => handle.spawn_local(resolve_encoded()),
+                            // TODO: Allow Overriding Runtime with Endpoint.
+                            None => Runtime::default().spawn_pinned(resolve_encoded),
+                        }
+
+                        async move { rx.await.expect("didn't receive result?").into_response() }
+                    });
+
+                routes = routes.or(bridge_f).unify().boxed();
+            }
+
+            routes.with(warp::trace::request())
         }
     }
 }

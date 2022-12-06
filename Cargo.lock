@@ -1204,6 +1204,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_urlencoded",
+ "stackable-bridge",
  "thiserror",
  "thread_local",
  "tokio",

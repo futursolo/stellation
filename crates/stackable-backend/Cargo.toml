@@ -12,6 +12,9 @@ typed-builder = "0.11.0"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 
+# Bridge
+stackable-bridge = { version = "0.1.0", path = "../stackable-bridge", features = ["resolvable"] }
+
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
 bounce = { version = "0.5", features = ["helmet", "ssr"] }

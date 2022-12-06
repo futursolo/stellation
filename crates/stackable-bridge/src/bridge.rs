@@ -8,7 +8,8 @@ use futures::FutureExt;
 use crate::resolvers::{MutationResolver, QueryResolver};
 use crate::types::{Mutation, Query, QueryResult};
 
-type Resolvers = HashMap<TypeId, Arc<dyn Fn(&[u8]) -> LocalBoxFuture<'static, Vec<u8>>>>;
+type Resolvers =
+    HashMap<TypeId, Arc<dyn Send + Sync + Fn(&[u8]) -> LocalBoxFuture<'static, Vec<u8>>>>;
 
 #[derive(Default)]
 pub struct Bridge {
@@ -81,5 +82,15 @@ impl Bridge {
         T: 'static + Query + QueryResolver,
     {
         T::resolve(input).await
+    }
+
+    pub async fn resolve_encoded(&self, idx: usize, input: &[u8]) -> Vec<u8> {
+        let type_id = self.query_index.get(idx).expect("failed to find type.");
+        let resolver = self
+            .resolvers
+            .get(type_id)
+            .expect("failed to find resolver");
+
+        resolver(input).await
     }
 }
