@@ -1,8 +1,8 @@
-use example_fullstack_app::App;
 // use tracing_subscriber::prelude::*;
 // use tracing_web::MakeConsoleWriter;
 
 mod app;
+use app::App;
 
 fn main() {
     // Setup Logging

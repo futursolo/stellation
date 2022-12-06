@@ -168,7 +168,10 @@ mod feat_warp_filter {
 
             let index_html_f = warp::get()
                 .and(warp::path::full())
-                .and(warp::query::raw())
+                .and(
+                    warp::query::raw()
+                        .or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
+                )
                 .then(move |path: FullPath, raw_queries| {
                     let index_html_path = index_html_path.clone();
                     let affix_context = affix_context.clone();
