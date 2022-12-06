@@ -12,6 +12,7 @@ stackable-backend = { version = "0.1.0", path = "../../../crates/stackable-backe
 tokio = { version = "1.22.0", features = ["full"] }
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+yew = "0.20.0"
 
 # Example Workspace
 example-fullstack-app = { path = "../app" }

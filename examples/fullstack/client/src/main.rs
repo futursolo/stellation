@@ -2,6 +2,8 @@ use example_fullstack_app::App;
 // use tracing_subscriber::prelude::*;
 // use tracing_web::MakeConsoleWriter;
 
+mod app;
+
 fn main() {
     // Setup Logging
     // let fmt_layer = tracing_subscriber::fmt::layer()

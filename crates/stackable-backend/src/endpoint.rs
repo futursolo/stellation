@@ -1,25 +1,28 @@
 use core::fmt;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use yew::prelude::*;
 
 use crate::dev_env::DevEnv;
 use crate::utils::thread_local::ThreadLocalLazy;
+use crate::ServerAppProps;
 
-type BoxedUnitSendFn<OUT> = Box<dyn Send + Fn() -> OUT>;
+type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> OUT>;
 
-type CreateProps<COMP> = ThreadLocalLazy<BoxedUnitSendFn<<COMP as BaseComponent>::Properties>>;
+type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 
-pub struct Endpoint<COMP>
+pub struct Endpoint<COMP, CTX = ()>
 where
     COMP: BaseComponent,
 {
-    create_props: CreateProps<COMP>,
+    affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
+    _marker: PhantomData<COMP>,
     #[cfg(feature = "tower-service")]
     dev_env: Option<DevEnv>,
 }
 
-impl<COMP> fmt::Debug for Endpoint<COMP>
+impl<COMP, CTX> fmt::Debug for Endpoint<COMP, CTX>
 where
     COMP: BaseComponent,
 {
@@ -28,42 +31,45 @@ where
     }
 }
 
-impl<COMP> Default for Endpoint<COMP>
+impl<COMP, CTX> Default for Endpoint<COMP, CTX>
 where
     COMP: BaseComponent,
-    COMP::Properties: Default,
+    CTX: 'static + Default,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<COMP> Endpoint<COMP>
+impl<COMP, CTX> Endpoint<COMP, CTX>
 where
     COMP: BaseComponent,
+    CTX: 'static,
 {
-    pub fn new() -> Endpoint<COMP>
+    pub fn new() -> Self
     where
-        COMP::Properties: Default,
+        CTX: Default,
     {
-        Endpoint::<COMP>::with_props(COMP::Properties::default)
+        Endpoint::<COMP, CTX>::with_create_context(|m| m.with_context(CTX::default()))
     }
 
-    pub fn with_props<F>(f: F) -> Self
+    pub fn with_create_context<F>(create_context: F) -> Self
     where
-        F: 'static + Clone + Send + Fn() -> COMP::Properties,
+        F: 'static + Clone + Send + Fn(ServerAppProps<()>) -> ServerAppProps<CTX>,
     {
         Self {
-            create_props: CreateProps::<COMP>::new(move || Box::new(f.clone())),
+            affix_context: SendFn::<ServerAppProps<()>, ServerAppProps<CTX>>::new(move || {
+                Box::new(create_context.clone())
+            }),
             #[cfg(feature = "tower-service")]
             dev_env: None,
+            _marker: PhantomData,
         }
     }
 }
 
 #[cfg(feature = "warp-filter")]
 mod feat_warp_filter {
-    use std::collections::HashMap;
     use std::future::Future;
     use std::path::Path;
 
@@ -76,33 +82,29 @@ mod feat_warp_filter {
 
     use super::*;
     use crate::root::{StackableRoot, StackableRootProps};
-    impl<COMP> Endpoint<COMP>
+    impl<COMP, CTX> Endpoint<COMP, CTX>
     where
-        COMP: BaseComponent,
+        COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+        CTX: 'static,
     {
         async fn render_html_inner(
             index_html_path: Arc<Path>,
-            path: String,
-            queries: HashMap<String, String>,
-            create_props: CreateProps<COMP>,
+            props: ServerAppProps<()>,
+            affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
             tx: sync_oneshot::Sender<String>,
         ) {
-            let props = (create_props.get())();
-            let children = html! {
-                <COMP ..props />
-            };
-
+            let props = (affix_context.get())(props);
             let (reader, writer) = render_static();
 
-            let body_s =
-                yew::LocalServerRenderer::<StackableRoot>::with_props(StackableRootProps {
-                    children,
+            let body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
+                StackableRootProps {
+                    server_app_props: props,
                     helmet_writer: writer,
-                    path,
-                    queries,
-                })
-                .render()
-                .await;
+                    _marker: PhantomData,
+                },
+            )
+            .render()
+            .await;
 
             let mut head_s = String::new();
             let helmet_tags = reader.render().await;
@@ -125,14 +127,13 @@ mod feat_warp_filter {
 
         async fn render_html(
             index_html_path: Arc<Path>,
-            path: String,
-            queries: HashMap<String, String>,
-            create_props: CreateProps<COMP>,
+            props: ServerAppProps<()>,
+            affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
         ) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
             let create_render_inner = move || async move {
-                Self::render_html_inner(index_html_path, path, queries, create_props, tx).await;
+                Self::render_html_inner(index_html_path, props, affix_context, tx).await;
             };
 
             // We spawn into a local runtime early for higher efficiency.
@@ -158,22 +159,23 @@ mod feat_warp_filter {
             Error = Rejection,
             Future = impl Future<Output = Result<impl Reply, Rejection>>,
         > {
-            let Self { create_props, .. } = self;
+            let Self { affix_context, .. } = self;
             let dev_server_build_path = self
                 .dev_env
                 .expect("running without development server is not implemented")
                 .dev_server_build_path;
             let index_html_path: Arc<Path> = Arc::from(dev_server_build_path.join("index.html"));
 
-            let index_html_f = warp::get().and(warp::path::full()).and(warp::query()).then(
-                move |path: FullPath, queries: HashMap<String, String>| {
+            let index_html_f = warp::get()
+                .and(warp::path::full())
+                .and(warp::query::raw())
+                .then(move |path: FullPath, raw_queries| {
                     let index_html_path = index_html_path.clone();
-                    let create_props = create_props.clone();
-                    let path = path.as_str().to_string();
+                    let affix_context = affix_context.clone();
+                    let props = ServerAppProps::from_warp_request(path, raw_queries);
 
-                    Self::render_html(index_html_path, path, queries, create_props)
-                },
-            );
+                    Self::render_html(index_html_path, props, affix_context)
+                });
 
             warp::path::end()
                 .and(index_html_f.clone())
@@ -193,9 +195,10 @@ mod feat_tower_service {
     use tower::Service;
 
     use super::*;
-    impl<COMP> Endpoint<COMP>
+    impl<COMP, CTX> Endpoint<COMP, CTX>
     where
-        COMP: BaseComponent,
+        COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+        CTX: 'static,
     {
         pub fn into_tower_service(
             self,

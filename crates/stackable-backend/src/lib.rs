@@ -18,4 +18,8 @@ pub use endpoint::Endpoint;
 #[cfg(feature = "hyper-server")]
 pub use server::Server;
 
+pub mod error;
+mod props;
 mod utils;
+
+pub use props::ServerAppProps;

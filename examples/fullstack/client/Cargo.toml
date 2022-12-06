@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 stackable-frontend = { version = "0.1.0", path = "../../../crates/stackable-frontend" }
+yew = "0.20.0"
 
 # Example Workspace
 example-fullstack-app = { path = "../app" }

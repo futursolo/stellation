@@ -1,8 +1,10 @@
-use example_fullstack_app::ServerApp;
 use stackable_backend::{Cli, Endpoint};
 use tracing::Level;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
+
+mod app;
+use app::ServerApp;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

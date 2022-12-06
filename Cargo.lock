@@ -243,6 +243,7 @@ dependencies = [
  "stackable-frontend",
  "tracing-subscriber",
  "tracing-web",
+ "yew",
 ]
 
 [[package]]
@@ -255,6 +256,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "yew",
 ]
 
 [[package]]
@@ -1200,6 +1202,9 @@ dependencies = [
  "futures",
  "hyper",
  "once_cell",
+ "serde",
+ "serde_urlencoded",
+ "thiserror",
  "thread_local",
  "tokio",
  "tower",

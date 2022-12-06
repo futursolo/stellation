@@ -9,6 +9,8 @@ rust-version = "1.65"
 [dependencies]
 futures = { version = "0.3", default-features = false, features = ["std"] }
 typed-builder = "0.11.0"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
@@ -26,6 +28,7 @@ anyhow = { version = "1", optional = true }
 clap = { version = "4.0.29", features = ["derive"], optional = true }
 once_cell = "1.16.0"
 thread_local = "1.1.4"
+serde_urlencoded = "0.7.1"
 
 [features]
 warp-filter = ["dep:warp", "dep:tokio"]

@@ -5,19 +5,20 @@ use typed_builder::TypedBuilder;
 use yew::BaseComponent;
 
 use crate::dev_env::DevEnv;
-use crate::{Endpoint, Server};
+use crate::{Endpoint, Server, ServerAppProps};
 
 #[derive(Debug, TypedBuilder)]
-pub struct Cli<COMP>
+pub struct Cli<COMP, CTX = ()>
 where
     COMP: BaseComponent,
 {
-    endpoint: Endpoint<COMP>,
+    endpoint: Endpoint<COMP, CTX>,
 }
 
-impl<COMP> Cli<COMP>
+impl<COMP, CTX> Cli<COMP, CTX>
 where
-    COMP: BaseComponent,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+    CTX: 'static,
 {
     pub async fn run(self) -> anyhow::Result<()> {
         let Self { mut endpoint } = self;
