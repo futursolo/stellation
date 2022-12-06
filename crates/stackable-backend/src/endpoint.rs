@@ -1,22 +1,21 @@
 use core::fmt;
-use std::marker::PhantomData;
 use std::sync::Arc;
 
 use yew::prelude::*;
 
 use crate::dev_env::DevEnv;
+use crate::utils::send_fn::UnitSendFn;
 
-pub struct Endpoint<COMP, F>
+pub struct Endpoint<COMP>
 where
     COMP: BaseComponent,
 {
-    create_props: F,
-    _marker: PhantomData<COMP>,
+    create_props: UnitSendFn<COMP::Properties>,
     #[cfg(feature = "tower-service")]
     dev_env: Option<DevEnv>,
 }
 
-impl<COMP, F> fmt::Debug for Endpoint<COMP, F>
+impl<COMP> fmt::Debug for Endpoint<COMP>
 where
     COMP: BaseComponent,
 {
@@ -25,24 +24,33 @@ where
     }
 }
 
-impl<COMP, F> Endpoint<COMP, F>
+impl<COMP> Default for Endpoint<COMP>
+where
+    COMP: BaseComponent,
+    COMP::Properties: Default,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<COMP> Endpoint<COMP>
 where
     COMP: BaseComponent,
 {
-    pub fn new() -> Endpoint<COMP, impl 'static + Clone + Send + Fn() -> COMP::Properties>
+    pub fn new() -> Endpoint<COMP>
     where
         COMP::Properties: Default,
     {
-        Endpoint::<COMP, _>::with_props(COMP::Properties::default)
+        Endpoint::<COMP>::with_props(COMP::Properties::default)
     }
 
-    pub fn with_props(f: F) -> Self
+    pub fn with_props<F>(f: F) -> Self
     where
         F: 'static + Clone + Send + Fn() -> COMP::Properties,
     {
         Self {
-            create_props: f,
-            _marker: PhantomData,
+            create_props: UnitSendFn::new(f),
             #[cfg(feature = "tower-service")]
             dev_env: None,
         }
@@ -64,21 +72,18 @@ mod feat_warp_filter {
 
     use super::*;
     use crate::root::{StackableRoot, StackableRootProps};
-    impl<COMP, F> Endpoint<COMP, F>
+    impl<COMP> Endpoint<COMP>
     where
         COMP: BaseComponent,
-        F: 'static + Clone + Send + Fn() -> COMP::Properties,
     {
         async fn render_html_inner(
             index_html_path: Arc<Path>,
             path: String,
             queries: HashMap<String, String>,
-            create_props: F,
+            create_props: UnitSendFn<COMP::Properties>,
             tx: sync_oneshot::Sender<String>,
-        ) where
-            F: 'static + Clone + Send + Fn() -> COMP::Properties,
-        {
-            let props = create_props();
+        ) {
+            let props = create_props.emit();
             let children = html! {
                 <COMP ..props />
             };
@@ -118,7 +123,7 @@ mod feat_warp_filter {
             index_html_path: Arc<Path>,
             path: String,
             queries: HashMap<String, String>,
-            create_props: F,
+            create_props: UnitSendFn<COMP::Properties>,
         ) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
@@ -184,10 +189,9 @@ mod feat_tower_service {
     use tower::Service;
 
     use super::*;
-    impl<COMP, F> Endpoint<COMP, F>
+    impl<COMP> Endpoint<COMP>
     where
         COMP: BaseComponent,
-        F: 'static + Clone + Send + Fn() -> COMP::Properties,
     {
         pub fn into_tower_service(
             self,

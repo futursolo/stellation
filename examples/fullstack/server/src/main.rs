@@ -17,7 +17,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     Cli::builder()
-        .endpoint(Endpoint::<ServerApp, ()>::new())
+        .endpoint(Endpoint::<ServerApp>::new())
         .build()
         .run()
         .await?;

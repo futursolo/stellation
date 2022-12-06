@@ -24,6 +24,8 @@ tokio = { version = "1", optional = true }
 # Command Line Tools
 anyhow = { version = "1", optional = true }
 clap = { version = "4.0.29", features = ["derive"], optional = true }
+once_cell = "1.16.0"
+thread_local = "1.1.4"
 
 [features]
 warp-filter = ["dep:warp", "dep:tokio"]

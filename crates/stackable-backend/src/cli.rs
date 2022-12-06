@@ -8,21 +8,18 @@ use crate::dev_env::DevEnv;
 use crate::{Endpoint, Server};
 
 #[derive(Debug, TypedBuilder)]
-pub struct Cli<COMP, F>
+pub struct Cli<COMP>
 where
     COMP: BaseComponent,
 {
-    endpoint: Endpoint<COMP, F>,
+    endpoint: Endpoint<COMP>,
 }
 
-impl<COMP, F> Cli<COMP, F>
+impl<COMP> Cli<COMP>
 where
     COMP: BaseComponent,
 {
-    pub async fn run(self) -> anyhow::Result<()>
-    where
-        F: 'static + Clone + Send + Fn() -> COMP::Properties,
-    {
+    pub async fn run(self) -> anyhow::Result<()> {
         let Self { mut endpoint } = self;
         let dev_env = DevEnv::from_env()
             .context("starting backend without development server is not yet implemented!")?;
