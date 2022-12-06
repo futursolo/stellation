@@ -12,12 +12,12 @@ type Resolvers =
     HashMap<TypeId, Arc<dyn Send + Sync + Fn(&[u8]) -> LocalBoxFuture<'static, Vec<u8>>>>;
 
 #[derive(Default)]
-pub struct Bridge {
+pub struct LocalBridge {
     resolvers: Resolvers,
     query_index: Vec<TypeId>,
 }
 
-impl Bridge {
+impl LocalBridge {
     pub fn new() -> Self {
         Self::default()
     }

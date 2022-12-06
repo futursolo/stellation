@@ -2,7 +2,7 @@ use core::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use stackable_bridge::bridge::Bridge;
+use stackable_bridge::Bridge;
 use yew::prelude::*;
 
 use crate::dev_env::DevEnv;
@@ -88,7 +88,7 @@ mod feat_warp_filter {
     use warp::body::bytes;
     use warp::fs::File;
     use warp::path::FullPath;
-    use warp::{header, Filter, Rejection, Reply};
+    use warp::{header, reply, Filter, Rejection, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
@@ -211,9 +211,14 @@ mod feat_warp_filter {
 
             if let Some(m) = bridge {
                 let bridge = Arc::new(m);
+
                 let bridge_f = warp::post()
                     .and(warp::path::path("_bridge"))
                     .and(header("X-Bridge-Type-Idx"))
+                    .and(header::exact_ignore_case(
+                        "content-type",
+                        "application/x-bincode",
+                    ))
                     .and(bytes())
                     .then(move |index: usize, input: Bytes| {
                         let bridge = bridge.clone();
@@ -230,7 +235,14 @@ mod feat_warp_filter {
                             None => Runtime::default().spawn_pinned(resolve_encoded),
                         }
 
-                        async move { rx.await.expect("didn't receive result?").into_response() }
+                        async move {
+                            reply::with_header(
+                                rx.await.expect("didn't receive result?"),
+                                "content-type",
+                                "application/x-bincode",
+                            )
+                            .into_response()
+                        }
                     });
 
                 routes = routes.or(bridge_f).unify().boxed();

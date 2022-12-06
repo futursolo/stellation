@@ -227,6 +227,12 @@ dependencies = [
 [[package]]
 name = "example-fullstack-api"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "stackable-bridge",
+ "time",
+]
 
 [[package]]
 name = "example-fullstack-app"
@@ -1222,7 +1228,10 @@ dependencies = [
  "async-trait",
  "bincode",
  "futures",
+ "gloo-net",
+ "js-sys",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -1319,6 +1328,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a561bf4617eebd33bca6434b988f39ed798e527f51a1e797d0ee4f61c0a38376"
 dependencies = [
  "itoa",
+ "js-sys",
  "serde",
  "time-core",
  "time-macros",
