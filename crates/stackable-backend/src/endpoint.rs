@@ -4,13 +4,17 @@ use std::sync::Arc;
 use yew::prelude::*;
 
 use crate::dev_env::DevEnv;
-use crate::utils::send_fn::UnitSendFn;
+use crate::utils::thread_local::ThreadLocalLazy;
+
+type BoxedUnitSendFn<OUT> = Box<dyn Send + Fn() -> OUT>;
+
+type CreateProps<COMP> = ThreadLocalLazy<BoxedUnitSendFn<<COMP as BaseComponent>::Properties>>;
 
 pub struct Endpoint<COMP>
 where
     COMP: BaseComponent,
 {
-    create_props: UnitSendFn<COMP::Properties>,
+    create_props: CreateProps<COMP>,
     #[cfg(feature = "tower-service")]
     dev_env: Option<DevEnv>,
 }
@@ -50,7 +54,7 @@ where
         F: 'static + Clone + Send + Fn() -> COMP::Properties,
     {
         Self {
-            create_props: UnitSendFn::new(f),
+            create_props: CreateProps::<COMP>::new(move || Box::new(f.clone())),
             #[cfg(feature = "tower-service")]
             dev_env: None,
         }
@@ -80,10 +84,10 @@ mod feat_warp_filter {
             index_html_path: Arc<Path>,
             path: String,
             queries: HashMap<String, String>,
-            create_props: UnitSendFn<COMP::Properties>,
+            create_props: CreateProps<COMP>,
             tx: sync_oneshot::Sender<String>,
         ) {
-            let props = create_props.emit();
+            let props = (create_props.get())();
             let children = html! {
                 <COMP ..props />
             };
@@ -123,7 +127,7 @@ mod feat_warp_filter {
             index_html_path: Arc<Path>,
             path: String,
             queries: HashMap<String, String>,
-            create_props: UnitSendFn<COMP::Properties>,
+            create_props: CreateProps<COMP>,
         ) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
