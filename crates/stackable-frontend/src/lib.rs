@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use stackable_bridge::Bridge;
 use yew::prelude::*;
 
 use crate::root::{StackableRoot, StackableRootProps};
@@ -9,7 +10,8 @@ pub struct Renderer<COMP>
 where
     COMP: BaseComponent,
 {
-    inner: yew::Renderer<StackableRoot>,
+    props: COMP::Properties,
+    bridge: Option<Bridge>,
     _marker: PhantomData<COMP>,
 }
 
@@ -35,21 +37,31 @@ where
     }
 
     pub fn with_props(props: COMP::Properties) -> Renderer<COMP> {
-        let children = html! {
-            <COMP ..props />
-        };
-
         Renderer {
-            inner: yew::Renderer::with_props(StackableRootProps { children }),
+            props,
+            bridge: None,
             _marker: PhantomData,
         }
     }
 
+    fn into_yew_renderer(self) -> yew::Renderer<StackableRoot<COMP>> {
+        let Self { props, bridge, .. } = self;
+        let bridge = bridge.unwrap_or_default();
+
+        let children = html! {
+            <COMP ..props />
+        };
+
+        let props = StackableRootProps { bridge, children };
+
+        yew::Renderer::with_props(props)
+    }
+
     pub fn render(self) {
-        self.inner.render();
+        self.into_yew_renderer().render();
     }
 
     pub fn hydrate(self) {
-        self.inner.hydrate();
+        self.into_yew_renderer().hydrate();
     }
 }

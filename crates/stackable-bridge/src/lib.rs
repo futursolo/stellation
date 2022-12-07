@@ -1,6 +1,9 @@
 #[cfg(feature = "resolvable")]
 mod bridge_local;
 mod bridge_remote;
+pub mod error;
+pub mod hooks;
+pub mod provider;
 #[cfg(feature = "resolvable")]
 pub mod resolvers;
 pub mod types;

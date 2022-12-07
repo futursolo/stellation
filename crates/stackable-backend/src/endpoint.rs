@@ -101,6 +101,7 @@ mod feat_warp_filter {
         async fn render_html_inner(
             index_html_path: Arc<Path>,
             props: ServerAppProps<()>,
+            bridge: Bridge,
             affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
             tx: sync_oneshot::Sender<String>,
         ) {
@@ -111,7 +112,7 @@ mod feat_warp_filter {
                 StackableRootProps {
                     server_app_props: props,
                     helmet_writer: writer,
-                    _marker: PhantomData,
+                    bridge,
                 },
             )
             .render()
@@ -139,12 +140,13 @@ mod feat_warp_filter {
         async fn render_html(
             index_html_path: Arc<Path>,
             props: ServerAppProps<()>,
+            bridge: Bridge,
             affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
         ) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
             let create_render_inner = move || async move {
-                Self::render_html_inner(index_html_path, props, affix_context, tx).await;
+                Self::render_html_inner(index_html_path, props, bridge, affix_context, tx).await;
             };
 
             // We spawn into a local runtime early for higher efficiency.
@@ -181,23 +183,33 @@ mod feat_warp_filter {
                 .dev_server_build_path;
             let index_html_path: Arc<Path> = Arc::from(dev_server_build_path.join("index.html"));
 
-            let index_html_f = warp::get()
-                .and(warp::path::full())
-                .and(
-                    warp::query::raw()
-                        .or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
-                )
-                .then(move |path: FullPath, raw_queries| {
-                    let index_html_path = index_html_path.clone();
-                    let affix_context = affix_context.clone();
-                    let props = ServerAppProps::from_warp_request(path, raw_queries);
+            let index_html_f = {
+                let bridge = bridge.clone();
 
-                    async move {
-                        Self::render_html(index_html_path, props, affix_context)
+                warp::get()
+                    .and(warp::path::full())
+                    .and(
+                        warp::query::raw()
+                            .or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
+                    )
+                    .then(move |path: FullPath, raw_queries| {
+                        let index_html_path = index_html_path.clone();
+                        let affix_context = affix_context.clone();
+                        let props = ServerAppProps::from_warp_request(path, raw_queries);
+                        let bridge = bridge.clone();
+
+                        async move {
+                            Self::render_html(
+                                index_html_path,
+                                props,
+                                bridge.unwrap_or_default(),
+                                affix_context,
+                            )
                             .await
                             .into_response()
-                    }
-                });
+                        }
+                    })
+            };
 
             let bridge_f = bridge.map(|m| {
                 let bridge = Arc::new(m);

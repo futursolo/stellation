@@ -5,7 +5,7 @@ use time::OffsetDateTime;
 
 use crate::types::*;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl QueryResolver for ServerTimeQuery {
     async fn resolve(_input: &Self::Input) -> QueryResult<Self> {
         Ok(Self {

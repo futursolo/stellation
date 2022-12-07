@@ -1,19 +1,39 @@
 use std::any::TypeId;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gloo_net::http::Request;
 use js_sys::Uint8Array;
 
 use crate::types::{Mutation, MutationResult, Query, QueryResult};
 
-#[derive(Default)]
 pub struct RemoteBridge {
     query_index: Vec<TypeId>,
+    id: usize,
+}
+
+impl Default for RemoteBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PartialEq for RemoteBridge {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 impl RemoteBridge {
     pub fn new() -> Self {
-        Self::default()
+        static ID: AtomicUsize = AtomicUsize::new(0);
+
+        let id = ID.fetch_add(1, Ordering::AcqRel);
+
+        Self {
+            id,
+            query_index: Vec::new(),
+        }
     }
 
     pub fn add_query<T>(&mut self) -> &mut Self

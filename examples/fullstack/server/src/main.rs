@@ -10,7 +10,7 @@ use app::ServerApp;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer().pretty())
+        .with(tracing_subscriber::fmt::layer())
         .with(
             EnvFilter::builder()
                 .with_default_directive(Level::INFO.into())

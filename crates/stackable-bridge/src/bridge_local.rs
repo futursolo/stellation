@@ -1,5 +1,6 @@
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use futures::future::LocalBoxFuture;
@@ -11,15 +12,36 @@ use crate::types::{Mutation, Query, QueryResult};
 type Resolvers =
     HashMap<TypeId, Arc<dyn Send + Sync + Fn(&[u8]) -> LocalBoxFuture<'static, Vec<u8>>>>;
 
-#[derive(Default)]
+#[derive(Clone)]
 pub struct LocalBridge {
     resolvers: Resolvers,
     query_index: Vec<TypeId>,
+    id: usize,
+}
+
+impl PartialEq for LocalBridge {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Default for LocalBridge {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LocalBridge {
     pub fn new() -> Self {
-        Self::default()
+        static ID: AtomicUsize = AtomicUsize::new(0);
+
+        let id = ID.fetch_add(1, Ordering::AcqRel);
+
+        Self {
+            id,
+            resolvers: HashMap::new(),
+            query_index: Vec::new(),
+        }
     }
 
     pub fn add_query<T>(&mut self) -> &mut Self

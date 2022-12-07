@@ -22,7 +22,7 @@ where
 {
     pub async fn run(self) -> anyhow::Result<()> {
         let Self { mut endpoint } = self;
-        let dev_env = DevEnv::from_env()
+        let dev_env = DevEnv::from_env()?
             .context("starting backend without development server is not yet implemented!")?;
 
         endpoint.set_dev_env(dev_env.clone());
