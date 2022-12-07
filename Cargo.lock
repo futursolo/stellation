@@ -235,18 +235,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "example-fullstack-app"
-version = "0.1.0"
-dependencies = [
- "yew",
-]
-
-[[package]]
 name = "example-fullstack-client"
 version = "0.1.0"
 dependencies = [
  "example-fullstack-api",
- "example-fullstack-app",
+ "example-fullstack-view",
  "gloo",
  "stackable-frontend",
  "tracing-subscriber",
@@ -260,11 +253,18 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "example-fullstack-api",
- "example-fullstack-app",
+ "example-fullstack-view",
  "stackable-backend",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "yew",
+]
+
+[[package]]
+name = "example-fullstack-view"
+version = "0.1.0"
+dependencies = [
  "yew",
 ]
 
