@@ -3,17 +3,9 @@
 
 mod app;
 use app::App;
-use example_fullstack_api::{create_bridge, ServerTimeQuery};
-use yew::platform::spawn_local;
+use example_fullstack_api::create_bridge;
 
 fn main() {
-    spawn_local(async move {
-        let bridge = create_bridge();
-        let t = bridge.resolve_query::<ServerTimeQuery>(&()).await;
-
-        gloo::console::log!(format!("{:?}", t.expect("failed to load")));
-    });
-
     // Setup Logging
     // let fmt_layer = tracing_subscriber::fmt::layer()
     //     .with_ansi(false)
@@ -21,5 +13,8 @@ fn main() {
     // tracing_subscriber::registry().with(fmt_layer).init();
 
     // Start Application
-    stackable_frontend::Renderer::<App>::new().hydrate();
+    let bridge = create_bridge();
+    stackable_frontend::Renderer::<App>::new()
+        .bridge(bridge)
+        .hydrate();
 }

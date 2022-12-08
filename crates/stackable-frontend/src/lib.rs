@@ -44,6 +44,12 @@ where
         }
     }
 
+    pub fn bridge(mut self, bridge: Bridge) -> Self {
+        self.bridge = Some(bridge);
+
+        self
+    }
+
     fn into_yew_renderer(self) -> yew::Renderer<StackableRoot<COMP>> {
         let Self { props, bridge, .. } = self;
         let bridge = bridge.unwrap_or_default();

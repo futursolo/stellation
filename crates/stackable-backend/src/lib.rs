@@ -3,7 +3,7 @@
 
 #[cfg(feature = "cli")]
 mod cli;
-#[cfg(feature = "cli")]
+#[cfg(feature = "tower-service")]
 mod dev_env;
 pub mod endpoint;
 mod root;

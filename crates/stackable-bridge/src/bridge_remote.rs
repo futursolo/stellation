@@ -1,12 +1,14 @@
 use std::any::TypeId;
+use std::hash::Hash;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gloo_net::http::Request;
 use js_sys::Uint8Array;
 
-use crate::types::{Mutation, MutationResult, Query, QueryResult};
+use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 
+#[derive(Clone)]
 pub struct RemoteBridge {
     query_index: Vec<TypeId>,
     id: usize,
@@ -24,6 +26,13 @@ impl PartialEq for RemoteBridge {
     }
 }
 
+impl Eq for RemoteBridge {}
+impl Hash for RemoteBridge {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_usize(self.id);
+    }
+}
+
 impl RemoteBridge {
     pub fn new() -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
@@ -38,7 +47,7 @@ impl RemoteBridge {
 
     pub fn add_query<T>(&mut self) -> &mut Self
     where
-        T: 'static + Query,
+        T: 'static + BridgedQuery,
     {
         let type_id = TypeId::of::<T>();
         self.query_index.push(type_id);
@@ -48,7 +57,7 @@ impl RemoteBridge {
 
     pub fn add_mutation<T>(&mut self) -> &mut Self
     where
-        T: 'static + Mutation,
+        T: 'static + BridgedMutation,
     {
         let type_id = TypeId::of::<T>();
         self.query_index.push(type_id);
@@ -79,7 +88,7 @@ impl RemoteBridge {
 
     pub async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
     where
-        T: 'static + Query,
+        T: 'static + BridgedQuery,
     {
         let input = bincode::serialize(&input).expect("failed to serialize");
         let type_id = TypeId::of::<T>();
@@ -92,7 +101,7 @@ impl RemoteBridge {
 
     pub async fn resolve_mutation<T>(&self, input: &T::Input) -> MutationResult<T>
     where
-        T: 'static + Mutation,
+        T: 'static + BridgedMutation,
     {
         let input = bincode::serialize(&input).expect("failed to serialize");
         let type_id = TypeId::of::<T>();

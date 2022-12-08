@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use bounce::helmet::{HelmetBridge, StaticWriter};
-use bounce::BounceRoot;
-use stackable_bridge::provider::BridgeProvider;
+use bounce::{use_atom_setter, BounceRoot};
+use stackable_bridge::state::BridgeState;
 use stackable_bridge::Bridge;
 use yew::prelude::*;
 use yew_router::history::{AnyHistory, History, MemoryHistory};
@@ -36,7 +36,7 @@ impl<CTX> Clone for StackableRootProps<CTX> {
 }
 
 #[function_component]
-pub fn StackableRoot<COMP, CTX>(props: &StackableRootProps<CTX>) -> Html
+fn Inner<COMP, CTX>(props: &StackableRootProps<CTX>) -> Html
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
 {
@@ -57,14 +57,35 @@ where
         )
         .expect("failed to push path.");
 
+    let set_bridge = use_atom_setter::<BridgeState>();
+    use_memo(
+        move |_| {
+            set_bridge(BridgeState { inner: bridge });
+        },
+        (),
+    );
+
+    let children = html! { <COMP ..server_app_props /> };
+
+    html! {
+        <Router {history}>
+            <HelmetBridge writer={helmet_writer} />
+            {children}
+        </Router>
+    }
+}
+
+#[function_component]
+pub fn StackableRoot<COMP, CTX>(props: &StackableRootProps<CTX>) -> Html
+where
+    COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+    CTX: 'static,
+{
+    let props = props.clone();
+
     html! {
         <BounceRoot>
-            <BridgeProvider {bridge}>
-                <Router {history}>
-                    <HelmetBridge writer={helmet_writer} />
-                    <COMP ..server_app_props />
-                </Router>
-            </BridgeProvider>
+            <Inner<COMP, CTX> ..props />
         </BounceRoot>
     }
 }

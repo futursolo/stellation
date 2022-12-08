@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::error::BridgeError;
-use crate::types::{Mutation, MutationResult, Query, QueryResult};
+use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 
 #[cold]
 fn panic_network_error(e: BridgeError) -> ! {
@@ -9,7 +9,7 @@ fn panic_network_error(e: BridgeError) -> ! {
 }
 
 #[async_trait(?Send)]
-pub trait QueryResolver: Query {
+pub trait QueryResolver: BridgedQuery {
     async fn resolve(input: &Self::Input) -> QueryResult<Self>;
 
     #[cold]
@@ -19,7 +19,7 @@ pub trait QueryResolver: Query {
 }
 
 #[async_trait(?Send)]
-pub trait MutationResolver: Mutation {
+pub trait MutationResolver: BridgedMutation {
     async fn resolve(input: &Self::Input) -> MutationResult<Self>;
 
     #[cold]

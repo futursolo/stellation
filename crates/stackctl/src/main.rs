@@ -281,8 +281,8 @@ impl Stackctl {
             .arg(&self.manifest.dev_server.bin_name)
             .current_dir(&workspace_dir)
             .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
             .kill_on_drop(true)
             .spawn()?;
 

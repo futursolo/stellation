@@ -1,5 +1,6 @@
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -7,7 +8,7 @@ use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
 use crate::resolvers::{MutationResolver, QueryResolver};
-use crate::types::{Mutation, Query, QueryResult};
+use crate::types::{BridgedMutation, BridgedQuery, QueryResult};
 
 type Resolvers =
     HashMap<TypeId, Arc<dyn Send + Sync + Fn(&[u8]) -> LocalBoxFuture<'static, Vec<u8>>>>;
@@ -24,10 +25,16 @@ impl PartialEq for LocalBridge {
         self.id == other.id
     }
 }
+impl Eq for LocalBridge {}
 
 impl Default for LocalBridge {
     fn default() -> Self {
         Self::new()
+    }
+}
+impl Hash for LocalBridge {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_usize(self.id);
     }
 }
 
@@ -46,7 +53,7 @@ impl LocalBridge {
 
     pub fn add_query<T>(&mut self) -> &mut Self
     where
-        T: 'static + Query + QueryResolver,
+        T: 'static + BridgedQuery + QueryResolver,
     {
         let type_id = TypeId::of::<T>();
 
@@ -70,7 +77,7 @@ impl LocalBridge {
 
     pub fn add_mutation<T>(&mut self) -> &mut Self
     where
-        T: 'static + Mutation + MutationResolver,
+        T: 'static + BridgedMutation + MutationResolver,
     {
         let type_id = TypeId::of::<T>();
 
@@ -94,14 +101,14 @@ impl LocalBridge {
 
     pub async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
     where
-        T: 'static + Query + QueryResolver,
+        T: 'static + BridgedQuery + QueryResolver,
     {
         T::resolve(input).await
     }
 
     pub async fn resolve_mutation<T>(&self, input: &T::Input) -> QueryResult<T>
     where
-        T: 'static + Query + QueryResolver,
+        T: 'static + BridgedQuery + QueryResolver,
     {
         T::resolve(input).await
     }

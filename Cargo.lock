@@ -286,6 +286,9 @@ dependencies = [
 name = "example-fullstack-view"
 version = "0.1.0"
 dependencies = [
+ "example-fullstack-api",
+ "stackable-bridge",
+ "time",
  "yew",
 ]
 

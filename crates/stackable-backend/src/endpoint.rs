@@ -1,10 +1,10 @@
 use core::fmt;
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use stackable_bridge::Bridge;
 use yew::prelude::*;
 
+#[cfg(feature = "tower-service")]
 use crate::dev_env::DevEnv;
 use crate::utils::thread_local::ThreadLocalLazy;
 use crate::ServerAppProps;
@@ -80,6 +80,7 @@ where
 mod feat_warp_filter {
     use std::future::Future;
     use std::path::Path;
+    use std::sync::Arc;
 
     use bounce::helmet::render_static;
     use futures::channel::oneshot as sync_oneshot;
