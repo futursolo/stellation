@@ -7,8 +7,5 @@ mod resolvers;
 use stackable_bridge::Bridge;
 
 pub fn create_bridge() -> Bridge {
-    let mut b = Bridge::new();
-    b.add_query::<ServerTimeQuery>();
-
-    b
+    Bridge::builder().add_query::<ServerTimeQuery>().build()
 }

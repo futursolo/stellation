@@ -85,6 +85,8 @@ mod feat_warp_filter {
     use bounce::helmet::render_static;
     use futures::channel::oneshot as sync_oneshot;
     use hyper::body::Bytes;
+    use hyper::StatusCode;
+    use stackable_bridge::error::BridgeError;
     use tokio::fs;
     use warp::body::bytes;
     use warp::fs::File;
@@ -239,12 +241,23 @@ mod feat_warp_filter {
                         }
 
                         async move {
-                            reply::with_header(
-                                rx.await.expect("didn't receive result?"),
-                                "content-type",
-                                "application/x-bincode",
-                            )
-                            .into_response()
+                            let content = rx.await.expect("didn't receive result?");
+
+                            match content {
+                                Ok(m) => {
+                                    reply::with_header(m, "content-type", "application/x-bincode")
+                                        .into_response()
+                                }
+                                Err(BridgeError::Encoding(_))
+                                | Err(BridgeError::InvalidIndex(_))
+                                | Err(BridgeError::InvalidType(_)) => {
+                                    reply::with_status("", StatusCode::BAD_REQUEST).into_response()
+                                }
+                                Err(BridgeError::Network(_)) => {
+                                    reply::with_status("", StatusCode::INTERNAL_SERVER_ERROR)
+                                        .into_response()
+                                }
+                            }
                         }
                     })
             });
