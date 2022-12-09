@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
 mod bridge;
 mod error;
 pub mod hooks;

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -7,7 +8,6 @@ use crate::types::{MutationResult, QueryResult};
 
 #[cfg(feature = "resolvable")]
 mod feat_resolvable {
-
     use std::sync::Arc;
 
     use futures::future::LocalBoxFuture;
@@ -208,9 +208,23 @@ impl BridgeBuilder {
     }
 }
 
+impl fmt::Debug for BridgeBuilder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("BridgeBuilder")
+    }
+}
+
 pub struct Bridge {
     inner: Arc<BridgeBuilder>,
     id: usize,
+}
+
+impl fmt::Debug for Bridge {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Bridge")
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
 }
 
 impl PartialEq for Bridge {

@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
 use std::marker::PhantomData;
 
 use stackable_bridge::Bridge;
@@ -6,6 +9,7 @@ use yew::prelude::*;
 use crate::root::{StackableRoot, StackableRootProps};
 mod root;
 
+#[derive(Debug)]
 pub struct Renderer<COMP>
 where
     COMP: BaseComponent,

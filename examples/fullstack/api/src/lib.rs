@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
 mod types;
 pub use types::*;
 

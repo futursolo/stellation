@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
 mod app;
 use app::App;
 use example_fullstack_api::create_bridge;
@@ -17,10 +20,12 @@ fn main() {
     tracing_subscriber::registry()
         .with(fmt_layer)
         .with(perf_layer)
-        .init(); // Install these as subscribers to tracing events
+        .init();
+
+    // Create bridge
+    let bridge = create_bridge();
 
     // Start Application
-    let bridge = create_bridge();
     stackable_frontend::Renderer::<App>::new()
         .bridge(bridge)
         .render();

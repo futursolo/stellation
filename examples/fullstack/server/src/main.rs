@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
 use example_fullstack_api::create_bridge;
 use stackable_backend::trace::pretty_access;
 use stackable_backend::{Cli, Endpoint};
