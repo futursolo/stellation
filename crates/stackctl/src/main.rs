@@ -286,8 +286,17 @@ impl Stackctl {
             .kill_on_drop(true)
             .spawn()?;
 
-        // TODO: wait until the backend connects.
-        sleep(Duration::from_secs(1)).await;
+        while reqwest::ClientBuilder::default()
+            .timeout(Duration::from_secs(1))
+            .build()?
+            .get(&http_listen_addr)
+            .send()
+            .await
+            .and_then(|m| m.error_for_status())
+            .is_err()
+        {
+            sleep(Duration::from_secs(1)).await;
+        }
 
         if open {
             self.open_browser(&http_listen_addr).await?;

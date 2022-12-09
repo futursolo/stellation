@@ -9,6 +9,7 @@ pub mod endpoint;
 mod root;
 #[cfg(feature = "hyper-server")]
 mod server;
+pub mod trace;
 
 #[cfg(feature = "cli")]
 pub use cli::Cli;

@@ -89,7 +89,7 @@ mod feat_warp_filter {
     use warp::body::bytes;
     use warp::fs::File;
     use warp::path::FullPath;
-    use warp::{header, reply, Filter, Rejection, Reply};
+    use warp::{header, log, reply, Filter, Rejection, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
@@ -264,7 +264,17 @@ mod feat_warp_filter {
                 .unify()
                 .boxed();
 
-            routes.with(warp::trace::request())
+            routes.with(log::custom(|info| {
+                // We emit a custom span so it won't interfere with warp's default tracing event.
+                tracing::info!(target: "stackable_backend::endpoint::trace",
+                remote_addr = ?info.remote_addr(),
+                method = %info.method(),
+                path = info.path(),
+                status = info.status().as_u16(),
+                referer = ?info.referer(),
+                user_agent = ?info.user_agent(),
+                duration = info.elapsed().as_nanos());
+            }))
         }
     }
 }
