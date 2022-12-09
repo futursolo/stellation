@@ -8,7 +8,7 @@ use yew::prelude::*;
 use yew_router::history::{AnyHistory, History, MemoryHistory};
 use yew_router::Router;
 
-use crate::ServerAppProps;
+use crate::props::ServerAppProps;
 
 #[derive(Properties)]
 pub struct StackableRootProps<CTX> {

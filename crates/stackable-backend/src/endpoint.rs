@@ -4,10 +4,8 @@ use std::marker::PhantomData;
 use stackable_bridge::Bridge;
 use yew::prelude::*;
 
-#[cfg(feature = "tower-service")]
-use crate::dev_env::DevEnv;
-use crate::utils::thread_local::ThreadLocalLazy;
-use crate::ServerAppProps;
+use crate::props::ServerAppProps;
+use crate::utils::ThreadLocalLazy;
 
 type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> OUT>;
 
@@ -17,11 +15,13 @@ pub struct Endpoint<COMP, CTX = ()>
 where
     COMP: BaseComponent,
 {
+    #[allow(dead_code)]
     affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
     bridge: Option<Bridge>,
+    #[cfg(feature = "warp-filter")]
+    frontend: Option<std::path::PathBuf>,
+
     _marker: PhantomData<COMP>,
-    #[cfg(feature = "tower-service")]
-    dev_env: Option<DevEnv>,
 }
 
 impl<COMP, CTX> fmt::Debug for Endpoint<COMP, CTX>
@@ -64,8 +64,8 @@ where
                 Box::new(create_context.clone())
             }),
             bridge: None,
-            #[cfg(feature = "tower-service")]
-            dev_env: None,
+            #[cfg(feature = "warp-filter")]
+            frontend: None,
             _marker: PhantomData,
         }
     }
@@ -79,14 +79,14 @@ where
 #[cfg(feature = "warp-filter")]
 mod feat_warp_filter {
     use std::future::Future;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::sync::Arc;
 
     use bounce::helmet::render_static;
+    use bytes::Bytes;
     use futures::channel::oneshot as sync_oneshot;
-    use hyper::body::Bytes;
-    use hyper::StatusCode;
-    use stackable_bridge::error::BridgeError;
+    use http::status::StatusCode;
+    use stackable_bridge::BridgeError;
     use tokio::fs;
     use warp::body::bytes;
     use warp::fs::File;
@@ -162,8 +162,10 @@ mod feat_warp_filter {
             warp::reply::html(rx.await.expect("renderer panicked?"))
         }
 
-        pub fn set_dev_env(&mut self, e: DevEnv) {
-            self.dev_env = Some(e);
+        pub fn with_frontend(mut self, p: impl Into<PathBuf>) -> Self {
+            self.frontend = Some(p.into());
+
+            self
         }
 
         pub fn into_warp_filter(
@@ -181,9 +183,8 @@ mod feat_warp_filter {
                 ..
             } = self;
             let dev_server_build_path = self
-                .dev_env
-                .expect("running without development server is not implemented")
-                .dev_server_build_path;
+                .frontend
+                .expect("running without development server is not implemented");
             let index_html_path: Arc<Path> = Arc::from(dev_server_build_path.join("index.html"));
 
             let index_html_f = {

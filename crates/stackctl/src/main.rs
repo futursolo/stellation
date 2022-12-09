@@ -13,7 +13,7 @@ use clap::Parser;
 use cli::{Cli, Command};
 use console::{style, Term};
 use manifest::Manifest;
-use stackable_backend::DevEnv;
+use stackable_core::dev::StackctlMetadata;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use tokio::signal::ctrl_c;
 use tokio::time::sleep;
@@ -266,20 +266,19 @@ impl Stackctl {
         bar.step_build_backend();
         self.build_backend().await?;
 
-        let dev_env = DevEnv {
+        let meta = StackctlMetadata {
             listen_addr: self.manifest.dev_server.listen.to_string(),
-            dev_server_build_path: frontend_build_dir.clone(),
+            frontend_dev_build_dir: frontend_build_dir.clone(),
         };
 
         bar.step_starting();
-        let mut server_cmd = Command::new("cargo");
-        dev_env.set_env(&mut server_cmd)?;
 
-        let _server_proc = server_cmd
+        let _server_proc = Command::new("cargo")
             .arg("run")
             .arg("--bin")
             .arg(&self.manifest.dev_server.bin_name)
             .current_dir(&workspace_dir)
+            .env(StackctlMetadata::ENV_NAME, meta.to_json()?)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())

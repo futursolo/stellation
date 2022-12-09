@@ -1,11 +1,14 @@
+use std::env;
 use std::net::ToSocketAddrs;
 
 use anyhow::{anyhow, Context};
+use stackable_core::dev::StackctlMetadata;
 use typed_builder::TypedBuilder;
 use yew::BaseComponent;
 
-use crate::dev_env::DevEnv;
-use crate::{Endpoint, Server, ServerAppProps};
+use crate::endpoint::Endpoint;
+use crate::props::ServerAppProps;
+use crate::server::Server;
 
 #[derive(Debug, TypedBuilder)]
 pub struct Cli<COMP, CTX = ()>
@@ -21,13 +24,13 @@ where
     CTX: 'static,
 {
     pub async fn run(self) -> anyhow::Result<()> {
-        let Self { mut endpoint } = self;
-        let dev_env = DevEnv::from_env()?
-            .context("starting backend without development server is not yet implemented!")?;
+        let Self { endpoint } = self;
+        let meta = env::var(StackctlMetadata::ENV_NAME)
+            .map(|m| StackctlMetadata::from_json(&m))
+            .context("starting backend without development server is not yet implemented!")?
+            .context("failed to load metadata")?;
 
-        endpoint.set_dev_env(dev_env.clone());
-
-        let addr = dev_env.listen_addr;
+        let addr = meta.listen_addr;
         Server::<()>::bind(
             addr.to_socket_addrs()
                 .context("failed to parse address")
@@ -37,7 +40,11 @@ where
                         .ok_or_else(|| anyhow!("failed to parse address"))
                 })?,
         )
-        .serve_service(endpoint.into_tower_service())
+        .serve_service(
+            endpoint
+                .with_frontend(meta.frontend_dev_build_dir)
+                .into_tower_service(),
+        )
         .await?;
 
         Ok(())

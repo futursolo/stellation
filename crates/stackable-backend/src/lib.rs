@@ -3,9 +3,8 @@
 
 #[cfg(feature = "cli")]
 mod cli;
-#[cfg(feature = "tower-service")]
-mod dev_env;
-pub mod endpoint;
+mod endpoint;
+mod props;
 mod root;
 #[cfg(feature = "hyper-server")]
 mod server;
@@ -13,14 +12,10 @@ pub mod trace;
 
 #[cfg(feature = "cli")]
 pub use cli::Cli;
-#[cfg(feature = "cli")]
-pub use dev_env::DevEnv;
 pub use endpoint::Endpoint;
+pub use props::ServerAppProps;
 #[cfg(feature = "hyper-server")]
 pub use server::Server;
 
 pub mod error;
-mod props;
-mod utils;
-
-pub use props::ServerAppProps;
+pub mod utils;

@@ -1,12 +1,19 @@
 //! A type to clone fn once per thread.
 
+use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use thread_local::ThreadLocal;
 
-pub(crate) struct ThreadLocalLazy<T: Send> {
+pub struct ThreadLocalLazy<T: Send> {
     value: Arc<ThreadLocal<T>>,
     create_value: Arc<dyn Send + Sync + Fn() -> T>,
+}
+
+impl<T: Send> fmt::Debug for ThreadLocalLazy<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ThreadLocalLazy<_>")
+    }
 }
 
 impl<T> Clone for ThreadLocalLazy<T>

@@ -1,1 +1,3 @@
-pub(crate) mod thread_local;
+mod thread_local;
+
+pub use self::thread_local::ThreadLocalLazy;
