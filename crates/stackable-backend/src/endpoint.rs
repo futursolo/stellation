@@ -1,5 +1,4 @@
 use core::fmt;
-use std::fmt::Write;
 use std::marker::PhantomData;
 
 use stackable_bridge::Bridge;
@@ -80,6 +79,7 @@ where
 #[cfg(feature = "warp-filter")]
 mod feat_warp_filter {
     use std::borrow::Cow;
+    use std::fmt::Write;
     use std::future::Future;
 
     use bounce::helmet::render_static;

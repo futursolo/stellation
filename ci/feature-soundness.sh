@@ -15,7 +15,7 @@ cargo clippy -p stackable-backend --features=cli
 
 cargo clippy -p stackable-frontend
 
-cargo clippy -p stackctl
+cargo clippy -p stackable-cli
 
 cargo clippy -p example-fullstack-client
 cargo clippy -p example-fullstack-server

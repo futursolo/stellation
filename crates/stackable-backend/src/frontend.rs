@@ -2,13 +2,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{fmt, str};
 
-use http::Response;
-use hyper::Body;
 use rust_embed::{EmbeddedFile, RustEmbed};
 use warp::filters::fs::File;
 use warp::filters::BoxedFilter;
 use warp::path::Tail;
-use warp::reply::with_header;
+use warp::reply::{with_header, Response};
 use warp::{Filter, Rejection, Reply};
 
 use crate::utils::ThreadLocalLazy;
@@ -60,7 +58,7 @@ impl Frontend {
         }
     }
 
-    pub(crate) fn into_warp_filter(self) -> BoxedFilter<(hyper::Response<Body>,)> {
+    pub(crate) fn into_warp_filter(self) -> BoxedFilter<(Response,)> {
         match self.inner {
             Inner::Path(m) => warp::fs::dir(m)
                 .then(|m: File| async move { m.into_response() })
@@ -75,8 +73,12 @@ impl Frontend {
                         let mime = mime_guess::from_path(path.as_str()).first_or_octet_stream();
 
                         Ok::<_, Rejection>(
-                            with_header(Response::new(asset.data), "content-type", mime.as_ref())
-                                .into_response(),
+                            with_header(
+                                warp::hyper::Response::new(asset.data),
+                                "content-type",
+                                mime.as_ref(),
+                            )
+                            .into_response(),
                         )
                     }
                 })
