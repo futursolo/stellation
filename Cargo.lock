@@ -278,6 +278,7 @@ dependencies = [
  "async-trait",
  "serde",
  "stackable-bridge",
+ "thiserror",
  "time",
 ]
 
@@ -316,6 +317,7 @@ dependencies = [
  "stackable-bridge",
  "time",
  "tracing",
+ "web-sys",
  "yew",
 ]
 

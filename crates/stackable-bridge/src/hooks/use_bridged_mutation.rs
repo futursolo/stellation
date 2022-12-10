@@ -74,7 +74,7 @@ where
         self.inner.run(input).await?.inner.clone()
     }
 
-    pub async fn result(&self) -> Option<&MutationResult<T>> {
+    pub fn result(&self) -> Option<&MutationResult<T>> {
         match self.inner.result()? {
             Ok(m) => Some(&m.inner),
             Err(_) => panic!("this can never happen!"),

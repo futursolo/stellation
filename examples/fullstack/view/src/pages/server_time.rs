@@ -33,7 +33,11 @@ pub fn ServerTime() -> HtmlResult {
                 "[year]-[month]-[day] [hour]:[minute]:[second]"
             ))
             .expect("failed to format time!"),
-        Err(_) => panic!("failed to fetch server value!"),
+        Err(_) => {
+            return Ok(html! {
+                <div class="time-content">{"Waiting for Server..."}</div>
+            })
+        }
     };
 
     Ok(html! {
