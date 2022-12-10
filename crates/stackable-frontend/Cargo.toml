@@ -11,3 +11,7 @@ yew = { version = "0.20", features = ["csr", "hydration"] }
 bounce = { version = "0.6", features = ["helmet"] }
 yew-router = "0.17"
 stackable-bridge = { version = "0.1.0", path = "../stackable-bridge" }
+
+[dependencies.web-sys]
+version = "0.3"
+features = ["Document"]

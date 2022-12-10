@@ -1,4 +1,5 @@
 use core::fmt;
+use std::fmt::Write;
 use std::marker::PhantomData;
 
 use stackable_bridge::Bridge;
@@ -127,6 +128,10 @@ mod feat_warp_filter {
             for tag in helmet_tags {
                 let _ = tag.write_static(&mut head_s);
             }
+            let _ = write!(
+                &mut head_s,
+                r#"<meta name="stackable-mode" content="hydrate">"#
+            );
 
             // With development server, we read index.html every time.
             let index_html_s = fs::read_to_string(&index_html_path)

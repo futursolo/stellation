@@ -68,10 +68,20 @@ where
     }
 
     pub fn render(self) {
-        self.into_yew_renderer().render();
-    }
+        let renderer = self.into_yew_renderer();
 
-    pub fn hydrate(self) {
-        self.into_yew_renderer().hydrate();
+        if web_sys::window()
+            .and_then(|m| m.document())
+            .and_then(|m| {
+                m.query_selector(r#"meta[name="stackable-mode"][content="hydrate"]"#)
+                    .ok()
+                    .flatten()
+            })
+            .is_some()
+        {
+            renderer.hydrate();
+        } else {
+            renderer.render();
+        }
     }
 }

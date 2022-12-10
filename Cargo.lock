@@ -1685,6 +1685,7 @@ version = "0.1.0"
 dependencies = [
  "bounce",
  "stackable-bridge",
+ "web-sys",
  "yew",
  "yew-router",
 ]
