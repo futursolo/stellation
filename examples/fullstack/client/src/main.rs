@@ -4,6 +4,7 @@
 mod app;
 use app::App;
 use example_fullstack_api::create_bridge;
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::Pretty;
 use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::prelude::*;
@@ -20,6 +21,7 @@ fn main() {
     tracing_subscriber::registry()
         .with(fmt_layer)
         .with(perf_layer)
+        .with(LevelFilter::INFO)
         .init();
 
     // Create bridge

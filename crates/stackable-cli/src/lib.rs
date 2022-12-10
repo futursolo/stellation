@@ -15,12 +15,18 @@ use anyhow::{bail, Context, Result};
 use clap::Parser;
 use cli::{Cli, Command};
 use console::{style, Term};
+use futures::future::ready;
+use futures::stream::unfold;
+use futures::{pin_mut, FutureExt, Stream, StreamExt};
 use manifest::Manifest;
+use notify::{recommended_watcher, Event, RecursiveMode, Watcher};
 use stackable_core::dev::StackctlMetadata;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
-use tokio::signal::ctrl_c;
+use tokio::process::Child;
+use tokio::sync::mpsc::unbounded_channel;
 use tokio::time::sleep;
 use tokio::{fs, spawn};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::Level;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
@@ -42,6 +48,68 @@ impl Stackctl {
             .parent()
             .context("failed to find workspace directory")
             .map(|m| m.to_owned())
+    }
+
+    async fn watch_changes(&self) -> Result<impl Stream<Item = SystemTime>> {
+        let workspace_dir = self.workspace_dir().await?;
+        let (tx, rx) = unbounded_channel::<PathBuf>();
+
+        let mut watcher = recommended_watcher(move |e: Result<Event, _>| {
+            if let Ok(e) = e {
+                for path in e.paths {
+                    if tx.send(path).is_err() {
+                        break;
+                    }
+                }
+            }
+        })
+        .context("failed to watch workspace changes")?;
+
+        watcher
+            .watch(&workspace_dir, RecursiveMode::Recursive)
+            .context("failed to watch workspace")?;
+
+        let stream = UnboundedReceiverStream::new(rx)
+            .filter(|p| {
+                let p_str = p.as_os_str().to_string_lossy();
+                if p_str.contains("target/") {
+                    return ready(false);
+                }
+                if p_str.contains(".stackable/") {
+                    return ready(false);
+                }
+                if !p_str.contains("src/") {
+                    return ready(false);
+                }
+
+                ready(true)
+            })
+            .boxed();
+
+        Ok(unfold(
+            (stream, watcher),
+            |(mut stream, watcher)| async move {
+                // We wait until first item is available.
+                stream.next().await?;
+
+                let sleep_fur = sleep(Duration::from_millis(100)).fuse();
+                pin_mut!(sleep_fur);
+
+                // This makes sure we filter all items between first item and sleep completes,
+                // whilst still returns at least 1 item at the end of the period.
+                loop {
+                    let next_path_fur = stream.next().fuse();
+                    pin_mut!(next_path_fur);
+
+                    futures::select! {
+                        _ = sleep_fur => break,
+                        _ = next_path_fur => {},
+                    }
+                }
+
+                Some((SystemTime::now(), (stream, watcher)))
+            },
+        ))
     }
 
     /// Creates and returns the path of the data directory.
@@ -254,10 +322,9 @@ impl Stackctl {
         Ok(())
     }
 
-    async fn run_serve(&self, open: bool) -> Result<()> {
+    async fn serve_once(&self) -> Result<Child> {
         use tokio::process::Command;
 
-        let start_time = SystemTime::now();
         let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
 
         let bar = ServeProgress::new();
@@ -276,7 +343,7 @@ impl Stackctl {
 
         bar.step_starting();
 
-        let _server_proc = Command::new("cargo")
+        let server_proc = Command::new("cargo")
             .arg("run")
             .arg("--quiet")
             .arg("--bin")
@@ -303,33 +370,72 @@ impl Stackctl {
 
         bar.hide();
 
-        let time_taken_in_f64 =
-            f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
+        Ok(server_proc)
+    }
 
-        Term::stderr().clear_screen()?;
+    async fn run_serve(&self, open: bool) -> Result<()> {
+        let changes = self.watch_changes().await?;
+        pin_mut!(changes);
 
-        eprintln!(
-            "{}",
-            style(format!("Built in {:.2}s!", time_taken_in_f64))
-                .green()
-                .bold()
-        );
-        eprintln!("Stackable development server has started!");
-        eprintln!();
-        eprintln!();
-        eprintln!("    Listen: {}", http_listen_addr);
-        eprintln!();
-        eprintln!();
-        eprintln!(
-            "To produce a production build, you can use `{}`",
-            style("stackctl build --release").cyan().bold()
-        );
+        let mut first_run = true;
 
-        if open {
-            self.open_browser(&http_listen_addr).await?;
+        'outer: loop {
+            let start_time = SystemTime::now();
+            let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
+
+            let server_proc = match self.serve_once().await {
+                Ok(server_proc) => {
+                    let time_taken_in_f64 =
+                        f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
+
+                    Term::stderr().clear_screen()?;
+
+                    eprintln!(
+                        "{}",
+                        style(format!("Built in {:.2}s!", time_taken_in_f64))
+                            .green()
+                            .bold()
+                    );
+                    eprintln!("Stackable development server has started!");
+                    eprintln!();
+                    eprintln!();
+                    eprintln!("    Listen: {}", http_listen_addr);
+                    eprintln!();
+                    eprintln!();
+                    eprintln!(
+                        "To produce a production build, you can use `{}`",
+                        style("stackctl build --release").cyan().bold()
+                    );
+
+                    Some(server_proc)
+                }
+                Err(e) => {
+                    tracing::error!("failed to build development server: {:?}", e);
+                    None
+                }
+            };
+
+            if open && first_run {
+                self.open_browser(&http_listen_addr).await?;
+            }
+
+            first_run = false;
+
+            'inner: loop {
+                match changes.next().await {
+                    Some(change_time) => {
+                        if change_time > start_time {
+                            break 'inner;
+                        }
+                    }
+                    None => break 'outer,
+                }
+            }
+
+            if let Some(mut m) = server_proc {
+                m.kill().await.context("failed to stop server")?;
+            }
         }
-
-        ctrl_c().await?;
 
         Ok(())
     }
