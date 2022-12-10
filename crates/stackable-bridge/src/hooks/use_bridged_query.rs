@@ -16,12 +16,18 @@ use crate::state::BridgeState;
 use crate::types::BridgedQuery;
 use crate::types::QueryResult;
 
-#[derive(Debug, PartialEq, Eq)]
-struct QueryState<Q> {
-    inner: Rc<Q>,
+#[derive(Debug, PartialEq)]
+struct QueryState<Q>
+where
+    Q: BridgedQuery,
+{
+    inner: QueryResult<Q>,
 }
 
-impl<Q> Clone for QueryState<Q> {
+impl<Q> Clone for QueryState<Q>
+where
+    Q: BridgedQuery,
+{
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -29,35 +35,37 @@ impl<Q> Clone for QueryState<Q> {
     }
 }
 
+impl<Q> Eq for QueryState<Q> where Q: BridgedQuery + Eq {}
+
 impl<Q> Serialize for QueryState<Q>
 where
-    Q: 'static + BridgedQuery + PartialEq,
+    Q: BridgedQuery,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        (*self.inner).serialize(serializer)
+        self.inner.as_deref().serialize(serializer)
     }
 }
 
 impl<'de, Q> Deserialize<'de> for QueryState<Q>
 where
-    Q: 'static + BridgedQuery + PartialEq,
+    Q: BridgedQuery,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        Q::deserialize(deserializer)
-            .map(Rc::new)
-            .map(|inner| Self { inner })
+        Ok(Self {
+            inner: std::result::Result::<Q, Q::Error>::deserialize(deserializer)?.map(Rc::new),
+        })
     }
 }
 #[async_trait(?Send)]
 impl<Q> bounce::query::Query for QueryState<Q>
 where
-    Q: 'static + BridgedQuery + PartialEq,
+    Q: 'static + BridgedQuery,
 {
     type Error = Q::Error;
     type Input = Q::Input;
@@ -68,12 +76,10 @@ where
     ) -> bounce::query::QueryResult<Self> {
         let bridge = states.get_atom_value::<BridgeState>();
 
-        bridge
-            .inner
-            .resolve_query::<Q>(&input)
-            .await
-            .map(|inner| Self { inner })
-            .map(Rc::new)
+        Ok(Self {
+            inner: bridge.inner.resolve_query::<Q>(&input).await,
+        }
+        .into())
     }
 }
 
@@ -83,7 +89,6 @@ where
     T: BridgedQuery + 'static,
 {
     inner: UseQueryHandle<QueryState<T>>,
-    result: QueryResult<T>,
 }
 
 impl<T> UseBridgedQueryHandle<T>
@@ -94,12 +99,7 @@ where
     ///
     /// The query will be refreshed with the input provided to the hook.
     pub async fn refresh(&self) -> QueryResult<T> {
-        self.inner
-            .refresh()
-            .await
-            .as_deref()
-            .map(|m| m.inner.clone())
-            .map_err(|e| e.clone())
+        self.inner.refresh().await?.inner.clone()
     }
 }
 
@@ -110,7 +110,6 @@ where
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
-            result: self.result.clone(),
         }
     }
 }
@@ -122,7 +121,10 @@ where
     type Target = QueryResult<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.result
+        match self.inner.deref() {
+            Ok(ref m) => &m.inner,
+            _ => panic!("this variant can never happen!"),
+        }
     }
 }
 
@@ -132,7 +134,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UseQueryHandle")
-            .field("value", &self.result)
+            .field("value", self.deref())
             .finish()
     }
 }
@@ -143,13 +145,6 @@ where
     Q: 'static + BridgedQuery,
 {
     let handle = use_prepared_query::<QueryState<Q>>(input)?;
-    let result = handle
-        .as_deref()
-        .map(|m| m.inner.clone())
-        .map_err(|e| e.clone());
 
-    Ok(UseBridgedQueryHandle {
-        inner: handle,
-        result,
-    })
+    Ok(UseBridgedQueryHandle { inner: handle })
 }

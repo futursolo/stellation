@@ -21,7 +21,7 @@ stackable-core = { version = "0.1.0", path = "../stackable-core" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
-bounce = { version = "0.5", features = ["helmet", "ssr"] }
+bounce = { version = "0.6", features = ["helmet", "ssr"] }
 yew-router = "0.17"
 
 # Hyper Server and Tower Service.
@@ -38,7 +38,7 @@ anyhow = { version = "1", optional = true }
 clap = { version = "4.0.29", features = ["derive"], optional = true }
 serde_json = "1.0.89"
 tracing = { version = "0.1.37" }
-tracing-subscriber = { version = "0.3.1" }
+tracing-subscriber = { version = "0.3.16" }
 console = "0.15.2"
 
 [features]

@@ -8,6 +8,6 @@ rust-version = "1.65"
 
 [dependencies]
 yew = { version = "0.20", features = ["csr", "hydration"] }
-bounce = { version = "0.5", features = ["helmet"] }
+bounce = { version = "0.6", features = ["helmet"] }
 yew-router = "0.17"
 stackable-bridge = { version = "0.1.0", path = "../stackable-bridge" }
