@@ -12,6 +12,11 @@ use tracing_subscriber::EnvFilter;
 mod app;
 use app::ServerApp;
 
+#[cfg(not(debug_assertions))]
+#[derive(rust_embed::RustEmbed)]
+#[folder = "$STACKABLE_FRONTEND_BUILD_DIR"]
+struct Frontend;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
@@ -32,11 +37,12 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    Cli::builder()
-        .endpoint(Endpoint::<ServerApp>::new().with_bridge(create_bridge()))
-        .build()
-        .run()
-        .await?;
+    let endpoint = Endpoint::<ServerApp>::new().with_bridge(create_bridge());
+
+    #[cfg(not(debug_assertions))]
+    let endpoint = endpoint.frontend(stackable_backend::Frontend::new_embedded::<Frontend>());
+
+    Cli::builder().endpoint(endpoint).build().run().await?;
 
     Ok(())
 }

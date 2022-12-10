@@ -17,3 +17,4 @@ yew = "0.20.0"
 # Example Workspace
 example-fullstack-view = { path = "../view" }
 example-fullstack-api = { path = "../api", features = ["resolvable"] }
+rust-embed = "6.4.2"

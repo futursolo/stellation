@@ -9,6 +9,7 @@ use yew::BaseComponent;
 use crate::endpoint::Endpoint;
 use crate::props::ServerAppProps;
 use crate::server::Server;
+use crate::Frontend;
 
 #[derive(Debug, TypedBuilder)]
 pub struct Cli<COMP, CTX = ()>
@@ -42,7 +43,7 @@ where
         )
         .serve_service(
             endpoint
-                .with_frontend(meta.frontend_dev_build_dir)
+                .with_frontend(Frontend::new_path(meta.frontend_dev_build_dir))
                 .into_tower_service(),
         )
         .await?;

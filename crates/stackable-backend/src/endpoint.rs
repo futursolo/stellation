@@ -20,7 +20,7 @@ where
     affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
     bridge: Option<Bridge>,
     #[cfg(feature = "warp-filter")]
-    frontend: Option<std::path::PathBuf>,
+    frontend: Option<crate::Frontend>,
 
     _marker: PhantomData<COMP>,
 }
@@ -79,9 +79,8 @@ where
 
 #[cfg(feature = "warp-filter")]
 mod feat_warp_filter {
+    use std::borrow::Cow;
     use std::future::Future;
-    use std::path::{Path, PathBuf};
-    use std::sync::Arc;
 
     use bounce::helmet::render_static;
     use bytes::Bytes;
@@ -90,20 +89,24 @@ mod feat_warp_filter {
     use stackable_bridge::BridgeError;
     use tokio::fs;
     use warp::body::bytes;
-    use warp::fs::File;
     use warp::path::FullPath;
+    use warp::reject::not_found;
+    use warp::reply::Response;
     use warp::{header, log, reply, Filter, Rejection, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
+    use crate::frontend::IndexHtml;
     use crate::root::{StackableRoot, StackableRootProps};
+    use crate::Frontend;
+
     impl<COMP, CTX> Endpoint<COMP, CTX>
     where
         COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
         CTX: 'static,
     {
         async fn render_html_inner(
-            index_html_path: Arc<Path>,
+            index_html: IndexHtml,
             props: ServerAppProps<()>,
             bridge: Bridge,
             affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
@@ -134,9 +137,14 @@ mod feat_warp_filter {
             );
 
             // With development server, we read index.html every time.
-            let index_html_s = fs::read_to_string(&index_html_path)
-                .await
-                .expect("TODO: implement failure.");
+            let index_html_s = match index_html {
+                IndexHtml::Path(p) => fs::read_to_string(&p)
+                    .await
+                    .map(Cow::from)
+                    .expect("TODO: implement failure."),
+
+                IndexHtml::Embedded(ref s) => s.as_ref().into(),
+            };
 
             let s = index_html_s
                 .replace("<!--%STACKABLE_HEAD%-->", &head_s)
@@ -146,7 +154,7 @@ mod feat_warp_filter {
         }
 
         async fn render_html(
-            index_html_path: Arc<Path>,
+            index_html: IndexHtml,
             props: ServerAppProps<()>,
             bridge: Bridge,
             affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
@@ -154,7 +162,7 @@ mod feat_warp_filter {
             let (tx, rx) = sync_oneshot::channel();
 
             let create_render_inner = move || async move {
-                Self::render_html_inner(index_html_path, props, bridge, affix_context, tx).await;
+                Self::render_html_inner(index_html, props, bridge, affix_context, tx).await;
             };
 
             // We spawn into a local runtime early for higher efficiency.
@@ -167,8 +175,96 @@ mod feat_warp_filter {
             warp::reply::html(rx.await.expect("renderer panicked?"))
         }
 
-        pub fn with_frontend(mut self, p: impl Into<PathBuf>) -> Self {
-            self.frontend = Some(p.into());
+        fn create_index_filter(
+            index_html: IndexHtml,
+            bridge: Option<Bridge>,
+            affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
+        ) -> impl Clone
+               + Send
+               + Filter<
+            Extract = (Response,),
+            Error = Rejection,
+            Future = impl Future<Output = Result<(Response,), Rejection>>,
+        > {
+            warp::get()
+                .and(warp::path::full())
+                .and(
+                    warp::query::raw()
+                        .or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
+                )
+                .then(move |path: FullPath, raw_queries| {
+                    let index_html = index_html.clone();
+                    let affix_context = affix_context.clone();
+                    let props = ServerAppProps::from_warp_request(path, raw_queries);
+                    let bridge = bridge.clone();
+
+                    async move {
+                        Self::render_html(
+                            index_html,
+                            props,
+                            bridge.unwrap_or_default(),
+                            affix_context,
+                        )
+                        .await
+                        .into_response()
+                    }
+                })
+        }
+
+        fn create_bridge_filter(
+            bridge: Bridge,
+        ) -> impl Clone
+               + Send
+               + Filter<
+            Extract = (Response,),
+            Error = Rejection,
+            Future = impl Future<Output = Result<(Response,), Rejection>>,
+        > {
+            warp::path::path("_bridge")
+                .and(warp::post())
+                .and(header("X-Bridge-Type-Idx"))
+                .and(header::exact_ignore_case(
+                    "content-type",
+                    "application/x-bincode",
+                ))
+                .and(bytes())
+                .then(move |index: usize, input: Bytes| {
+                    let bridge = bridge.clone();
+                    let (tx, rx) = sync_oneshot::channel();
+
+                    let resolve_encoded = move || async move {
+                        let output = bridge.resolve_encoded(index, &input).await;
+                        let _ = tx.send(output);
+                    };
+
+                    match LocalHandle::try_current() {
+                        Some(handle) => handle.spawn_local(resolve_encoded()),
+                        // TODO: Allow Overriding Runtime with Endpoint.
+                        None => Runtime::default().spawn_pinned(resolve_encoded),
+                    }
+
+                    async move {
+                        let content = rx.await.expect("didn't receive result?");
+
+                        match content {
+                            Ok(m) => reply::with_header(m, "content-type", "application/x-bincode")
+                                .into_response(),
+                            Err(BridgeError::Encoding(_))
+                            | Err(BridgeError::InvalidIndex(_))
+                            | Err(BridgeError::InvalidType(_)) => {
+                                reply::with_status("", StatusCode::BAD_REQUEST).into_response()
+                            }
+                            Err(BridgeError::Network(_)) => {
+                                reply::with_status("", StatusCode::INTERNAL_SERVER_ERROR)
+                                    .into_response()
+                            }
+                        }
+                    }
+                })
+        }
+
+        pub fn with_frontend(mut self, frontend: Frontend) -> Self {
+            self.frontend = Some(frontend);
 
             self
         }
@@ -185,103 +281,33 @@ mod feat_warp_filter {
             let Self {
                 affix_context,
                 bridge,
+                frontend,
                 ..
             } = self;
-            let dev_server_build_path = self
-                .frontend
-                .expect("running without development server is not implemented");
-            let index_html_path: Arc<Path> = Arc::from(dev_server_build_path.join("index.html"));
+            let index_html_f = frontend
+                .clone()
+                .map(|m| Self::create_index_filter(m.index_html(), bridge.clone(), affix_context));
 
-            let index_html_f = {
-                let bridge = bridge.clone();
+            let bridge_f = bridge.map(Self::create_bridge_filter);
 
-                warp::get()
-                    .and(warp::path::full())
-                    .and(
-                        warp::query::raw()
-                            .or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
-                    )
-                    .then(move |path: FullPath, raw_queries| {
-                        let index_html_path = index_html_path.clone();
-                        let affix_context = affix_context.clone();
-                        let props = ServerAppProps::from_warp_request(path, raw_queries);
-                        let bridge = bridge.clone();
-
-                        async move {
-                            Self::render_html(
-                                index_html_path,
-                                props,
-                                bridge.unwrap_or_default(),
-                                affix_context,
-                            )
-                            .await
-                            .into_response()
-                        }
-                    })
+            let mut routes = match index_html_f.clone() {
+                None => warp::path::end()
+                    .and_then(|| async move { Err::<Response, Rejection>(not_found()) })
+                    .boxed(),
+                Some(m) => warp::path::end().and(m).boxed(),
             };
-
-            let bridge_f = bridge.map(|m| {
-                let bridge = Arc::new(m);
-
-                warp::path::path("_bridge")
-                    .and(warp::post())
-                    .and(header("X-Bridge-Type-Idx"))
-                    .and(header::exact_ignore_case(
-                        "content-type",
-                        "application/x-bincode",
-                    ))
-                    .and(bytes())
-                    .then(move |index: usize, input: Bytes| {
-                        let bridge = bridge.clone();
-                        let (tx, rx) = sync_oneshot::channel();
-
-                        let resolve_encoded = move || async move {
-                            let output = bridge.resolve_encoded(index, &input).await;
-                            let _ = tx.send(output);
-                        };
-
-                        match LocalHandle::try_current() {
-                            Some(handle) => handle.spawn_local(resolve_encoded()),
-                            // TODO: Allow Overriding Runtime with Endpoint.
-                            None => Runtime::default().spawn_pinned(resolve_encoded),
-                        }
-
-                        async move {
-                            let content = rx.await.expect("didn't receive result?");
-
-                            match content {
-                                Ok(m) => {
-                                    reply::with_header(m, "content-type", "application/x-bincode")
-                                        .into_response()
-                                }
-                                Err(BridgeError::Encoding(_))
-                                | Err(BridgeError::InvalidIndex(_))
-                                | Err(BridgeError::InvalidType(_)) => {
-                                    reply::with_status("", StatusCode::BAD_REQUEST).into_response()
-                                }
-                                Err(BridgeError::Network(_)) => {
-                                    reply::with_status("", StatusCode::INTERNAL_SERVER_ERROR)
-                                        .into_response()
-                                }
-                            }
-                        }
-                    })
-            });
-
-            let mut routes = warp::path::end().and(index_html_f.clone()).boxed();
 
             if let Some(m) = bridge_f {
                 routes = routes.or(m).unify().boxed();
             }
 
-            let routes = routes
-                .or(warp::fs::dir(dev_server_build_path)
-                    .then(|m: File| async move { m.into_response() })
-                    .boxed())
-                .unify()
-                .or(index_html_f)
-                .unify()
-                .boxed();
+            if let Some(m) = frontend {
+                routes = routes.or(m.into_warp_filter()).unify().boxed();
+            }
+
+            if let Some(m) = index_html_f {
+                routes = routes.or(m).unify().boxed();
+            }
 
             routes.with(log::custom(|info| {
                 // We emit a custom span so it won't interfere with warp's default tracing event.
