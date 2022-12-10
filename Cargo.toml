@@ -4,7 +4,8 @@ members = [
     "examples/fullstack/*",
 ]
 exclude = [
-    "examples/fullstack/.stackable"
+    "examples/fullstack/.stackable",
+    "examples/fullstack/build",
 ]
 resolver = "2"
 

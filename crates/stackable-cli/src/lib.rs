@@ -6,12 +6,13 @@ mod indicators;
 mod manifest;
 mod utils;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use anyhow::{bail, Context, Result};
+use cargo_metadata::Metadata;
 use clap::Parser;
 use cli::{Cli, Command};
 use console::{style, Term};
@@ -112,9 +113,29 @@ impl Stackctl {
         ))
     }
 
+    fn is_release(&self) -> bool {
+        match self.cli.command {
+            Command::Serve { .. } => false,
+            Command::Build { .. } => true,
+        }
+    }
+
     /// Creates and returns the path of the data directory.
     ///
-    /// This is `.stackable` in the same parent directory as `stackable.toml`.
+    /// This is `build` directory in the same parent directory as `stackable.toml`.
+    async fn build_dir(&self) -> Result<PathBuf> {
+        let data_dir = self.workspace_dir().await?.join("build");
+
+        fs::create_dir_all(&data_dir)
+            .await
+            .context("failed to create build directory")?;
+
+        Ok(data_dir)
+    }
+
+    /// Creates and returns the path of the data directory.
+    ///
+    /// This is `.stackable` directory in the same parent directory as `stackable.toml`.
     async fn data_dir(&self) -> Result<PathBuf> {
         let data_dir = self.workspace_dir().await?.join(".stackable");
 
@@ -143,6 +164,44 @@ impl Stackctl {
             .context("failed to create backend data directory")?;
 
         Ok(backend_data_dir)
+    }
+
+    async fn frontend_build_dir(&self) -> Result<PathBuf> {
+        let frontend_build_dir = match self.cli.command {
+            Command::Build { .. } => {
+                let build_dir = self.build_dir().await?;
+                build_dir.join("frontend")
+            }
+            Command::Serve { .. } => {
+                let frontend_data_dir = self.frontend_data_dir().await?;
+                frontend_data_dir.join("dev-builds").join(random_str()?)
+            }
+        };
+
+        fs::create_dir_all(&frontend_build_dir)
+            .await
+            .context("failed to create build directory for frontend build.")?;
+
+        Ok(frontend_build_dir)
+    }
+
+    async fn backend_build_dir(&self) -> Result<PathBuf> {
+        let frontend_build_dir = match self.cli.command {
+            Command::Build { .. } => {
+                let build_dir = self.build_dir().await?;
+                build_dir.join("backend")
+            }
+            Command::Serve { .. } => {
+                let frontend_data_dir = self.backend_data_dir().await?;
+                frontend_data_dir.join("dev-builds").join(random_str()?)
+            }
+        };
+
+        fs::create_dir_all(&frontend_build_dir)
+            .await
+            .context("failed to create build directory for backend build.")?;
+
+        Ok(frontend_build_dir)
     }
 
     async fn transfer_to_file<R, P>(source: R, target: P) -> Result<()>
@@ -187,23 +246,29 @@ impl Stackctl {
         use tokio::process::Command;
 
         let frontend_data_dir = self.frontend_data_dir().await?;
-        let frontend_build_dir = frontend_data_dir.join("dev-builds").join(random_str()?);
+        let frontend_build_dir = self.frontend_build_dir().await?;
         let workspace_dir = self.workspace_dir().await?;
 
-        fs::create_dir_all(&frontend_build_dir)
-            .await
-            .context("failed to create build directory for frontend build.")?;
+        let create_proc = || {
+            let mut proc = Command::new("trunk");
+            proc.arg("build")
+                .arg("--dist")
+                .arg(&frontend_build_dir)
+                .arg(workspace_dir.join("index.html"))
+                .current_dir(&workspace_dir)
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
 
-        let mut child = Command::new("trunk")
-            .arg("build")
-            .arg("--dist")
-            .arg(&frontend_build_dir)
-            .arg(workspace_dir.join("index.html"))
-            .current_dir(&workspace_dir)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+            if self.is_release() {
+                proc.arg("--release")
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit());
+            }
+            proc
+        };
+
+        let mut child = create_proc().spawn()?;
 
         if let Some(m) = child.stdout.take() {
             Self::transfer_to_file(
@@ -225,17 +290,14 @@ impl Stackctl {
 
         // We try again with logs printed to console.
         if !status.success() {
-            let mut child = Command::new("trunk")
-                .arg("build")
-                .arg("--dist")
-                .arg(&frontend_build_dir)
-                .arg(workspace_dir.join("index.html"))
-                .current_dir(&workspace_dir)
-                .stdin(Stdio::null())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()?;
+            if self.is_release() {
+                bail!("trunk failed with status {}", status);
+            }
 
+            let mut proc = create_proc();
+            proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
+            let mut child = proc.spawn()?;
             let status = child.wait().await?;
 
             if !status.success() {
@@ -246,22 +308,40 @@ impl Stackctl {
         Ok(frontend_build_dir)
     }
 
-    async fn build_backend(&self) -> Result<()> {
+    async fn build_backend<P>(&self, frontend_build_dir: P) -> Result<PathBuf>
+    where
+        P: AsRef<Path>,
+    {
         use tokio::process::Command;
+
+        let frontend_build_dir = frontend_build_dir.as_ref();
 
         let backend_data_dir = self.backend_data_dir().await?;
         let workspace_dir = self.workspace_dir().await?;
+        let backend_build_dir = self.backend_build_dir().await?;
 
-        let mut child = Command::new("cargo")
-            .arg("build")
-            .arg("--bin")
-            .arg(&self.manifest.dev_server.bin_name)
-            .current_dir(&workspace_dir)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()?;
+        let create_proc = || {
+            let mut proc = Command::new("cargo");
+            proc.arg("build")
+                .arg("--bin")
+                .arg(&self.manifest.dev_server.bin_name)
+                .current_dir(&workspace_dir)
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .env("STACKABLE_FRONTEND_BUILD_DIR", frontend_build_dir)
+                .kill_on_drop(true);
+
+            if self.is_release() {
+                proc.arg("--release")
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit());
+            }
+
+            proc
+        };
+
+        let mut child = create_proc().spawn()?;
 
         if let Some(m) = child.stdout.take() {
             Self::transfer_to_file(
@@ -283,17 +363,14 @@ impl Stackctl {
 
         // We try again with logs printed to console.
         if !status.success() {
-            let mut child = Command::new("cargo")
-                .arg("build")
-                .arg("--bin")
-                .arg(&self.manifest.dev_server.bin_name)
-                .current_dir(&workspace_dir)
-                .stdin(Stdio::null())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .kill_on_drop(true)
-                .spawn()?;
+            if self.is_release() {
+                bail!("trunk failed with status {}", status);
+            }
 
+            let mut proc = create_proc();
+            proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
+            let mut child = proc.spawn()?;
             let status = child.wait().await?;
 
             if !status.success() {
@@ -301,7 +378,41 @@ impl Stackctl {
             }
         }
 
-        Ok(())
+        // Copy artifact from target directory.
+        let pkg_meta_output = Command::new("cargo")
+            .arg("metadata")
+            .arg("--format-version=1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .current_dir(&workspace_dir)
+            .spawn()?
+            .wait_with_output()
+            .await
+            .context("failed to read package metadata")?;
+
+        if !pkg_meta_output.status.success() {
+            bail!(
+                "cargo metadata failed with status {}",
+                pkg_meta_output.status
+            );
+        }
+
+        let meta: Metadata = serde_json::from_slice(&pkg_meta_output.stdout)
+            .context("failed to parse package metadata")?;
+
+        let bin_path = meta
+            .target_directory
+            .join_os("release")
+            .join(&self.manifest.dev_server.bin_name);
+
+        let backend_bin_path = backend_build_dir.join(&self.manifest.dev_server.bin_name);
+
+        fs::copy(bin_path, &backend_bin_path)
+            .await
+            .context("failed to copy binary")?;
+
+        Ok(backend_bin_path)
     }
 
     async fn open_browser(&self, http_listen_addr: &str) -> Result<()> {
@@ -334,7 +445,7 @@ impl Stackctl {
         let frontend_build_dir = self.build_frontend().await?;
 
         bar.step_build_backend();
-        self.build_backend().await?;
+        self.build_backend(&frontend_build_dir).await?;
 
         let meta = StackctlMetadata {
             listen_addr: self.manifest.dev_server.listen.to_string(),
@@ -440,10 +551,44 @@ impl Stackctl {
         Ok(())
     }
 
+    async fn run_build(&self, release: bool) -> Result<()> {
+        if !release {
+            bail!("building distributable in debug mode is not yet supported!");
+        }
+
+        eprintln!(
+            "{}",
+            style("Building Release Distribution...").cyan().bold()
+        );
+
+        let start_time = SystemTime::now();
+
+        let frontend_build_dir = self.build_frontend().await?;
+        let backend_build_path = self.build_backend(&frontend_build_dir).await?;
+
+        let time_taken_in_f64 =
+            f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
+        eprintln!(
+            "{}",
+            style(format!("Built in {:.2}s!", time_taken_in_f64))
+                .green()
+                .bold()
+        );
+        eprintln!(
+            "The server binary is available at: {}",
+            backend_build_path.display()
+        );
+
+        Ok(())
+    }
+
     async fn run(&self) -> Result<()> {
         match self.cli.command {
             Command::Serve { open } => {
                 self.run_serve(open).await?;
+            }
+            Command::Build { release } => {
+                self.run_build(release).await?;
             }
         }
 

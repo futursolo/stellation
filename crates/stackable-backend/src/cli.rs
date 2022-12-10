@@ -25,13 +25,22 @@ where
     CTX: 'static,
 {
     pub async fn run(self) -> anyhow::Result<()> {
-        let Self { endpoint } = self;
-        let meta = env::var(StackctlMetadata::ENV_NAME)
-            .map(|m| StackctlMetadata::from_json(&m))
-            .context("starting backend without development server is not yet implemented!")?
-            .context("failed to load metadata")?;
+        let Self { mut endpoint } = self;
 
-        let addr = meta.listen_addr;
+        let meta = match env::var(StackctlMetadata::ENV_NAME) {
+            Ok(m) => Some(StackctlMetadata::from_json(&m).context("failed to load metadata")?),
+            Err(_) => None,
+        };
+
+        let addr = meta
+            .as_ref()
+            .map(|m| m.listen_addr.as_str())
+            .unwrap_or_else(|| "localhost:5000");
+
+        if let Some(ref meta) = meta {
+            endpoint = endpoint.with_frontend(Frontend::new_path(&meta.frontend_dev_build_dir));
+        }
+
         Server::<()>::bind(
             addr.to_socket_addrs()
                 .context("failed to parse address")
@@ -41,11 +50,7 @@ where
                         .ok_or_else(|| anyhow!("failed to parse address"))
                 })?,
         )
-        .serve_service(
-            endpoint
-                .with_frontend(Frontend::new_path(meta.frontend_dev_build_dir))
-                .into_tower_service(),
-        )
+        .serve_service(endpoint.into_tower_service())
         .await?;
 
         Ok(())

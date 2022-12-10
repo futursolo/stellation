@@ -16,6 +16,12 @@ pub(crate) enum Command {
         #[arg(long)]
         open: bool,
     },
+    /// Build the server and client for final distribution.
+    Build {
+        /// Build artifacts in release mode, with optimizations.
+        #[arg(long)]
+        release: bool,
+    },
 }
 
 #[derive(Parser, Debug)]
