@@ -1,0 +1,11 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+# stackctl
+[tasks.stackctl]
+workspace = false
+command = "cargo"
+args = ["run", "--bin", "stackctl", "--", "${@}"]
+
+[config]
+log_level = "info"

@@ -278,6 +278,7 @@ impl Stackctl {
 
         let _server_proc = Command::new("cargo")
             .arg("run")
+            .arg("--quiet")
             .arg("--bin")
             .arg(&self.manifest.dev_server.bin_name)
             .current_dir(&workspace_dir)
@@ -298,10 +299,6 @@ impl Stackctl {
             .is_err()
         {
             sleep(Duration::from_secs(1)).await;
-        }
-
-        if open {
-            self.open_browser(&http_listen_addr).await?;
         }
 
         bar.hide();
@@ -328,6 +325,10 @@ impl Stackctl {
             style("stackctl build --release").cyan().bold()
         );
 
+        if open {
+            self.open_browser(&http_listen_addr).await?;
+        }
+
         ctrl_c().await?;
 
         Ok(())
@@ -344,8 +345,7 @@ impl Stackctl {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+pub async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().pretty())
         .with(
