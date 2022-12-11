@@ -36,7 +36,7 @@ rust-embed = { version = "6.4.2", optional = true }
 
 # Command Line Tools
 anyhow = { version = "1", optional = true }
-clap = { version = "4.0.29", features = ["derive"], optional = true }
+clap = { version = "4.0.29", features = ["derive", "env"], optional = true }
 serde_json = "1.0.89"
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
