@@ -14,6 +14,7 @@ thiserror = "1"
 thread_local = "1.1.4"
 once_cell = "1.16.0"
 bincode = "1.3.3"
+rand = "0.8.5"
 
 # Stackable Components
 stackable-bridge = { version = "0.1.0", path = "../stackable-bridge", features = ["resolvable"] }
@@ -27,7 +28,7 @@ yew-router = "0.17"
 # Hyper Server and Tower Service.
 hyper = { version = "0.14.23", features = ["runtime", "server", "http1"], optional = true }
 tower = { version = "0.4", features = ["util"], optional = true }
-warp = { version = "0.3.3", default-features = false, optional = true }
+warp = { version = "0.3.3", default-features = false, optional = true, features = ["websocket"] }
 tokio = { version = "1", optional = true }
 serde_urlencoded = "0.7.1"
 bytes = { version = "1", optional = true }

@@ -21,6 +21,9 @@ where
     #[cfg(feature = "warp-filter")]
     frontend: Option<crate::Frontend>,
 
+    #[cfg(feature = "warp-filter")]
+    auto_refresh: bool,
+
     _marker: PhantomData<COMP>,
 }
 
@@ -66,6 +69,8 @@ where
             bridge: None,
             #[cfg(feature = "warp-filter")]
             frontend: None,
+            #[cfg(feature = "warp-filter")]
+            auto_refresh: false,
             _marker: PhantomData,
         }
     }
@@ -85,26 +90,39 @@ mod feat_warp_filter {
     use bounce::helmet::render_static;
     use bytes::Bytes;
     use futures::channel::oneshot as sync_oneshot;
+    use futures::{SinkExt, StreamExt};
     use http::status::StatusCode;
+    use once_cell::sync::Lazy;
     use stackable_bridge::BridgeError;
     use tokio::fs;
     use warp::body::bytes;
     use warp::path::FullPath;
     use warp::reject::not_found;
     use warp::reply::Response;
+    use warp::ws::{Message, Ws};
     use warp::{header, log, reply, Filter, Rejection, Reply};
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
     use crate::frontend::IndexHtml;
     use crate::root::{StackableRoot, StackableRootProps};
+    use crate::utils::random_str;
     use crate::Frontend;
+
+    // A server id that is different every time it starts.
+    static SERVER_ID: Lazy<String> = Lazy::new(random_str);
 
     impl<COMP, CTX> Endpoint<COMP, CTX>
     where
         COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
         CTX: 'static,
     {
+        pub fn with_auto_refresh(mut self) -> Self {
+            self.auto_refresh = true;
+
+            self
+        }
+
         async fn render_html_inner(
             index_html: IndexHtml,
             props: ServerAppProps<()>,
@@ -176,17 +194,21 @@ mod feat_warp_filter {
         }
 
         fn create_index_filter(
-            index_html: IndexHtml,
-            bridge: Option<Bridge>,
-            affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
-        ) -> impl Clone
-               + Send
-               + Filter<
-            Extract = (Response,),
-            Error = Rejection,
-            Future = impl Future<Output = Result<(Response,), Rejection>>,
+            &self,
+        ) -> Option<
+            impl Clone
+                + Send
+                + Filter<
+                    Extract = (Response,),
+                    Error = Rejection,
+                    Future = impl Future<Output = Result<(Response,), Rejection>>,
+                >,
         > {
-            warp::get()
+            let index_html = self.frontend.as_ref()?.index_html();
+            let affix_context = self.affix_context.clone();
+            let bridge = self.bridge.clone().unwrap_or_default();
+
+            let f = warp::get()
                 .and(warp::path::full())
                 .and(
                     warp::query::raw()
@@ -199,34 +221,98 @@ mod feat_warp_filter {
                     let bridge = bridge.clone();
 
                     async move {
-                        Self::render_html(
-                            index_html,
-                            props,
-                            bridge.unwrap_or_default(),
-                            affix_context,
-                        )
-                        .await
-                        .into_response()
+                        Self::render_html(index_html, props, bridge, affix_context)
+                            .await
+                            .into_response()
                     }
-                })
+                });
+
+            Some(f)
         }
 
-        fn create_bridge_filter(
-            bridge: Bridge,
-        ) -> impl Clone
+        fn create_refresh_filter() -> impl Clone
                + Send
                + Filter<
             Extract = (Response,),
             Error = Rejection,
             Future = impl Future<Output = Result<(Response,), Rejection>>,
         > {
-            warp::path::path("_bridge")
-                .and(warp::post())
-                .and(header("X-Bridge-Type-Idx"))
+            warp::path::path("_refresh")
+                .and(warp::ws())
+                .then(|m: Ws| async move {
+                    m.on_upgrade(|mut ws| async move {
+                        let read_refresh = {
+                            || async move {
+                                while let Some(m) = ws.next().await {
+                                    let m = match m {
+                                        Ok(m) => m,
+                                        Err(e) => {
+                                            tracing::error!("receive message error: {:?}", e);
+
+                                            if let Err(e) = ws.close().await {
+                                                tracing::error!(
+                                                    "failed to close websocket: {:?}",
+                                                    e
+                                                );
+                                            }
+
+                                            return;
+                                        }
+                                    };
+
+                                    let m = match m.to_str() {
+                                        Ok(m) => m,
+                                        Err(_) => {
+                                            tracing::error!("received unknown message: {:?}", m);
+                                            return;
+                                        }
+                                    };
+
+                                    // Ping client if string matches.
+                                    // Otherwise, tell the client to reload the page.
+                                    let message_to_send = if m == SERVER_ID.as_str() {
+                                        Message::ping("")
+                                    } else {
+                                        Message::text("restart")
+                                    };
+
+                                    if let Err(e) = ws.send(message_to_send).await {
+                                        tracing::error!("error sending message: {:?}", e);
+                                        return;
+                                    }
+                                }
+                            }
+                        };
+
+                        match LocalHandle::try_current() {
+                            Some(handle) => handle.spawn_local(read_refresh()),
+                            // TODO: Allow Overriding Runtime with Endpoint.
+                            None => Runtime::default().spawn_pinned(read_refresh),
+                        }
+                    })
+                    .into_response()
+                })
+        }
+
+        fn create_bridge_filter(
+            &self,
+        ) -> Option<
+            impl Clone
+                + Send
+                + Filter<
+                    Extract = (Response,),
+                    Error = Rejection,
+                    Future = impl Future<Output = Result<(Response,), Rejection>>,
+                >,
+        > {
+            let bridge = self.bridge.clone()?;
+
+            let http_bridge_f = warp::post()
                 .and(header::exact_ignore_case(
                     "content-type",
                     "application/x-bincode",
                 ))
+                .and(header("X-Bridge-Type-Idx"))
                 .and(bytes())
                 .then(move |index: usize, input: Bytes| {
                     let bridge = bridge.clone();
@@ -260,7 +346,9 @@ mod feat_warp_filter {
                             }
                         }
                     }
-                })
+                });
+
+            Some(warp::path::path("_bridge").and(http_bridge_f))
         }
 
         pub fn with_frontend(mut self, frontend: Frontend) -> Self {
@@ -278,17 +366,10 @@ mod feat_warp_filter {
             Error = Rejection,
             Future = impl Future<Output = Result<impl Reply, Rejection>>,
         > {
-            let Self {
-                affix_context,
-                bridge,
-                frontend,
-                ..
-            } = self;
-            let index_html_f = frontend
-                .clone()
-                .map(|m| Self::create_index_filter(m.index_html(), bridge.clone(), affix_context));
+            let bridge_f = self.create_bridge_filter();
+            let index_html_f = self.create_index_filter();
 
-            let bridge_f = bridge.map(Self::create_bridge_filter);
+            let Self { frontend, .. } = self;
 
             let mut routes = match index_html_f.clone() {
                 None => warp::path::end()
@@ -303,6 +384,10 @@ mod feat_warp_filter {
 
             if let Some(m) = frontend {
                 routes = routes.or(m.into_warp_filter()).unify().boxed();
+            }
+
+            if self.auto_refresh {
+                routes = routes.or(Self::create_refresh_filter()).unify().boxed();
             }
 
             if let Some(m) = index_html_f {

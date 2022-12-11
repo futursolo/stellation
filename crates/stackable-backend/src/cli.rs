@@ -57,7 +57,9 @@ where
         }
 
         if let Some(ref meta) = meta {
-            endpoint = endpoint.with_frontend(Frontend::new_path(&meta.frontend_dev_build_dir));
+            endpoint = endpoint
+                .with_frontend(Frontend::new_path(&meta.frontend_dev_build_dir))
+                .with_auto_refresh();
         }
 
         let listen_addr = addr
