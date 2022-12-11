@@ -15,6 +15,7 @@ Stackable provides a development stack with:
 </p>
 
 1. Install required tools
+
   Stackable uses the following tools:
 
   - Trunk
@@ -30,3 +31,5 @@ Stackable provides a development stack with:
 3. Start development server
 
   Run `cargo make --quiet start` in the project directory.
+
+  (This may take a couple minutes when the project is building for the first time.)
