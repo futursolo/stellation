@@ -518,12 +518,16 @@ impl Stackctl {
                     eprintln!("Stackable development server has started!");
                     eprintln!();
                     eprintln!();
-                    eprintln!("    Listen: {}", http_listen_addr);
+                    eprintln!("    Listening at: {}", http_listen_addr);
                     eprintln!();
                     eprintln!();
                     eprintln!(
-                        "To produce a production build, you can use `{}`",
-                        style("stackctl build --release").cyan().bold()
+                        "{} This build is not optimised and should not be used in production.",
+                        style("Note:").yellow().bold()
+                    );
+                    eprintln!(
+                        "To produce a production build, you can use `{}`.",
+                        style("cargo make build").cyan().bold()
                     );
 
                     Some(server_proc)
