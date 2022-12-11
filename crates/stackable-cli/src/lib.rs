@@ -401,9 +401,15 @@ impl Stackctl {
         let meta: Metadata = serde_json::from_slice(&pkg_meta_output.stdout)
             .context("failed to parse package metadata")?;
 
+        let target_name = if self.is_release() {
+            "release"
+        } else {
+            "debug"
+        };
+
         let bin_path = meta
             .target_directory
-            .join_os("release")
+            .join_os(target_name)
             .join(&self.manifest.dev_server.bin_name);
 
         let backend_bin_path = backend_build_dir.join(&self.manifest.dev_server.bin_name);
@@ -445,7 +451,7 @@ impl Stackctl {
         let frontend_build_dir = self.build_frontend().await?;
 
         bar.step_build_backend();
-        self.build_backend(&frontend_build_dir).await?;
+        let backend_build_path = self.build_backend(&frontend_build_dir).await?;
 
         let meta = StackctlMetadata {
             listen_addr: self.manifest.dev_server.listen.to_string(),
@@ -454,11 +460,7 @@ impl Stackctl {
 
         bar.step_starting();
 
-        let server_proc = Command::new("cargo")
-            .arg("run")
-            .arg("--quiet")
-            .arg("--bin")
-            .arg(&self.manifest.dev_server.bin_name)
+        let server_proc = Command::new(&backend_build_path)
             .current_dir(&workspace_dir)
             .env(StackctlMetadata::ENV_NAME, meta.to_json()?)
             .stdin(Stdio::null())
