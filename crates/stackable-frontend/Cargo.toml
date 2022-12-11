@@ -11,6 +11,9 @@ yew = { version = "0.20", features = ["csr", "hydration"] }
 bounce = { version = "0.6", features = ["helmet"] }
 yew-router = "0.17"
 stackable-bridge = { version = "0.1.0", path = "../stackable-bridge" }
+tracing = "0.1"
+tracing-web = "0.1.2"
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 [dependencies.web-sys]
 version = "0.3"

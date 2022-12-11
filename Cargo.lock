@@ -363,7 +363,6 @@ dependencies = [
  "stackable-frontend",
  "tracing",
  "tracing-subscriber",
- "tracing-web",
  "yew",
 ]
 
@@ -378,7 +377,6 @@ dependencies = [
  "stackable-backend",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "yew",
 ]
 
@@ -1928,6 +1926,9 @@ version = "0.1.0"
 dependencies = [
  "bounce",
  "stackable-bridge",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-web",
  "web-sys",
  "yew",
  "yew-router",

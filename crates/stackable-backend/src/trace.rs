@@ -1,13 +1,19 @@
+use std::env;
+
 use console::style;
+use stackable_core::dev::StackctlMetadata;
 use tracing::field::Visit;
-use tracing::Subscriber;
+use tracing::{Level, Subscriber};
+use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::layer::Context;
+use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::Layer;
+use tracing_subscriber::{EnvFilter, Layer};
 
 #[derive(Debug, Default)]
 pub struct AccessLog {}
 
+/// Returns a layer that emits pretty access logs.
 pub fn pretty_access() -> AccessLog {
     AccessLog {}
 }
@@ -76,6 +82,42 @@ where
             .bold();
 
             eprintln!("{method:>6} {status} {:>8.2}ms {path}", duration);
+        }
+    }
+}
+
+/// Initialise tracing with default settings.
+pub fn init_default<S>(var_name: S)
+where
+    S: Into<String>,
+{
+    let var_name = var_name.into();
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(Level::INFO.into())
+        .with_env_var(var_name)
+        .from_env_lossy();
+
+    match env::var(StackctlMetadata::ENV_NAME) {
+        Ok(_) => {
+            // Register pretty logging if under development server.
+            tracing_subscriber::registry()
+                .with(pretty_access())
+                .with(
+                    tracing_subscriber::fmt::layer()
+                        .compact()
+                        // access logs are processed by the access log layer
+                        .with_filter(filter_fn(|metadata| {
+                            metadata.target() != "stackable_backend::endpoint::trace"
+                        })),
+                )
+                .with(env_filter)
+                .init();
+        }
+        Err(_) => {
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::fmt::layer().compact())
+                .with(env_filter)
+                .init();
         }
     }
 }

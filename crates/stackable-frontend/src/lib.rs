@@ -8,6 +8,7 @@ use yew::prelude::*;
 
 use crate::root::{StackableRoot, StackableRootProps};
 mod root;
+pub mod trace;
 
 #[derive(Debug)]
 pub struct Renderer<COMP>
