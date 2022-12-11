@@ -116,7 +116,7 @@ impl Stackctl {
     fn is_release(&self) -> bool {
         match self.cli.command {
             Command::Serve { .. } => false,
-            Command::Build { .. } => true,
+            Command::Build { release } => release,
         }
     }
 
@@ -174,7 +174,7 @@ impl Stackctl {
             }
             Command::Serve { .. } => {
                 let frontend_data_dir = self.frontend_data_dir().await?;
-                frontend_data_dir.join("dev-builds").join(random_str()?)
+                frontend_data_dir.join("serve-builds").join(random_str()?)
             }
         };
 
@@ -193,7 +193,7 @@ impl Stackctl {
             }
             Command::Serve { .. } => {
                 let frontend_data_dir = self.backend_data_dir().await?;
-                frontend_data_dir.join("dev-builds").join(random_str()?)
+                frontend_data_dir.join("serve-builds").join(random_str()?)
             }
         };
 
@@ -261,9 +261,11 @@ impl Stackctl {
                 .stderr(Stdio::piped());
 
             if self.is_release() {
-                proc.arg("--release")
-                    .stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit());
+                proc.arg("--release");
+            }
+
+            if matches!(self.cli.command, crate::Command::Build { .. }) {
+                proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
             }
             proc
         };
@@ -333,9 +335,13 @@ impl Stackctl {
                 .kill_on_drop(true);
 
             if self.is_release() {
-                proc.arg("--release")
-                    .stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit());
+                proc.arg("--release");
+            }
+
+            if matches!(self.cli.command, crate::Command::Build { .. }) {
+                proc.stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .env("RUSTFLAGS", "--cfg stackable_embedded_frontend");
             }
 
             proc
@@ -554,19 +560,20 @@ impl Stackctl {
     }
 
     async fn run_build(&self, release: bool) -> Result<()> {
-        if !release {
-            bail!("building distributable in debug mode is not yet supported!");
-        }
+        let target_name = if release { "release" } else { "debug" };
 
         eprintln!(
             "{}",
-            style("Building Release Distribution...").cyan().bold()
+            style(format!("Building with {target_name} profile..."))
+                .cyan()
+                .bold()
         );
 
         let start_time = SystemTime::now();
 
+        let build_dir = self.build_dir().await?;
         let frontend_build_dir = self.build_frontend().await?;
-        let backend_build_path = self.build_backend(&frontend_build_dir).await?;
+        self.build_backend(&frontend_build_dir).await?;
 
         let time_taken_in_f64 =
             f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
@@ -576,10 +583,7 @@ impl Stackctl {
                 .green()
                 .bold()
         );
-        eprintln!(
-            "The server binary is available at: {}",
-            backend_build_path.display()
-        );
+        eprintln!("The artifact is available at: {}", build_dir.display());
 
         Ok(())
     }

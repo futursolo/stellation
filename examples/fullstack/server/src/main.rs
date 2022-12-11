@@ -7,7 +7,7 @@ use stackable_backend::{Cli, Endpoint};
 mod app;
 use app::ServerApp;
 
-#[cfg(not(debug_assertions))]
+#[cfg(stackable_embedded_frontend)]
 #[derive(rust_embed::RustEmbed)]
 #[folder = "$STACKABLE_FRONTEND_BUILD_DIR"]
 struct Frontend;
@@ -18,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
 
     let endpoint = Endpoint::<ServerApp>::new().with_bridge(create_bridge());
 
-    #[cfg(not(debug_assertions))]
+    #[cfg(stackable_embedded_frontend)]
     let endpoint = endpoint.with_frontend(stackable_backend::Frontend::new_embedded::<Frontend>());
 
     Cli::builder().endpoint(endpoint).build().run().await?;
