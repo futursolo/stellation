@@ -8,6 +8,25 @@ Stackable provides a development stack with:
 3. A development server that automatically rebuild upon changes.
 4. A single binary distribution with embedded frontend.
 
+# Quickstart Guide
+
 <p align="center">
   <img src="artworks/quickstart.gif" width="700" title="Quickstart">
 </p>
+
+1. Install required tools
+  Stackable uses the following tools:
+
+  - Trunk
+  - cargo-generate
+  - cargo-make
+
+  They can be installed with `cargo install trunk cargo-generate cargo-make`
+
+2. Create project
+
+  Run `cargo generate futursolo/stackable-template` and follow the prompt.
+
+3. Start development server
+
+  Run `cargo make --quiet start` in the project directory.
