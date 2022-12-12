@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
 
+use bounce::helmet::Helmet;
 use yew::prelude::*;
 
 mod pages;
@@ -11,12 +12,17 @@ pub fn Main() -> Html {
     let fallback = html! {<div class="time-loading">{"Loading..."}</div>};
 
     html! {
-        <div class="container">
-            <div class="title">{"Welcome to Stackable!"}</div>
-            <Suspense {fallback}>
-                <ServerTime />
-            </Suspense>
-            <Greeting />
-        </div>
+        <>
+            <Helmet>
+                <title>{"Welcome to Stackable!"}</title>
+            </Helmet>
+            <div class="container">
+                <div class="title">{"Welcome to Stackable!"}</div>
+                <Suspense {fallback}>
+                    <ServerTime />
+                </Suspense>
+                <Greeting />
+            </div>
+        </>
     }
 }

@@ -7,6 +7,7 @@ use stackable_bridge::Bridge;
 use yew::prelude::*;
 
 use crate::root::{StackableRoot, StackableRootProps};
+pub mod components;
 mod root;
 pub mod trace;
 

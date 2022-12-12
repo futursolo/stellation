@@ -390,6 +390,7 @@ dependencies = [
 name = "example-fullstack-view"
 version = "0.1.0"
 dependencies = [
+ "bounce",
  "example-fullstack-api",
  "stackable-bridge",
  "time",
