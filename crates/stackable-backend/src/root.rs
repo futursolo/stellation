@@ -11,7 +11,7 @@ use yew_router::Router;
 use crate::props::ServerAppProps;
 
 #[derive(Properties)]
-pub struct StackableRootProps<CTX> {
+pub(crate) struct StackableRootProps<CTX> {
     pub helmet_writer: StaticWriter,
     pub server_app_props: ServerAppProps<CTX>,
     pub bridge: Bridge,
@@ -76,7 +76,7 @@ where
 }
 
 #[function_component]
-pub fn StackableRoot<COMP, CTX>(props: &StackableRootProps<CTX>) -> Html
+pub(crate) fn StackableRoot<COMP, CTX>(props: &StackableRootProps<CTX>) -> Html
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
     CTX: 'static,

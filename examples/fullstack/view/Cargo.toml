@@ -12,6 +12,7 @@ example-fullstack-api = { path = "../api" }
 stackable-bridge = { version = "0.1.0", path = "../../../crates/stackable-bridge" }
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "macros"] }
 tracing = "0.1.37"
+bounce = { version = "0.6.0", features = ["helmet"] }
 
 [dependencies.web-sys]
 version = "0.3"
