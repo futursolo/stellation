@@ -112,6 +112,46 @@ mod feat_warp_filter {
     // A server id that is different every time it starts.
     static SERVER_ID: Lazy<String> = Lazy::new(random_str);
 
+    static AUTO_REFRESH_SCRIPT: Lazy<String> = Lazy::new(|| {
+        format!(
+            r#"
+<script>
+    (() => {{
+        const protocol = window.location.protocol === 'https' ? 'wss' : 'ws';
+        const wsUrl = `${{protocol}}://${{window.location.host}}/_refresh`;
+        const serverId = '{}';
+
+        const connectWs = () => {{
+            const ws = new WebSocket(wsUrl);
+            ws.addEventListener('open', () => {{
+                const invId = setInterval(() => {{
+                    try {{
+                        ws.send(serverId);
+                    }} catch(e) {{
+                        // do nothing if errored.
+                    }}
+                }}, 1000);
+                ws.addEventListener('error', () => {{
+                    clearInterval(invId);
+                }});
+            }});
+            ws.addEventListener('close', () => {{
+                setTimeout(connectWs, 1000);
+            }});
+            ws.addEventListener('message', (e) => {{
+                if (e.data === 'restart') {{
+                    window.location.reload();
+                }}
+            }});
+        }};
+
+        connectWs();
+    }})();
+</script>"#,
+            SERVER_ID.as_str()
+        )
+    });
+
     impl<COMP, CTX> Endpoint<COMP, CTX>
     where
         COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
@@ -129,11 +169,12 @@ mod feat_warp_filter {
             bridge: Bridge,
             affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
             tx: sync_oneshot::Sender<String>,
+            auto_refresh: bool,
         ) {
             let props = (affix_context.get())(props);
             let (reader, writer) = render_static();
 
-            let body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
+            let mut body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
                 StackableRootProps {
                     server_app_props: props,
                     helmet_writer: writer,
@@ -164,6 +205,10 @@ mod feat_warp_filter {
                 IndexHtml::Embedded(ref s) => s.as_ref().into(),
             };
 
+            if auto_refresh {
+                body_s.push_str(AUTO_REFRESH_SCRIPT.as_str());
+            }
+
             let s = index_html_s
                 .replace("<!--%STACKABLE_HEAD%-->", &head_s)
                 .replace("<!--%STACKABLE_BODY%-->", &body_s);
@@ -176,11 +221,13 @@ mod feat_warp_filter {
             props: ServerAppProps<()>,
             bridge: Bridge,
             affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
+            auto_refresh: bool,
         ) -> impl Reply {
             let (tx, rx) = sync_oneshot::channel();
 
             let create_render_inner = move || async move {
-                Self::render_html_inner(index_html, props, bridge, affix_context, tx).await;
+                Self::render_html_inner(index_html, props, bridge, affix_context, tx, auto_refresh)
+                    .await;
             };
 
             // We spawn into a local runtime early for higher efficiency.
@@ -207,6 +254,7 @@ mod feat_warp_filter {
             let index_html = self.frontend.as_ref()?.index_html();
             let affix_context = self.affix_context.clone();
             let bridge = self.bridge.clone().unwrap_or_default();
+            let auto_refresh = self.auto_refresh;
 
             let f = warp::get()
                 .and(warp::path::full())
@@ -221,7 +269,7 @@ mod feat_warp_filter {
                     let bridge = bridge.clone();
 
                     async move {
-                        Self::render_html(index_html, props, bridge, affix_context)
+                        Self::render_html(index_html, props, bridge, affix_context, auto_refresh)
                             .await
                             .into_response()
                     }
@@ -259,6 +307,10 @@ mod feat_warp_filter {
                                             return;
                                         }
                                     };
+
+                                    if m.is_ping() || m.is_pong() {
+                                        continue;
+                                    }
 
                                     let m = match m.to_str() {
                                         Ok(m) => m,
