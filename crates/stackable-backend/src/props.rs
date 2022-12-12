@@ -33,6 +33,7 @@ pub struct Inner {
 pub struct ServerAppProps<T = ()> {
     inner: Arc<Inner>,
     context: Arc<T>,
+    client_only: bool,
 }
 
 impl<T> ServerAppProps<T> {
@@ -67,6 +68,7 @@ impl<T> Clone for ServerAppProps<T> {
         Self {
             inner: self.inner.clone(),
             context: self.context.clone(),
+            client_only: self.client_only,
         }
     }
 }
@@ -76,7 +78,17 @@ impl<T> ServerAppProps<T> {
         ServerAppProps {
             inner: self.inner,
             context: context.into(),
+            client_only: false,
         }
+    }
+
+    pub fn client_only(mut self) -> Self {
+        self.client_only = true;
+        self
+    }
+
+    pub(crate) fn is_client_only(&self) -> bool {
+        self.client_only
     }
 }
 
@@ -95,6 +107,7 @@ mod feat_warp_filter {
                 }
                 .into(),
                 context: ().into(),
+                client_only: false,
             }
         }
     }

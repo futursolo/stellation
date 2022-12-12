@@ -55,22 +55,33 @@ where
     where
         CTX: Default,
     {
-        Endpoint::<COMP, CTX>::with_create_context(|m| m.with_context(CTX::default()))
-    }
-
-    pub fn with_create_context<F>(create_context: F) -> Self
-    where
-        F: 'static + Clone + Send + Fn(ServerAppProps<()>) -> ServerAppProps<CTX>,
-    {
         Self {
             affix_context: SendFn::<ServerAppProps<()>, ServerAppProps<CTX>>::new(move || {
-                Box::new(create_context.clone())
+                Box::new(|m| m.with_context(CTX::default()))
             }),
             bridge: None,
             #[cfg(feature = "warp-filter")]
             frontend: None,
             #[cfg(feature = "warp-filter")]
             auto_refresh: false,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn with_append_context<F, C>(self, append_context: F) -> Endpoint<COMP, C>
+    where
+        F: 'static + Clone + Send + Fn(ServerAppProps<()>) -> ServerAppProps<C>,
+        C: 'static,
+    {
+        Endpoint {
+            affix_context: SendFn::<ServerAppProps<()>, ServerAppProps<C>>::new(move || {
+                Box::new(append_context.clone())
+            }),
+            bridge: self.bridge,
+            #[cfg(feature = "warp-filter")]
+            frontend: self.frontend,
+            #[cfg(feature = "warp-filter")]
+            auto_refresh: self.auto_refresh,
             _marker: PhantomData,
         }
     }
@@ -181,28 +192,33 @@ mod feat_warp_filter {
 
             let create_render_inner = move |props, tx: sync_oneshot::Sender<String>| async move {
                 let props = (affix_context.get())(props);
-                let (reader, writer) = render_static();
-
-                let mut body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
-                    StackableRootProps {
-                        server_app_props: props,
-                        helmet_writer: writer,
-                        bridge,
-                    },
-                )
-                .render()
-                .await;
 
                 let mut head_s = String::new();
-                let helmet_tags = reader.render().await;
+                let mut body_s = String::new();
 
-                for tag in helmet_tags {
-                    let _ = tag.write_static(&mut head_s);
+                if !props.is_client_only() {
+                    let (reader, writer) = render_static();
+
+                    body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
+                        StackableRootProps {
+                            server_app_props: props,
+                            helmet_writer: writer,
+                            bridge,
+                        },
+                    )
+                    .render()
+                    .await;
+
+                    let helmet_tags = reader.render().await;
+
+                    for tag in helmet_tags {
+                        let _ = tag.write_static(&mut head_s);
+                    }
+                    let _ = write!(
+                        &mut head_s,
+                        r#"<meta name="stackable-mode" content="hydrate">"#
+                    );
                 }
-                let _ = write!(
-                    &mut head_s,
-                    r#"<meta name="stackable-mode" content="hydrate">"#
-                );
 
                 // With development server, we read index.html every time.
                 let index_html_s = match index_html {
