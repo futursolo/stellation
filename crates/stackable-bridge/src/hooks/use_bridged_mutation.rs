@@ -43,6 +43,7 @@ where
         input: Rc<M::Input>,
     ) -> bounce::query::MutationResult<Self> {
         let bridge = states.get_atom_value::<BridgeState>();
+        let _token = bridge.inner.read_token(states);
 
         Ok(Self {
             inner: bridge.inner.resolve_mutation::<M>(&input).await,

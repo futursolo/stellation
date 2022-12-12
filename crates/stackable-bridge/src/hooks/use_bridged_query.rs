@@ -75,6 +75,7 @@ where
         input: Rc<Self::Input>,
     ) -> bounce::query::QueryResult<Self> {
         let bridge = states.get_atom_value::<BridgeState>();
+        let _token = bridge.inner.read_token(states);
 
         Ok(Self {
             inner: bridge.inner.resolve_query::<Q>(&input).await,

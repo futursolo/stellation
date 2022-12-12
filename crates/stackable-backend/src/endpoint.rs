@@ -356,14 +356,13 @@ mod feat_warp_filter {
                     "content-type",
                     "application/x-bincode",
                 ))
-                .and(header("X-Bridge-Type-Idx"))
                 .and(bytes())
-                .then(move |index: usize, input: Bytes| {
+                .then(move |input: Bytes| {
                     let bridge = bridge.clone();
                     let (tx, rx) = sync_oneshot::channel();
 
                     let resolve_encoded = move || async move {
-                        let output = bridge.resolve_encoded(index, &input).await;
+                        let output = bridge.resolve_encoded(&input).await;
                         let _ = tx.send(output);
                     };
 

@@ -6,10 +6,18 @@ use std::sync::Arc;
 use crate::error::{BridgeError, BridgeResult};
 use crate::types::{MutationResult, QueryResult};
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Incoming<'a> {
+    query_index: usize,
+    input: &'a [u8],
+}
+
 #[cfg(feature = "resolvable")]
 mod feat_resolvable {
+    use std::rc::Rc;
     use std::sync::Arc;
 
+    use bounce::{BounceStates, Selector};
     use futures::future::LocalBoxFuture;
     use futures::FutureExt;
 
@@ -27,28 +35,34 @@ mod feat_resolvable {
     }
 
     impl Bridge {
-        pub async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
+        pub(crate) async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
         where
             T: 'static + BridgedQuery,
         {
             T::resolve(input).await
         }
 
-        pub async fn resolve_mutation<T>(&self, input: &T::Input) -> MutationResult<T>
+        pub(crate) async fn resolve_mutation<T>(&self, input: &T::Input) -> MutationResult<T>
         where
             T: 'static + BridgedMutation,
         {
             T::resolve(input).await
         }
 
-        pub async fn resolve_encoded(&self, idx: usize, input: &[u8]) -> BridgeResult<Vec<u8>> {
+        pub async fn resolve_encoded(&self, incoming: &[u8]) -> BridgeResult<Vec<u8>> {
+            let incoming: Incoming<'_> = bincode::deserialize(incoming)?;
+
             let resolver = self
                 .inner
                 .resolvers
-                .get(idx)
-                .ok_or(BridgeError::InvalidIndex(idx))?;
+                .get(incoming.query_index)
+                .ok_or(BridgeError::InvalidIndex(incoming.query_index))?;
 
-            resolver(input).await
+            resolver(incoming.input).await
+        }
+
+        pub(crate) fn read_token(&self, _states: &BounceStates) -> Option<Rc<dyn AsRef<str>>> {
+            None
         }
     }
 
@@ -95,6 +109,13 @@ mod feat_resolvable {
 
             self
         }
+
+        pub fn with_token_selector<T>(self) -> Self
+        where
+            T: 'static + Selector + AsRef<str>,
+        {
+            self
+        }
     }
 }
 #[cfg(feature = "resolvable")]
@@ -105,31 +126,41 @@ mod not_feat_resolvable {
     use std::any::TypeId;
     use std::rc::Rc;
 
-    use gloo_net::http::Request;
+    use bounce::{BounceStates, Selector};
+    use gloo_net::http::{Headers, Request};
     use js_sys::Uint8Array;
 
     use super::*;
     pub(super) use crate::types::{BridgedMutation, BridgedQuery};
 
+    type ReadToken = Box<dyn Fn(&BounceStates) -> Rc<dyn AsRef<str>>>;
+
     #[derive(Default)]
     pub struct BridgeBuilder {
-        query_index: Vec<TypeId>,
+        query_ids: Vec<TypeId>,
+        read_token: Option<ReadToken>,
     }
 
     impl Bridge {
         async fn resolve_encoded(&self, type_id: TypeId, input: &[u8]) -> BridgeResult<Vec<u8>> {
             let idx = self
                 .inner
-                .query_index
+                .query_ids
                 .iter()
                 .enumerate()
                 .find(|(_, m)| **m == type_id)
                 .ok_or(BridgeError::InvalidType(type_id))?
                 .0;
 
-            let input = Uint8Array::from(input);
+            let incoming = Incoming {
+                query_index: idx,
+                input,
+            };
+
+            let incoming = bincode::serialize(&incoming)?;
+
+            let input = Uint8Array::from(incoming.as_slice());
             let resp = Request::post("/_bridge")
-                .header("X-Bridge-Type-Idx", &idx.to_string())
                 .header("Content-Type", "application/x-bincode")
                 .body(input)
                 .send()
@@ -138,7 +169,7 @@ mod not_feat_resolvable {
             resp.binary().await.map_err(|m| m.into())
         }
 
-        pub async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
+        pub(crate) async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
         where
             T: 'static + BridgedQuery,
         {
@@ -154,7 +185,7 @@ mod not_feat_resolvable {
             inner().await.map_err(T::into_query_error)?.map(Rc::new)
         }
 
-        pub async fn resolve_mutation<T>(&self, input: &T::Input) -> MutationResult<T>
+        pub(crate) async fn resolve_mutation<T>(&self, input: &T::Input) -> MutationResult<T>
         where
             T: 'static + BridgedMutation,
         {
@@ -169,6 +200,10 @@ mod not_feat_resolvable {
 
             inner().await.map_err(T::into_mutation_error)?.map(Rc::new)
         }
+
+        pub(crate) fn read_token(&self, states: &BounceStates) -> Option<Rc<dyn AsRef<str>>> {
+            self.inner.read_token.as_ref().map(|m| m(states))
+        }
     }
 
     impl BridgeBuilder {
@@ -177,7 +212,7 @@ mod not_feat_resolvable {
             T: 'static + BridgedQuery,
         {
             let type_id = TypeId::of::<T>();
-            self.query_index.push(type_id);
+            self.query_ids.push(type_id);
 
             self
         }
@@ -187,7 +222,22 @@ mod not_feat_resolvable {
             T: 'static + BridgedMutation,
         {
             let type_id = TypeId::of::<T>();
-            self.query_index.push(type_id);
+            self.query_ids.push(type_id);
+
+            self
+        }
+
+        pub fn with_token_selector<T>(mut self) -> Self
+        where
+            T: 'static + Selector + AsRef<str>,
+        {
+            let read_token = Box::new(move |states: &BounceStates| {
+                let state = states.get_selector_value::<T>();
+
+                state as Rc<dyn AsRef<str>>
+            }) as ReadToken;
+
+            self.read_token = Some(read_token);
 
             self
         }
@@ -195,6 +245,7 @@ mod not_feat_resolvable {
 }
 #[cfg(not(feature = "resolvable"))]
 pub use not_feat_resolvable::*;
+use serde::{Deserialize, Serialize};
 
 impl BridgeBuilder {
     pub fn build(self) -> Bridge {
