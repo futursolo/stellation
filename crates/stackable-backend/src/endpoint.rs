@@ -163,83 +163,6 @@ mod feat_warp_filter {
             self
         }
 
-        async fn render_html_inner(
-            index_html: IndexHtml,
-            props: ServerAppProps<()>,
-            bridge: Bridge,
-            affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
-            tx: sync_oneshot::Sender<String>,
-            auto_refresh: bool,
-        ) {
-            let props = (affix_context.get())(props);
-            let (reader, writer) = render_static();
-
-            let mut body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
-                StackableRootProps {
-                    server_app_props: props,
-                    helmet_writer: writer,
-                    bridge,
-                },
-            )
-            .render()
-            .await;
-
-            let mut head_s = String::new();
-            let helmet_tags = reader.render().await;
-
-            for tag in helmet_tags {
-                let _ = tag.write_static(&mut head_s);
-            }
-            let _ = write!(
-                &mut head_s,
-                r#"<meta name="stackable-mode" content="hydrate">"#
-            );
-
-            // With development server, we read index.html every time.
-            let index_html_s = match index_html {
-                IndexHtml::Path(p) => fs::read_to_string(&p)
-                    .await
-                    .map(Cow::from)
-                    .expect("TODO: implement failure."),
-
-                IndexHtml::Embedded(ref s) => s.as_ref().into(),
-            };
-
-            if auto_refresh {
-                body_s.push_str(AUTO_REFRESH_SCRIPT.as_str());
-            }
-
-            let s = index_html_s
-                .replace("<!--%STACKABLE_HEAD%-->", &head_s)
-                .replace("<!--%STACKABLE_BODY%-->", &body_s);
-
-            let _ = tx.send(s);
-        }
-
-        async fn render_html(
-            index_html: IndexHtml,
-            props: ServerAppProps<()>,
-            bridge: Bridge,
-            affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
-            auto_refresh: bool,
-        ) -> impl Reply {
-            let (tx, rx) = sync_oneshot::channel();
-
-            let create_render_inner = move || async move {
-                Self::render_html_inner(index_html, props, bridge, affix_context, tx, auto_refresh)
-                    .await;
-            };
-
-            // We spawn into a local runtime early for higher efficiency.
-            match LocalHandle::try_current() {
-                Some(handle) => handle.spawn_local(create_render_inner()),
-                // TODO: Allow Overriding Runtime with Endpoint.
-                None => Runtime::default().spawn_pinned(create_render_inner),
-            }
-
-            warp::reply::html(rx.await.expect("renderer panicked?"))
-        }
-
         fn create_index_filter(
             &self,
         ) -> Option<
@@ -256,6 +179,65 @@ mod feat_warp_filter {
             let bridge = self.bridge.clone().unwrap_or_default();
             let auto_refresh = self.auto_refresh;
 
+            let create_render_inner = move |props, tx: sync_oneshot::Sender<String>| async move {
+                let props = (affix_context.get())(props);
+                let (reader, writer) = render_static();
+
+                let mut body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
+                    StackableRootProps {
+                        server_app_props: props,
+                        helmet_writer: writer,
+                        bridge,
+                    },
+                )
+                .render()
+                .await;
+
+                let mut head_s = String::new();
+                let helmet_tags = reader.render().await;
+
+                for tag in helmet_tags {
+                    let _ = tag.write_static(&mut head_s);
+                }
+                let _ = write!(
+                    &mut head_s,
+                    r#"<meta name="stackable-mode" content="hydrate">"#
+                );
+
+                // With development server, we read index.html every time.
+                let index_html_s = match index_html {
+                    IndexHtml::Path(p) => fs::read_to_string(&p)
+                        .await
+                        .map(Cow::from)
+                        .expect("TODO: implement failure."),
+
+                    IndexHtml::Embedded(ref s) => s.as_ref().into(),
+                };
+
+                if auto_refresh {
+                    body_s.push_str(AUTO_REFRESH_SCRIPT.as_str());
+                }
+
+                let s = index_html_s
+                    .replace("<!--%STACKABLE_HEAD%-->", &head_s)
+                    .replace("<!--%STACKABLE_BODY%-->", &body_s);
+
+                let _ = tx.send(s);
+            };
+
+            let render_html = move |props| async move {
+                let (tx, rx) = sync_oneshot::channel::<String>();
+
+                // We spawn into a local runtime early for higher efficiency.
+                match LocalHandle::try_current() {
+                    Some(handle) => handle.spawn_local(create_render_inner(props, tx)),
+                    // TODO: Allow Overriding Runtime with Endpoint.
+                    None => Runtime::default().spawn_pinned(move || create_render_inner(props, tx)),
+                }
+
+                warp::reply::html(rx.await.expect("renderer panicked?"))
+            };
+
             let f = warp::get()
                 .and(warp::path::full())
                 .and(
@@ -263,16 +245,10 @@ mod feat_warp_filter {
                         .or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
                 )
                 .then(move |path: FullPath, raw_queries| {
-                    let index_html = index_html.clone();
-                    let affix_context = affix_context.clone();
                     let props = ServerAppProps::from_warp_request(path, raw_queries);
-                    let bridge = bridge.clone();
+                    let render_html = render_html.clone();
 
-                    async move {
-                        Self::render_html(index_html, props, bridge, affix_context, auto_refresh)
-                            .await
-                            .into_response()
-                    }
+                    async move { render_html(props).await.into_response() }
                 });
 
             Some(f)
