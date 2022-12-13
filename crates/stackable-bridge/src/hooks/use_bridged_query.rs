@@ -11,7 +11,7 @@ use yew::suspense::SuspensionResult;
 
 #[cfg(feature = "resolvable")]
 use crate::resolvers::QueryResolver as BridgedQuery;
-use crate::state::{BridgeMetadataState, BridgeState};
+use crate::state::BridgeState;
 #[cfg(not(feature = "resolvable"))]
 use crate::types::BridgedQuery;
 use crate::types::QueryResult;
@@ -78,8 +78,8 @@ where
 
         #[cfg(feature = "resolvable")]
         let mut meta = states
-            .get_atom_value::<BridgeMetadataState<Q::Context>>()
-            .inner
+            .get_atom_value::<crate::state::BridgeMetadataState<Q::Context>>()
+            ._inner
             .as_ref()
             .map(|m| m.duplicate())
             .expect("failed to read the metadata, did you register your query / bridge?");

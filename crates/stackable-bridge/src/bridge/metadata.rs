@@ -37,6 +37,7 @@ impl<CTX> BridgeMetadata<CTX> {
         self.token.as_deref()
     }
 
+    #[cfg(feature = "resolvable")]
     pub(crate) fn duplicate(&self) -> Self {
         Self {
             token: self.token.clone(),

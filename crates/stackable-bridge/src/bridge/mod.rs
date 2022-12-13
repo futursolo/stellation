@@ -218,7 +218,7 @@ mod not_feat_resolvable {
     use std::rc::Rc;
 
     use bounce::{BounceStates, Selector};
-    use gloo_net::http::{Headers, Request};
+    use gloo_net::http::Request;
     use js_sys::Uint8Array;
 
     use super::*;
@@ -252,11 +252,15 @@ mod not_feat_resolvable {
             let incoming = bincode::serialize(&incoming)?;
 
             let input = Uint8Array::from(incoming.as_slice());
-            let resp = Request::post("/_bridge")
-                .header("Content-Type", "application/x-bincode")
-                .body(input)
-                .send()
-                .await?;
+            let mut req = Request::post("/_bridge")
+                .header("content-type", "application/x-bincode")
+                .body(input);
+
+            if let Some(m) = self.metadata.token() {
+                req = req.header("authorization", &format!("Bearer {}", m));
+            }
+
+            let resp = req.send().await?;
 
             resp.binary().await.map_err(|m| m.into())
         }

@@ -9,7 +9,7 @@ use yew::prelude::*;
 
 #[cfg(feature = "resolvable")]
 use crate::resolvers::MutationResolver as BridgedMutation;
-use crate::state::{BridgeMetadataState, BridgeState};
+use crate::state::BridgeState;
 #[cfg(not(feature = "resolvable"))]
 use crate::types::BridgedMutation;
 use crate::types::MutationResult;
@@ -46,8 +46,8 @@ where
 
         #[cfg(feature = "resolvable")]
         let mut meta = states
-            .get_atom_value::<BridgeMetadataState<M::Context>>()
-            .inner
+            .get_atom_value::<crate::state::BridgeMetadataState<M::Context>>()
+            ._inner
             .as_ref()
             .map(|m| m.duplicate())
             .expect("failed to read the metadata, did you register your query / bridge?");
