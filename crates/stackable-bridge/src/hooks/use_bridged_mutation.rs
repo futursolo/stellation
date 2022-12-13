@@ -9,7 +9,7 @@ use yew::prelude::*;
 
 #[cfg(feature = "resolvable")]
 use crate::resolvers::MutationResolver as BridgedMutation;
-use crate::state::BridgeState;
+use crate::state::{BridgeMetadataState, BridgeState};
 #[cfg(not(feature = "resolvable"))]
 use crate::types::BridgedMutation;
 use crate::types::MutationResult;
@@ -43,10 +43,30 @@ where
         input: Rc<M::Input>,
     ) -> bounce::query::MutationResult<Self> {
         let bridge = states.get_atom_value::<BridgeState>();
-        let _token = bridge.inner.read_token(states);
+
+        #[cfg(feature = "resolvable")]
+        let mut meta = states
+            .get_atom_value::<BridgeMetadataState<M::Context>>()
+            .inner
+            .as_ref()
+            .map(|m| m.duplicate())
+            .expect("failed to read the metadata, did you register your query / bridge?");
+        #[cfg(not(feature = "resolvable"))]
+        let mut meta = crate::BridgeMetadata::<()>::new();
+
+        if let Some(token) = bridge.inner.read_token(states) {
+            meta = meta.with_token(token.as_ref());
+        }
+
+        let connected = bridge
+            .inner
+            .clone()
+            .connect(meta)
+            .await
+            .map_err(|m| M::into_mutation_error(m))?;
 
         Ok(Self {
-            inner: bridge.inner.resolve_mutation::<M>(&input).await,
+            inner: connected.resolve_mutation::<M>(&input).await,
         }
         .into())
     }

@@ -1,23 +1,26 @@
 use core::fmt;
 use std::marker::PhantomData;
 
-use stackable_bridge::Bridge;
+use futures::future::LocalBoxFuture;
+use futures::{Future, FutureExt};
+use stackable_bridge::{Bridge, BridgeMetadata};
 use yew::prelude::*;
 
 use crate::props::ServerAppProps;
 use crate::utils::ThreadLocalLazy;
 
-type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> OUT>;
-
+type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> LocalBoxFuture<'static, OUT>>;
 type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 
-pub struct Endpoint<COMP, CTX = ()>
+pub struct Endpoint<COMP, CTX = (), BCTX = ()>
 where
     COMP: BaseComponent,
 {
     #[allow(dead_code)]
     affix_context: SendFn<ServerAppProps<()>, ServerAppProps<CTX>>,
     bridge: Option<Bridge>,
+    #[allow(dead_code)]
+    affix_bridge_context: SendFn<BridgeMetadata<()>, BridgeMetadata<BCTX>>,
     #[cfg(feature = "warp-filter")]
     frontend: Option<crate::Frontend>,
 
@@ -27,7 +30,7 @@ where
     _marker: PhantomData<COMP>,
 }
 
-impl<COMP, CTX> fmt::Debug for Endpoint<COMP, CTX>
+impl<COMP, CTX, BCTX> fmt::Debug for Endpoint<COMP, CTX, BCTX>
 where
     COMP: BaseComponent,
 {
@@ -36,29 +39,35 @@ where
     }
 }
 
-impl<COMP, CTX> Default for Endpoint<COMP, CTX>
+impl<COMP, CTX, BCTX> Default for Endpoint<COMP, CTX, BCTX>
 where
     COMP: BaseComponent,
     CTX: 'static + Default,
+    BCTX: 'static + Default,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<COMP, CTX> Endpoint<COMP, CTX>
+impl<COMP, CTX, BCTX> Endpoint<COMP, CTX, BCTX>
 where
     COMP: BaseComponent,
     CTX: 'static,
+    BCTX: 'static,
 {
     pub fn new() -> Self
     where
         CTX: Default,
+        BCTX: Default,
     {
         Self {
             affix_context: SendFn::<ServerAppProps<()>, ServerAppProps<CTX>>::new(move || {
-                Box::new(|m| m.with_context(CTX::default()))
+                Box::new(|m| async move { m.with_context(CTX::default()) }.boxed())
             }),
+            affix_bridge_context: SendFn::<BridgeMetadata<()>, BridgeMetadata<BCTX>>::new(
+                move || Box::new(|m| async move { m.with_context(BCTX::default()) }.boxed()),
+            ),
             bridge: None,
             #[cfg(feature = "warp-filter")]
             frontend: None,
@@ -68,15 +77,18 @@ where
         }
     }
 
-    pub fn with_append_context<F, C>(self, append_context: F) -> Endpoint<COMP, C>
+    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> Endpoint<COMP, C, BCTX>
     where
-        F: 'static + Clone + Send + Fn(ServerAppProps<()>) -> ServerAppProps<C>,
+        F: 'static + Clone + Send + Fn(ServerAppProps<()>) -> Fut,
+        Fut: 'static + Future<Output = ServerAppProps<C>>,
         C: 'static,
     {
         Endpoint {
             affix_context: SendFn::<ServerAppProps<()>, ServerAppProps<C>>::new(move || {
-                Box::new(append_context.clone())
+                let append_context = append_context.clone();
+                Box::new(move |input| append_context(input).boxed_local())
             }),
+            affix_bridge_context: self.affix_bridge_context,
             bridge: self.bridge,
             #[cfg(feature = "warp-filter")]
             frontend: self.frontend,
@@ -97,6 +109,7 @@ mod feat_warp_filter {
     use std::borrow::Cow;
     use std::fmt::Write;
     use std::future::Future;
+    use std::rc::Rc;
 
     use bounce::helmet::render_static;
     use bytes::Bytes;
@@ -104,7 +117,7 @@ mod feat_warp_filter {
     use futures::{SinkExt, StreamExt};
     use http::status::StatusCode;
     use once_cell::sync::Lazy;
-    use stackable_bridge::BridgeError;
+    use stackable_bridge::{BridgeError, BridgeMetadata};
     use tokio::fs;
     use warp::body::bytes;
     use warp::path::FullPath;
@@ -163,10 +176,11 @@ mod feat_warp_filter {
         )
     });
 
-    impl<COMP, CTX> Endpoint<COMP, CTX>
+    impl<COMP, CTX, BCTX> Endpoint<COMP, CTX, BCTX>
     where
         COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
         CTX: 'static,
+        BCTX: 'static,
     {
         pub fn with_auto_refresh(mut self) -> Self {
             self.auto_refresh = true;
@@ -189,9 +203,12 @@ mod feat_warp_filter {
             let affix_context = self.affix_context.clone();
             let bridge = self.bridge.clone().unwrap_or_default();
             let auto_refresh = self.auto_refresh;
+            let affix_bridge_context = self.affix_bridge_context.clone();
 
             let create_render_inner = move |props, tx: sync_oneshot::Sender<String>| async move {
-                let props = (affix_context.get())(props);
+                let props = (affix_context.get())(props).await;
+                let bridge_metadata =
+                    Rc::new((affix_bridge_context.get())(BridgeMetadata::new()).await);
 
                 let mut head_s = String::new();
                 let mut body_s = String::new();
@@ -199,15 +216,17 @@ mod feat_warp_filter {
                 if !props.is_client_only() {
                     let (reader, writer) = render_static();
 
-                    body_s = yew::LocalServerRenderer::<StackableRoot<COMP, CTX>>::with_props(
-                        StackableRootProps {
-                            server_app_props: props,
-                            helmet_writer: writer,
-                            bridge,
-                        },
-                    )
-                    .render()
-                    .await;
+                    body_s =
+                        yew::LocalServerRenderer::<StackableRoot<COMP, CTX, BCTX>>::with_props(
+                            StackableRootProps {
+                                server_app_props: props,
+                                helmet_writer: writer,
+                                bridge,
+                                bridge_metadata,
+                            },
+                        )
+                        .render()
+                        .await;
 
                     let helmet_tags = reader.render().await;
 
@@ -356,14 +375,26 @@ mod feat_warp_filter {
                     "content-type",
                     "application/x-bincode",
                 ))
+                .and(header::optional("authorization"))
                 .and(bytes())
-                .then(move |input: Bytes| {
+                .then(move |token: Option<String>, input: Bytes| {
                     let bridge = bridge.clone();
                     let (tx, rx) = sync_oneshot::channel();
 
+                    let mut meta = BridgeMetadata::<()>::new();
+
+                    if let Some(m) = token {
+                        meta = meta.with_token(m);
+                    }
+
                     let resolve_encoded = move || async move {
-                        let output = bridge.resolve_encoded(&input).await;
-                        let _ = tx.send(output);
+                        let f = async move {
+                            let connected = bridge.connect(meta).await?;
+
+                            connected.resolve_encoded(&input).await
+                        };
+
+                        let _ = tx.send(f.await);
                     };
 
                     match LocalHandle::try_current() {
@@ -461,10 +492,11 @@ mod feat_tower_service {
     use tower::Service;
 
     use super::*;
-    impl<COMP, CTX> Endpoint<COMP, CTX>
+    impl<COMP, CTX, BCTX> Endpoint<COMP, CTX, BCTX>
     where
         COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
         CTX: 'static,
+        BCTX: 'static,
     {
         pub fn into_tower_service(
             self,
