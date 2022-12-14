@@ -98,6 +98,30 @@ where
         }
     }
 
+    pub fn with_append_bridge_context<F, C, Fut>(
+        self,
+        append_bridge_context: F,
+    ) -> Endpoint<COMP, CTX, C>
+    where
+        F: 'static + Clone + Send + Fn(BridgeMetadata<()>) -> Fut,
+        Fut: 'static + Future<Output = BridgeMetadata<C>>,
+        C: 'static,
+    {
+        Endpoint {
+            affix_context: self.affix_context,
+            affix_bridge_context: SendFn::<BridgeMetadata<()>, BridgeMetadata<C>>::new(move || {
+                let append_bridge_context = append_bridge_context.clone();
+                Box::new(move |input| append_bridge_context(input).boxed_local())
+            }),
+            bridge: self.bridge,
+            #[cfg(feature = "warp-filter")]
+            frontend: self.frontend,
+            #[cfg(feature = "warp-filter")]
+            auto_refresh: self.auto_refresh,
+            _marker: PhantomData,
+        }
+    }
+
     pub fn with_bridge(mut self, bridge: Bridge) -> Self {
         self.bridge = Some(bridge);
         self
