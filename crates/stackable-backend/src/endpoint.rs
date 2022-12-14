@@ -113,12 +113,12 @@ mod feat_warp_filter {
 
     use bounce::helmet::render_static;
     use bytes::Bytes;
-    use futures::channel::oneshot as sync_oneshot;
-    use futures::{SinkExt, StreamExt};
+    use futures::{SinkExt, StreamExt, TryFutureExt};
     use http::status::StatusCode;
     use once_cell::sync::Lazy;
     use stackable_bridge::{BridgeError, BridgeMetadata};
     use tokio::fs;
+    use tokio::sync::oneshot as sync_oneshot;
     use warp::body::bytes;
     use warp::path::FullPath;
     use warp::reject::not_found;
@@ -381,32 +381,27 @@ mod feat_warp_filter {
                     let bridge = bridge.clone();
                     let (tx, rx) = sync_oneshot::channel();
 
-                    let mut meta = BridgeMetadata::<()>::new();
-
-                    if let Some(m) = token {
-                        meta = meta.with_token(m);
-                    }
-
                     let resolve_encoded = move || async move {
-                        let f = async move {
-                            let connected = bridge.connect(meta).await?;
+                        let mut meta = BridgeMetadata::<()>::new();
 
-                            connected.resolve_encoded(&input).await
-                        };
+                        if let Some(m) = token {
+                            if !m.starts_with("Bearer ") {
+                                let reply =
+                                    reply::with_status("", StatusCode::BAD_REQUEST).into_response();
 
-                        let _ = tx.send(f.await);
-                    };
+                                let _ = tx.send(reply);
+                                return;
+                            }
 
-                    match LocalHandle::try_current() {
-                        Some(handle) => handle.spawn_local(resolve_encoded()),
-                        // TODO: Allow Overriding Runtime with Endpoint.
-                        None => Runtime::default().spawn_pinned(resolve_encoded),
-                    }
+                            meta = meta.with_token(m.split_at(7).1);
+                        }
 
-                    async move {
-                        let content = rx.await.expect("didn't receive result?");
+                        let content = bridge
+                            .connect(meta)
+                            .and_then(|m| async move { m.resolve_encoded(&input).await })
+                            .await;
 
-                        match content {
+                        let reply = match content {
                             Ok(m) => reply::with_header(m, "content-type", "application/x-bincode")
                                 .into_response(),
                             Err(BridgeError::Encoding(_))
@@ -418,8 +413,18 @@ mod feat_warp_filter {
                                 reply::with_status("", StatusCode::INTERNAL_SERVER_ERROR)
                                     .into_response()
                             }
-                        }
+                        };
+
+                        let _ = tx.send(reply);
+                    };
+
+                    match LocalHandle::try_current() {
+                        Some(handle) => handle.spawn_local(resolve_encoded()),
+                        // TODO: Allow Overriding Runtime with Endpoint.
+                        None => Runtime::default().spawn_pinned(resolve_encoded),
                     }
+
+                    async move { rx.await.expect("failed to resolve the bridge request") }
                 });
 
             Some(warp::path::path("_bridge").and(http_bridge_f))
