@@ -87,6 +87,7 @@ impl<T> ServerAppProps<T> {
         self
     }
 
+    #[cfg(feature = "warp-filter")]
     pub(crate) fn is_client_only(&self) -> bool {
         self.client_only
     }

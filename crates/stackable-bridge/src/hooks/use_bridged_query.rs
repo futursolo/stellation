@@ -76,8 +76,29 @@ where
     ) -> bounce::query::QueryResult<Self> {
         let bridge = states.get_atom_value::<BridgeState>();
 
+        #[cfg(feature = "resolvable")]
+        let mut meta = states
+            .get_atom_value::<crate::state::BridgeMetadataState<Q::Context>>()
+            ._inner
+            .as_ref()
+            .map(|m| m.duplicate())
+            .expect("failed to read the metadata, did you register your query / bridge?");
+        #[cfg(not(feature = "resolvable"))]
+        let mut meta = crate::BridgeMetadata::<()>::new();
+
+        if let Some(token) = bridge.inner.read_token(states) {
+            meta = meta.with_token(token.as_ref());
+        }
+
+        let connected = bridge
+            .inner
+            .clone()
+            .connect(meta)
+            .await
+            .map_err(|m| Q::into_query_error(m))?;
+
         Ok(Self {
-            inner: bridge.inner.resolve_query::<Q>(&input).await,
+            inner: connected.resolve_query::<Q>(&input).await,
         }
         .into())
     }
