@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::env;
 use std::path::Path;
 
 #[derive(Debug)]
@@ -33,6 +34,12 @@ impl EnvFile {
                 if let Err(e) = dotenvy::from_path_iter(&path).and_then(|m| {
                     for i in m {
                         let (k, v) = i?;
+                        if env::var(&k).is_ok() {
+                            // environment variables inherited from current process have a higher
+                            // priority.
+                            continue;
+                        }
+
                         envs.insert(k, v);
                     }
 
