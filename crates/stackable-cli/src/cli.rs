@@ -7,21 +7,33 @@ use tokio::fs;
 
 use crate::manifest::Manifest;
 
+#[derive(Parser, Debug)]
+pub(crate) struct ServeCommand {
+    /// Open browser after the development server is ready.
+    #[arg(long)]
+    pub open: bool,
+    /// The name of the env profile. [Default: the same name as the build profile]
+    #[arg(long)]
+    pub env: Option<String>,
+}
+
+#[derive(Parser, Debug)]
+pub(crate) struct BuildCommand {
+    /// Build artifacts in release mode, with optimizations.
+    #[arg(long)]
+    pub release: bool,
+    /// The name of the env profile. [Default: the same name as the build profile]
+    #[arg(long)]
+    pub env: Option<String>,
+}
+
 #[derive(Subcommand, Debug)]
-pub(crate) enum Command {
+pub(crate) enum CliCommand {
     /// Start the development server, serve backend and frontend, watch file changes and
     /// rebuild if needed.
-    Serve {
-        /// Open browser after the development server is ready.
-        #[arg(long)]
-        open: bool,
-    },
+    Serve(ServeCommand),
     /// Build the server and client for final distribution.
-    Build {
-        /// Build artifacts in release mode, with optimizations.
-        #[arg(long)]
-        release: bool,
-    },
+    Build(BuildCommand),
 }
 
 #[derive(Parser, Debug)]
@@ -33,7 +45,7 @@ pub(crate) struct Cli {
     pub manifest_path: PathBuf,
 
     #[command(subcommand)]
-    pub command: Command,
+    pub command: CliCommand,
 }
 
 impl Cli {

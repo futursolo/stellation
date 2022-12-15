@@ -2,8 +2,10 @@
 #![deny(missing_debug_implementations)]
 
 mod cli;
+mod env_file;
 mod indicators;
 mod manifest;
+mod profile;
 mod utils;
 
 use std::path::{Path, PathBuf};
@@ -14,13 +16,15 @@ use std::time::{Duration, SystemTime};
 use anyhow::{bail, Context, Result};
 use cargo_metadata::Metadata;
 use clap::Parser;
-use cli::{Cli, Command};
+use cli::{BuildCommand, Cli, CliCommand, ServeCommand};
 use console::{style, Term};
+use env_file::EnvFile;
 use futures::future::ready;
 use futures::stream::unfold;
 use futures::{pin_mut, FutureExt, Stream, StreamExt};
 use manifest::Manifest;
 use notify::{recommended_watcher, Event, RecursiveMode, Watcher};
+use profile::Profile;
 use stackable_core::dev::StackctlMetadata;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Child;
@@ -39,9 +43,45 @@ use crate::utils::random_str;
 struct Stackctl {
     cli: Arc<Cli>,
     manifest: Arc<Manifest>,
+    profile: Profile,
+    env_file: EnvFile,
 }
 
 impl Stackctl {
+    async fn new(cli: Cli) -> Result<Self> {
+        let manifest = cli.load_manifest().await?;
+
+        let profile = match cli.command {
+            CliCommand::Serve(_) => Profile::new_debug(),
+            CliCommand::Build(BuildCommand { release, .. }) => {
+                if release {
+                    Profile::new_release()
+                } else {
+                    Profile::new_debug()
+                }
+            }
+        };
+
+        let env_name = match cli.command {
+            CliCommand::Build(BuildCommand {
+                env: Some(ref m), ..
+            })
+            | CliCommand::Serve(ServeCommand {
+                env: Some(ref m), ..
+            }) => m,
+            _ => profile.name(),
+        };
+
+        let env_file = EnvFile::new(env_name);
+
+        Ok(Self {
+            cli: cli.into(),
+            manifest,
+            profile,
+            env_file,
+        })
+    }
+
     async fn workspace_dir(&self) -> Result<PathBuf> {
         self.cli
             .manifest_path
@@ -113,13 +153,6 @@ impl Stackctl {
         ))
     }
 
-    fn is_release(&self) -> bool {
-        match self.cli.command {
-            Command::Serve { .. } => false,
-            Command::Build { release } => release,
-        }
-    }
-
     /// Creates and returns the path of the data directory.
     ///
     /// This is `build` directory in the same parent directory as `stackable.toml`.
@@ -168,11 +201,11 @@ impl Stackctl {
 
     async fn frontend_build_dir(&self) -> Result<PathBuf> {
         let frontend_build_dir = match self.cli.command {
-            Command::Build { .. } => {
+            CliCommand::Build { .. } => {
                 let build_dir = self.build_dir().await?;
                 build_dir.join("frontend")
             }
-            Command::Serve { .. } => {
+            CliCommand::Serve { .. } => {
                 let frontend_data_dir = self.frontend_data_dir().await?;
                 frontend_data_dir.join("serve-builds").join(random_str()?)
             }
@@ -187,11 +220,11 @@ impl Stackctl {
 
     async fn backend_build_dir(&self) -> Result<PathBuf> {
         let frontend_build_dir = match self.cli.command {
-            Command::Build { .. } => {
+            CliCommand::Build { .. } => {
                 let build_dir = self.build_dir().await?;
                 build_dir.join("backend")
             }
-            Command::Serve { .. } => {
+            CliCommand::Serve { .. } => {
                 let frontend_data_dir = self.backend_data_dir().await?;
                 frontend_data_dir.join("serve-builds").join(random_str()?)
             }
@@ -260,11 +293,14 @@ impl Stackctl {
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
 
-            if self.is_release() {
-                proc.arg("--release");
+            if let Some(m) = self.profile.to_profile_argument() {
+                proc.arg(m);
             }
 
-            if matches!(self.cli.command, crate::Command::Build { .. }) {
+            let envs = self.env_file.load(&workspace_dir);
+            proc.envs(envs);
+
+            if matches!(self.cli.command, CliCommand::Build { .. }) {
                 proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
             }
             proc
@@ -292,7 +328,7 @@ impl Stackctl {
 
         // We try again with logs printed to console.
         if !status.success() {
-            if self.is_release() {
+            if matches!(self.cli.command, CliCommand::Build { .. }) {
                 bail!("trunk failed with status {}", status);
             }
 
@@ -331,18 +367,22 @@ impl Stackctl {
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
-                .env("STACKABLE_FRONTEND_BUILD_DIR", frontend_build_dir)
                 .kill_on_drop(true);
 
-            if self.is_release() {
-                proc.arg("--release");
+            if let Some(m) = self.profile.to_profile_argument() {
+                proc.arg(m);
             }
 
-            if matches!(self.cli.command, crate::Command::Build { .. }) {
+            let envs = self.env_file.load(&workspace_dir);
+            proc.envs(envs);
+
+            if matches!(self.cli.command, CliCommand::Build { .. }) {
                 proc.stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .env("RUSTFLAGS", "--cfg stackable_embedded_frontend");
             }
+
+            proc.env("STACKABLE_FRONTEND_BUILD_DIR", frontend_build_dir);
 
             proc
         };
@@ -369,7 +409,7 @@ impl Stackctl {
 
         // We try again with logs printed to console.
         if !status.success() {
-            if self.is_release() {
+            if matches!(self.cli.command, CliCommand::Build { .. }) {
                 bail!("trunk failed with status {}", status);
             }
 
@@ -407,15 +447,9 @@ impl Stackctl {
         let meta: Metadata = serde_json::from_slice(&pkg_meta_output.stdout)
             .context("failed to parse package metadata")?;
 
-        let target_name = if self.is_release() {
-            "release"
-        } else {
-            "debug"
-        };
-
         let bin_path = meta
             .target_directory
-            .join_os(target_name)
+            .join_os(self.profile.name())
             .join(&self.manifest.dev_server.bin_name);
 
         let backend_bin_path = backend_build_dir.join(&self.manifest.dev_server.bin_name);
@@ -466,8 +500,11 @@ impl Stackctl {
 
         bar.step_starting();
 
+        let envs = self.env_file.load(&workspace_dir);
+
         let server_proc = Command::new(&backend_build_path)
             .current_dir(&workspace_dir)
+            .envs(envs)
             .env(StackctlMetadata::ENV_NAME, meta.to_json()?)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
@@ -492,7 +529,7 @@ impl Stackctl {
         Ok(server_proc)
     }
 
-    async fn run_serve(&self, open: bool) -> Result<()> {
+    async fn run_serve(&self, cmd_args: &ServeCommand) -> Result<()> {
         let changes = self.watch_changes().await?;
         pin_mut!(changes);
 
@@ -538,7 +575,7 @@ impl Stackctl {
                 }
             };
 
-            if open && first_run {
+            if cmd_args.open && first_run {
                 self.open_browser(&http_listen_addr).await?;
             }
 
@@ -563,8 +600,8 @@ impl Stackctl {
         Ok(())
     }
 
-    async fn run_build(&self, release: bool) -> Result<()> {
-        let target_name = if release { "release" } else { "debug" };
+    async fn run_build(&self, _cmd_args: &BuildCommand) -> Result<()> {
+        let target_name = self.profile.name();
 
         eprintln!(
             "{}",
@@ -594,11 +631,11 @@ impl Stackctl {
 
     async fn run(&self) -> Result<()> {
         match self.cli.command {
-            Command::Serve { open } => {
-                self.run_serve(open).await?;
+            CliCommand::Serve(ref m) => {
+                self.run_serve(m).await?;
             }
-            Command::Build { release } => {
-                self.run_build(release).await?;
+            CliCommand::Build(ref m) => {
+                self.run_build(m).await?;
             }
         }
 
@@ -618,14 +655,7 @@ pub async fn main() -> Result<()> {
         .init();
 
     let cli = Cli::parse();
-    let manifest = cli.load_manifest().await?;
-
-    Stackctl {
-        cli: cli.into(),
-        manifest,
-    }
-    .run()
-    .await?;
+    Stackctl::new(cli).await?.run().await?;
 
     Ok(())
 }
