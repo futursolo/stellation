@@ -17,7 +17,7 @@ stackable-backend = { path = "../stackable-backend", features = ["cli"], version
 notify = "5.0.0"
 futures = { version = "0.3", features = ["std"], default-features = false }
 cargo_metadata = "0.15"
-serde_json = "1.0.89"
+serde_json = "1.0.91"
 dotenvy = "0.15.6"
 
 time = "0.3"
