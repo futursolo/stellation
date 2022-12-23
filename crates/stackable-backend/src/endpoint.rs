@@ -130,7 +130,6 @@ where
 
 #[cfg(feature = "warp-filter")]
 mod feat_warp_filter {
-    use std::borrow::Cow;
     use std::fmt::Write;
     use std::future::Future;
     use std::rc::Rc;
@@ -141,7 +140,6 @@ mod feat_warp_filter {
     use http::status::StatusCode;
     use once_cell::sync::Lazy;
     use stackable_bridge::{BridgeError, BridgeMetadata};
-    use tokio::fs;
     use tokio::sync::oneshot as sync_oneshot;
     use warp::body::bytes;
     use warp::path::FullPath;
@@ -152,7 +150,6 @@ mod feat_warp_filter {
     use yew::platform::{LocalHandle, Runtime};
 
     use super::*;
-    use crate::frontend::IndexHtml;
     use crate::root::{StackableRoot, StackableRootProps};
     use crate::utils::random_str;
     use crate::Frontend;
@@ -236,6 +233,7 @@ mod feat_warp_filter {
 
                 let mut head_s = String::new();
                 let mut body_s = String::new();
+                let mut helmet_tags = Vec::new();
 
                 if !props.is_client_only() {
                     let (reader, writer) = render_static();
@@ -252,11 +250,7 @@ mod feat_warp_filter {
                         .render()
                         .await;
 
-                    let helmet_tags = reader.render().await;
-
-                    for tag in helmet_tags {
-                        let _ = tag.write_static(&mut head_s);
-                    }
+                    helmet_tags = reader.render().await;
                     let _ = write!(
                         &mut head_s,
                         r#"<meta name="stackable-mode" content="hydrate">"#
@@ -264,23 +258,11 @@ mod feat_warp_filter {
                 }
 
                 // With development server, we read index.html every time.
-                let index_html_s = match index_html {
-                    IndexHtml::Path(p) => fs::read_to_string(&p)
-                        .await
-                        .map(Cow::from)
-                        .expect("TODO: implement failure."),
-
-                    IndexHtml::Embedded(ref s) => s.as_ref().into(),
-                };
-
                 if auto_refresh {
                     body_s.push_str(AUTO_REFRESH_SCRIPT.as_str());
                 }
 
-                let s = index_html_s
-                    .replace("<!--%STACKABLE_HEAD%-->", &head_s)
-                    .replace("<!--%STACKABLE_BODY%-->", &body_s);
-
+                let s = index_html.render(helmet_tags, head_s, body_s).await;
                 let _ = tx.send(s);
             };
 
@@ -313,13 +295,8 @@ mod feat_warp_filter {
             Some(f)
         }
 
-        fn create_refresh_filter() -> impl Clone
-               + Send
-               + Filter<
-            Extract = (Response,),
-            Error = Rejection,
-            Future = impl Future<Output = Result<(Response,), Rejection>>,
-        > {
+        fn create_refresh_filter(
+        ) -> impl Clone + Send + Filter<Extract = (Response,), Error = Rejection> {
             warp::path::path("_refresh")
                 .and(warp::ws())
                 .then(|m: Ws| async move {
@@ -383,15 +360,7 @@ mod feat_warp_filter {
 
         fn create_bridge_filter(
             &self,
-        ) -> Option<
-            impl Clone
-                + Send
-                + Filter<
-                    Extract = (Response,),
-                    Error = Rejection,
-                    Future = impl Future<Output = Result<(Response,), Rejection>>,
-                >,
-        > {
+        ) -> Option<impl Clone + Send + Filter<Extract = (Response,), Error = Rejection>> {
             let bridge = self.bridge.clone()?;
 
             let http_bridge_f = warp::post()
@@ -462,13 +431,7 @@ mod feat_warp_filter {
 
         pub fn into_warp_filter(
             self,
-        ) -> impl Clone
-               + Send
-               + Filter<
-            Extract = impl Reply,
-            Error = Rejection,
-            Future = impl Future<Output = Result<impl Reply, Rejection>>,
-        > {
+        ) -> impl Clone + Send + Filter<Extract = (impl Reply + Send,), Error = Rejection> {
             let bridge_f = self.create_bridge_filter();
             let index_html_f = self.create_index_filter();
 
