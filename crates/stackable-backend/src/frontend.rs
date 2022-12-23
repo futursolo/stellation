@@ -1,8 +1,12 @@
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{fmt, str};
 
+use bounce::helmet::HelmetTag;
+use lol_html::{doc_comments, element, rewrite_str, Settings};
 use rust_embed::{EmbeddedFile, RustEmbed};
+use tokio::fs;
 use warp::filters::fs::File;
 use warp::filters::BoxedFilter;
 use warp::path::Tail;
@@ -104,4 +108,85 @@ impl Frontend {
 pub(crate) enum IndexHtml {
     Embedded(Arc<str>),
     Path(Arc<Path>),
+}
+
+impl IndexHtml {
+    async fn read_content(&self) -> Cow<'_, str> {
+        match self {
+            IndexHtml::Path(p) => fs::read_to_string(&p)
+                .await
+                .map(Cow::from)
+                .expect("TODO: implement failure."),
+
+            IndexHtml::Embedded(ref s) => s.as_ref().into(),
+        }
+    }
+
+    pub async fn render<I, H, B>(&self, tags: I, head_s: H, body_s: B) -> String
+    where
+        I: IntoIterator<Item = HelmetTag>,
+        H: Into<String>,
+        B: AsRef<str>,
+    {
+        let mut head_s = head_s.into();
+        let body_s = body_s.as_ref();
+
+        let mut html_tag = None;
+        let mut body_tag = None;
+
+        for tag in tags.into_iter() {
+            match tag {
+                HelmetTag::Html { .. } => {
+                    html_tag = Some(tag);
+                }
+                HelmetTag::Body { .. } => {
+                    body_tag = Some(tag);
+                }
+                _ => {
+                    let _ = tag.write_static(&mut head_s);
+                }
+            }
+        }
+
+        let index_html_s = self.read_content().await;
+
+        rewrite_str(
+            &index_html_s,
+            Settings {
+                element_content_handlers: vec![
+                    element!("html", |h| {
+                        if let Some(HelmetTag::Html { attrs }) = html_tag.take() {
+                            for (k, v) in attrs {
+                                h.set_attribute(k.as_ref(), v.as_ref())?;
+                            }
+                        }
+
+                        Ok(())
+                    }),
+                    element!("body", |h| {
+                        if let Some(HelmetTag::Body { attrs }) = body_tag.take() {
+                            for (k, v) in attrs {
+                                h.set_attribute(k.as_ref(), v.as_ref())?;
+                            }
+                        }
+
+                        Ok(())
+                    }),
+                ],
+
+                document_content_handlers: vec![doc_comments!(|c| {
+                    if c.text() == "%STACKABLE_HEAD%" {
+                        c.replace(&head_s, lol_html::html_content::ContentType::Html);
+                    }
+                    if c.text() == "%STACKABLE_BODY%" {
+                        c.replace(body_s, lol_html::html_content::ContentType::Html);
+                    }
+
+                    Ok(())
+                })],
+                ..Default::default()
+            },
+        )
+        .expect("failed to render html")
+    }
 }
