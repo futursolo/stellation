@@ -2316,7 +2316,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "stackable-backend",
  "stackable-core",
  "time",
  "tokio",
