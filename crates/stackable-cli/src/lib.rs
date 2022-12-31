@@ -462,19 +462,10 @@ impl Stackctl {
     }
 
     async fn open_browser(&self, http_listen_addr: &str) -> Result<()> {
-        use tokio::process::Command;
-        let workspace_dir = self.workspace_dir().await?;
-
-        Command::new("open")
-            .arg(http_listen_addr)
-            .current_dir(&workspace_dir)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?
-            .wait()
-            .await
-            .context("failed to open url")?;
+        if let Err(e) = webbrowser::open(http_listen_addr) {
+            tracing::warn!("stackctl was unable to open the browser");
+            tracing::debug!("due to: {:?}", e);
+        }
 
         Ok(())
     }
