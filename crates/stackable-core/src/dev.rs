@@ -1,4 +1,4 @@
-//! Development Server Utilities.
+//! Stackable development server utilities.
 
 use std::path::PathBuf;
 
