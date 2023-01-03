@@ -29,4 +29,4 @@ reqwest = { version = "0.11.13", features = ["rustls-tls-webpki-roots"] }
 # Stackable Components
 stackable-core = { version = "0.1.0", path = "../stackable-core" }
 tokio-stream = { version = "0.1.11", features = ["sync"] }
-webbrowser = "0.8.3"
+webbrowser = "0.8.4"
