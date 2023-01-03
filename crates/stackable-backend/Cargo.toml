@@ -12,7 +12,7 @@ typed-builder = "0.11.0"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 thread_local = "1.1.4"
-once_cell = "1.16.0"
+once_cell = "1.17.0"
 bincode = "1.3.3"
 rand = "0.8.5"
 lol_html = "0.3.2"
