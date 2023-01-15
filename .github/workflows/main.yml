@@ -148,25 +148,25 @@ jobs:
         run: |
           cargo install toml-cli
 
-          TEMP=$(toml set \
+          CARGO_MODIFIED_OUTPUT=$(toml set \
             crates/stackable-backend/Cargo.toml \
             dependencies.stackable-bridge.registry dry-run)
-          echo $TEMP > crates/stackable-backend/Cargo.toml
+          echo $CARGO_MODIFIED_OUTPUT > crates/stackable-backend/Cargo.toml
 
-          TEMP=$(toml set \
+          CARGO_MODIFIED_OUTPUT=$(toml set \
             crates/stackable-backend/Cargo.toml \
             dependencies.stackable-core.registry dry-run)
-          echo $TEMP > crates/stackable-backend/Cargo.toml
+          echo $CARGO_MODIFIED_OUTPUT > crates/stackable-backend/Cargo.toml
 
-          TEMP=$(toml set \
-            crates/stackable-frontend/Cargo.toml \
-            dependencies.stackable-bridge.registry dry-run)
-          echo $TEMP > crates/stackable-frontend/Cargo.toml
+          # CARGO_MODIFIED_OUTPUT=$(toml set \
+          #   crates/stackable-frontend/Cargo.toml \
+          #   dependencies.stackable-bridge.registry dry-run)
+          # echo $CARGO_MODIFIED_OUTPUT > crates/stackable-frontend/Cargo.toml
 
-          TEMP=$(toml set \
-            crates/stackctl/Cargo.toml \
-            dependencies.stackable-core.registry dry-run)
-          echo $TEMP > crates/stackctl/Cargo.toml
+          # CARGO_MODIFIED_OUTPUT=$(toml set \
+          #   crates/stackctl/Cargo.toml \
+          #   dependencies.stackable-core.registry dry-run)
+          # echo $CARGO_MODIFIED_OUTPUT > crates/stackctl/Cargo.toml
 
       - name: Prepare crates.io Registry
         if: startsWith(github.ref, 'refs/tags/')
