@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use stackable_bridge::types::{BridgedMutation, BridgedQuery};
+use stellation_bridge::types::{BridgedMutation, BridgedQuery};
 use thiserror::Error;
 use time::OffsetDateTime;
 
@@ -18,7 +18,7 @@ impl BridgedQuery for ServerTimeQuery {
     type Error = Error;
     type Input = ();
 
-    fn into_query_error(_e: stackable_bridge::BridgeError) -> Self::Error {
+    fn into_query_error(_e: stellation_bridge::BridgeError) -> Self::Error {
         Error::Network
     }
 }
@@ -32,7 +32,7 @@ impl BridgedMutation for GreetingMutation {
     type Error = Error;
     type Input = String;
 
-    fn into_mutation_error(_e: stackable_bridge::BridgeError) -> Self::Error {
+    fn into_mutation_error(_e: stellation_bridge::BridgeError) -> Self::Error {
         Error::Network
     }
 }

@@ -55,7 +55,7 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v3
         with:
-          path: stackable
+          path: stellation
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -73,34 +73,34 @@ jobs:
 
       - name: Generate Template
         run: |
-          cargo generate --path stackable/templates/default \
+          cargo generate --path stellation/templates/default \
             --name template-default-generated
 
-      - name: Add Stackable Crates
+      - name: Add Stellation Crates
         run: |
           cargo add -p template-default-generated-api \
-            --path ../stackable/crates/stackable-bridge
+            --path ../stellation/crates/stellation-bridge
 
           cargo add -p template-default-generated-client \
-            --path ../stackable/crates/stackable-frontend
+            --path ../stellation/crates/stellation-frontend
 
           cargo add -p template-default-generated-server \
-            --path ../stackable/crates/stackable-backend \
+            --path ../stellation/crates/stellation-backend \
             --features cli
 
           cargo add -p template-default-generated-view \
-            --path ../stackable/crates/stackable-frontend
+            --path ../stellation/crates/stellation-frontend
 
           cargo add -p template-default-generated-view \
-            --path ../stackable/crates/stackable-bridge
+            --path ../stellation/crates/stellation-bridge
 
-          cargo add -p template-default-generated-stackctl \
-            --path ../stackable/crates/stackctl
+          cargo add -p template-default-generated-stctl \
+            --path ../stellation/crates/stctl
         working-directory: template-default-generated
 
       - name: Run Lints
         run: |
-          cargo clippy --bin stackctl
+          cargo clippy --bin stctl
           cargo clippy --bin template-default-generated-client
           cargo clippy --bin template-default-generated-server
         working-directory: template-default-generated
@@ -127,8 +127,8 @@ jobs:
 
       - name: Set Git Information
         run: |
-          git config --global user.name "Stackable Actions"
-          git config --global user.email "actions@stackable.dummy"
+          git config --global user.name "Stellation Actions"
+          git config --global user.email "actions@stellation.dummy"
 
       - name: Prepare dry-run Registry
         if: "!startsWith(github.ref, 'refs/tags/')"
@@ -150,24 +150,24 @@ jobs:
           cargo install toml-cli
 
           toml set \
-            crates/stackable-backend/Cargo.toml \
-            dependencies.stackable-bridge.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stackable-backend/Cargo.toml
+            crates/stellation-backend/Cargo.toml \
+            dependencies.stellation-bridge.registry dry-run > /tmp/tempfile-cargo1
+          cat /tmp/tempfile-cargo1 > crates/stellation-backend/Cargo.toml
 
           toml set \
-            crates/stackable-backend/Cargo.toml \
-            dependencies.stackable-core.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stackable-backend/Cargo.toml
+            crates/stellation-backend/Cargo.toml \
+            dependencies.stellation-core.registry dry-run > /tmp/tempfile-cargo1
+          cat /tmp/tempfile-cargo1 > crates/stellation-backend/Cargo.toml
 
           toml set \
-            crates/stackable-frontend/Cargo.toml \
-            dependencies.stackable-bridge.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stackable-frontend/Cargo.toml
+            crates/stellation-frontend/Cargo.toml \
+            dependencies.stellation-bridge.registry dry-run > /tmp/tempfile-cargo1
+          cat /tmp/tempfile-cargo1 > crates/stellation-frontend/Cargo.toml
 
           toml set \
-            crates/stackctl/Cargo.toml \
-            dependencies.stackable-core.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stackctl/Cargo.toml
+            crates/stctl/Cargo.toml \
+            dependencies.stellation-core.registry dry-run > /tmp/tempfile-cargo1
+          cat /tmp/tempfile-cargo1 > crates/stctl/Cargo.toml
 
           git commit -a -m "chore: switch to dry-run registry"
 
@@ -176,12 +176,12 @@ jobs:
         run: |
           echo "CARGO_PUBLISH_EXTRA_ARGS=--token=${{ secrets.CRATES_IO_TOKEN }}" >> $GITHUB_ENV
 
-      - name: Run cargo publish for stackable-core
+      - name: Run cargo publish for stellation-core
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stackable-core/Cargo.toml
+            --manifest-path crates/stellation-core/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 
@@ -189,12 +189,12 @@ jobs:
         run: sleep 30s
         shell: bash
 
-      - name: Run cargo publish for stackable-bridge
+      - name: Run cargo publish for stellation-bridge
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stackable-bridge/Cargo.toml
+            --manifest-path crates/stellation-bridge/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 
@@ -202,12 +202,12 @@ jobs:
         run: sleep 30s
         shell: bash
 
-      - name: Run cargo publish for stackable-backend
+      - name: Run cargo publish for stellation-backend
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stackable-backend/Cargo.toml
+            --manifest-path crates/stellation-backend/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 
@@ -215,12 +215,12 @@ jobs:
         run: sleep 30s
         shell: bash
 
-      - name: Run cargo publish for stackable-frontend
+      - name: Run cargo publish for stellation-frontend
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stackable-frontend/Cargo.toml
+            --manifest-path crates/stellation-frontend/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 
@@ -228,12 +228,12 @@ jobs:
         run: sleep 30s
         shell: bash
 
-      - name: Run cargo publish for stackctl
+      - name: Run cargo publish for stctl
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stackctl/Cargo.toml
+            --manifest-path crates/stctl/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 
@@ -249,28 +249,28 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v3
 
-      - name: Read Stackable Version
+      - name: Read Stellation Version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          STACKABLE_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')
-          echo "Current version: $STACKABLE_VER"
+          STELLATION_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')
+          echo "Current version: $STELLATION_VER"
 
-          echo "STACKABLE_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')" >> $GITHUB_ENV
+          echo "STELLATION_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')" >> $GITHUB_ENV
 
-      - name: Set Stackable Target to 'main'
+      - name: Set Stellation Target to 'main'
         if: github.ref == 'refs/heads/main'
         run: |
-          echo 'variable::set("stackable_target", "main");' >> templates/default/resolve-crates.rhai
+          echo 'variable::set("stellation_target", "main");' >> templates/default/resolve-crates.rhai
 
-      - name: Set Stackable Target to 'release'
+      - name: Set Stellation Target to 'release'
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo 'variable::set("stackable_target", "release");' >> templates/default/resolve-crates.rhai
+          echo 'variable::set("stellation_target", "release");' >> templates/default/resolve-crates.rhai
 
-      - name: Set Stackable Version
+      - name: Set Stellation Version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo 'variable::set("stackable_release_ver", "${{ env.STACKABLE_VER }}");' >> templates/default/resolve-crates.rhai
+          echo 'variable::set("stellation_release_ver", "${{ env.STELLATION_VER }}");' >> templates/default/resolve-crates.rhai
 
       - name: Publish Main Templates
         if: github.ref == 'refs/heads/main'
@@ -286,8 +286,8 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: s0/git-publish-subdir-action@v2.6.0
         env:
-          REPO: git@github.com:futursolo/stackable-template.git
-          BRANCH: stackable-main
+          REPO: git@github.com:futursolo/stellation-template.git
+          BRANCH: stellation-main
           FOLDER: templates
           MESSAGE: "chore: sync template for {sha}"
           SSH_PRIVATE_KEY: ${{ secrets.TEMPLATE_DEPLOY_PRIVATE_KEY }}
@@ -306,7 +306,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: s0/git-publish-subdir-action@v2.6.0
         env:
-          REPO: git@github.com:futursolo/stackable-template.git
+          REPO: git@github.com:futursolo/stellation-template.git
           BRANCH: main
           FOLDER: templates
           MESSAGE: "chore: sync template for ${{ github.ref_name }}"

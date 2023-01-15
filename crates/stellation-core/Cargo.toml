@@ -1,0 +1,19 @@
+[package]
+name = "stellation-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.66"
+repository = "https://github.com/futursolo/stellation"
+authors = [
+    "Kaede Hoshiakwa <futursolo@icloud.com>",
+]
+description = "The framework experience for Yew."
+keywords = ["web", "wasm", "yew", "framework", "ssr"]
+categories = ["wasm", "web-programming"]
+readme = "../../README.md"
+homepage = "https://github.com/futursolo/stellation"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.91"

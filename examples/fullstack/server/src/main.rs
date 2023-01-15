@@ -2,24 +2,24 @@
 #![deny(missing_debug_implementations)]
 
 use example_fullstack_api::create_bridge;
-use stackable_backend::{Cli, Endpoint};
+use stellation_backend::{Cli, Endpoint};
 
 mod app;
 use app::ServerApp;
 
-#[cfg(stackable_embedded_frontend)]
+#[cfg(stellation_embedded_frontend)]
 #[derive(rust_embed::RustEmbed)]
-#[folder = "$STACKABLE_FRONTEND_BUILD_DIR"]
+#[folder = "$STELLATION_FRONTEND_BUILD_DIR"]
 struct Frontend;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    stackable_backend::trace::init_default("STACKABLE_APP_SERVER_LOG");
+    stellation_backend::trace::init_default("STELLATION_APP_SERVER_LOG");
 
     let endpoint = Endpoint::<ServerApp>::new().with_bridge(create_bridge());
 
-    #[cfg(stackable_embedded_frontend)]
-    let endpoint = endpoint.with_frontend(stackable_backend::Frontend::new_embedded::<Frontend>());
+    #[cfg(stellation_embedded_frontend)]
+    let endpoint = endpoint.with_frontend(stellation_backend::Frontend::new_embedded::<Frontend>());
 
     Cli::builder().endpoint(endpoint).build().run().await?;
 

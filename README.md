@@ -1,7 +1,8 @@
-# stackable
+# stellation
+
 A framework experience for Yew.
 
-Stackable provides a development stack with:
+Stellation provides a development stack with:
 
 1. Tooling around Server-side Rendering Support.
 2. An easy-to-use, SSR-transparent RPC Implementation.
@@ -16,20 +17,20 @@ Stackable provides a development stack with:
 
 1. Install required tools
 
-  Stackable uses the following tools:
+Stellation uses the following tools:
 
-  - Trunk
-  - cargo-generate
-  - cargo-make
+- Trunk
+- cargo-generate
+- cargo-make
 
-  They can be installed with `cargo install trunk cargo-generate cargo-make`
+They can be installed with `cargo install trunk cargo-generate cargo-make`
 
 2. Create project
 
-  Run `cargo generate futursolo/stackable-template` and follow the prompt.
+Run `cargo generate futursolo/stellation-template` and follow the prompt.
 
 3. Start development server
 
-  Run `cargo make --quiet start` in the project directory.
+Run `cargo make --quiet start` in the project directory.
 
-  (This may take a couple minutes when the project is building for the first time.)
+(This may take a couple minutes when the project is building for the first time.)

@@ -7,11 +7,11 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stackable-bridge = { version = "0.1.0", path = "../../../crates/stackable-bridge" }
+stellation-bridge = { version = "0.1.0", path = "../../../crates/stellation-bridge" }
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1.61"
 thiserror = "1"
 
 [features]
-resolvable = ["stackable-bridge/resolvable"]
+resolvable = ["stellation-bridge/resolvable"]

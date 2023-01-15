@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use stackable_bridge::hooks::use_bridged_query;
+use stellation_bridge::hooks::use_bridged_query;
 use time::macros::format_description;
 use yew::platform::spawn_local;
 use yew::platform::time::sleep;

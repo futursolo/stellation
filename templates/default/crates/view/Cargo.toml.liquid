@@ -13,15 +13,15 @@ time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "m
 tracing = "0.1.37"
 bounce = { version = "0.6.0", features = ["helmet"] }
 
-{% if stackable_target == "release" %}
-# Stackable
-stackable-frontend = "{{stackable_release_ver}}"
-stackable-bridge = "{{stackable_release_ver}}"
+{% if stellation_target == "release" %}
+# Stellation
+stellation-frontend = "{{stellation_release_ver}}"
+stellation-bridge = "{{stellation_release_ver}}"
 
-{% elsif stackable_target == "main" %}
-# Stackable
-stackable-frontend = { git = "https://github.com/futursolo/stackable" }
-stackable-bridge = { git = "https://github.com/futursolo/stackable" }
+{% elsif stellation_target == "main" %}
+# Stellation
+stellation-frontend = { git = "https://github.com/futursolo/stellation" }
+stellation-bridge = { git = "https://github.com/futursolo/stellation" }
 
 {% endif %}
 [dependencies.web-sys]

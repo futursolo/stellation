@@ -453,7 +453,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "serde",
- "stackable-bridge",
+ "stellation-bridge",
  "thiserror",
  "time",
 ]
@@ -465,7 +465,7 @@ dependencies = [
  "example-fullstack-api",
  "example-fullstack-view",
  "gloo",
- "stackable-frontend",
+ "stellation-frontend",
  "tracing",
  "tracing-subscriber",
  "yew",
@@ -479,7 +479,7 @@ dependencies = [
  "example-fullstack-api",
  "example-fullstack-view",
  "rust-embed",
- "stackable-backend",
+ "stellation-backend",
  "tokio",
  "tracing",
  "yew",
@@ -491,7 +491,7 @@ version = "0.1.0"
 dependencies = [
  "bounce",
  "example-fullstack-api",
- "stackable-bridge",
+ "stellation-bridge",
  "time",
  "tracing",
  "web-sys",
@@ -2250,7 +2250,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
-name = "stackable-backend"
+name = "stctl"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cargo_metadata",
+ "clap",
+ "console",
+ "dotenvy",
+ "futures",
+ "indicatif",
+ "notify",
+ "rand 0.8.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "stellation-core",
+ "time",
+ "tokio",
+ "tokio-stream",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "webbrowser",
+]
+
+[[package]]
+name = "stellation-backend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2270,8 +2296,8 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "stackable-bridge",
- "stackable-core",
+ "stellation-bridge",
+ "stellation-core",
  "thiserror",
  "thread_local",
  "tokio",
@@ -2285,7 +2311,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stackable-bridge"
+name = "stellation-bridge"
 version = "0.1.0"
 dependencies = [
  "async-trait",
@@ -2300,7 +2326,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stackable-core"
+name = "stellation-core"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -2308,43 +2334,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "stackable-frontend"
+name = "stellation-frontend"
 version = "0.1.0"
 dependencies = [
  "bounce",
- "stackable-bridge",
+ "stellation-bridge",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
  "web-sys",
  "yew",
  "yew-router",
-]
-
-[[package]]
-name = "stackctl"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cargo_metadata",
- "clap",
- "console",
- "dotenvy",
- "futures",
- "indicatif",
- "notify",
- "rand 0.8.5",
- "reqwest",
- "serde",
- "serde_json",
- "stackable-core",
- "time",
- "tokio",
- "tokio-stream",
- "toml",
- "tracing",
- "tracing-subscriber",
- "webbrowser",
 ]
 
 [[package]]

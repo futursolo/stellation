@@ -1,6 +1,6 @@
-# Getting Started with Stackable
+# Getting Started with Stellation
 
-This project is created with Stackable.
+This project is created with Stellation.
 
 # Available Commands
 

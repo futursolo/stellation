@@ -1,4 +1,4 @@
-use stackable_backend::ServerAppProps;
+use stellation_backend::ServerAppProps;
 use yew::prelude::*;
 
 use crate::view::Main;

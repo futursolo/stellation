@@ -1,0 +1,39 @@
+[package]
+name = "stctl"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.66"
+repository = "https://github.com/futursolo/stellation"
+authors = [
+    "Kaede Hoshiakwa <futursolo@icloud.com>",
+]
+description = "The framework experience for Yew."
+keywords = ["web", "wasm", "yew", "framework", "ssr"]
+categories = ["wasm", "web-programming"]
+readme = "../../README.md"
+homepage = "https://github.com/futursolo/stellation"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+anyhow = "1.0.68"
+clap = { version = "4.1.1", features = ["derive"] }
+serde = { version = "1.0.152", features = ["derive"] }
+tokio = { version = "1.24.1", features = ["full"] }
+toml = "0.5.10"
+tracing = { version = "0.1.37" }
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+notify = "5.0.0"
+futures = { version = "0.3", features = ["std", "async-await"], default-features = false }
+cargo_metadata = "0.15"
+serde_json = "1.0.91"
+dotenvy = "0.15.6"
+time = "0.3"
+rand = "0.8.5"
+indicatif = "0.17.3"
+console = "0.15.5"
+reqwest = { version = "0.11.13", features = ["rustls-tls-webpki-roots"] }
+tokio-stream = { version = "0.1.11", features = ["sync"] }
+webbrowser = "0.8.4"
+
+# Stellation Components
+stellation-core = { version = "0.1.0", path = "../stellation-core" }
