@@ -67,7 +67,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install Cargo Generate
-        run: cargo install cargo-generate
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-generate
 
       - name: Generate Template
         run: |
