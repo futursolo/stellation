@@ -12,6 +12,7 @@ keywords = ["web", "wasm", "yew", "framework", "ssr"]
 categories = ["wasm", "web-programming"]
 readme = "../../README.md"
 homepage = "https://github.com/futursolo/stackable"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
