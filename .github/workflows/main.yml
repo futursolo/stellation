@@ -209,10 +209,6 @@ jobs:
         env:
           RUSTFLAGS: "--cfg releasing"
 
-      - name: Wait for Registry to Refresh
-        run: sleep 30s
-        shell: bash
-
       - name: Run cargo publish for stellation-bridge
         run: |
           cargo publish \
@@ -220,10 +216,6 @@ jobs:
             --manifest-path crates/stellation-bridge/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
-
-      - name: Wait for Registry to Refresh
-        run: sleep 30s
-        shell: bash
 
       - name: Run cargo publish for stellation-backend
         run: |
@@ -233,10 +225,6 @@ jobs:
         env:
           RUSTFLAGS: "--cfg releasing"
 
-      - name: Wait for Registry to Refresh
-        run: sleep 30s
-        shell: bash
-
       - name: Run cargo publish for stellation-frontend
         run: |
           cargo publish \
@@ -245,10 +233,6 @@ jobs:
         env:
           RUSTFLAGS: "--cfg releasing"
 
-      - name: Wait for Registry to Refresh
-        run: sleep 30s
-        shell: bash
-
       - name: Run cargo publish for stctl
         run: |
           cargo publish \
@@ -256,10 +240,6 @@ jobs:
             --manifest-path crates/stctl/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
-
-      - name: Wait for Registry to Refresh
-        run: sleep 30s
-        shell: bash
 
       - name: Run cargo publish for stellation
         run: |
