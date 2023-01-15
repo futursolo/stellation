@@ -12,7 +12,7 @@ Stellation provides a development stack with:
 # Quickstart Guide
 
 <p align="center">
-  <img src="artworks/quickstart.gif" width="700" title="Quickstart">
+  <img src="https://cdn.jsdelivr.net/gh/futursolo/stellation/artworks/quickstart.gif" width="700" title="Quickstart">
 </p>
 
 1. Install required tools
