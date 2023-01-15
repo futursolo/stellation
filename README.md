@@ -17,17 +17,17 @@ Stellation provides a development stack with:
 
 1. Install required tools
 
-Stellation uses the following tools:
+   Stellation uses the following tools:
 
-- Trunk
-- cargo-generate
-- cargo-make
+   - Trunk
+   - cargo-generate
+   - cargo-make
 
 They can be installed with `cargo install trunk cargo-generate cargo-make`
 
 2. Create project
 
-Run `cargo generate futursolo/stellation-template` and follow the prompt.
+Run `cargo generate futursolo/stellation-templates` and follow the prompt.
 
 3. Start development server
 
