@@ -11,6 +11,7 @@ use crate::{Bridge, BridgeMetadata};
 /// The bridge state.
 #[derive(Atom, PartialEq, Eq, Default, Debug)]
 pub struct BridgeState {
+    /// The bridge stored in the state.
     pub inner: Bridge,
 }
 

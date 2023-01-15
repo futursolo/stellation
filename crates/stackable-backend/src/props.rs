@@ -79,7 +79,7 @@ impl<T> Clone for ServerAppProps<T> {
 }
 
 impl<T> ServerAppProps<T> {
-    // Appends a context to current server app to help resolving the request.
+    /// Appends a context to current server app to help resolving the request.
     pub fn with_context<CTX>(self, context: CTX) -> ServerAppProps<CTX> {
         ServerAppProps {
             inner: self.inner,

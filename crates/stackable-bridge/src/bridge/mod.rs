@@ -120,6 +120,7 @@ mod feat_resolvable {
             T::resolve(&self.metadata, input).await
         }
 
+        /// Resolves an encoded request.
         pub async fn resolve_encoded(&self, incoming: &[u8]) -> BridgeResult<Vec<u8>> {
             let incoming: Incoming<'_> = bincode::deserialize(incoming)?;
 

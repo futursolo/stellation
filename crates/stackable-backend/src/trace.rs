@@ -1,4 +1,4 @@
-//! Tracing logging support.
+//! Tracing support.
 
 use std::env;
 

@@ -1,3 +1,5 @@
+//! Bridge Types.
+
 use std::error::Error;
 use std::hash::Hash;
 use std::marker::PhantomData;
