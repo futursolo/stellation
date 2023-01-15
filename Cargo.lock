@@ -2276,6 +2276,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellation"
+version = "0.1.0"
+dependencies = [
+ "stctl",
+ "stellation-backend",
+ "stellation-bridge",
+ "stellation-core",
+ "stellation-frontend",
+]
+
+[[package]]
 name = "stellation-backend"
 version = "0.1.0"
 dependencies = [

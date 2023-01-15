@@ -17,5 +17,7 @@ cargo clippy -p stellation-frontend -- -D warnings
 
 cargo clippy -p stctl -- -D warnings
 
+cargo clippy -p stellation -- -D warnings
+
 cargo clippy -p example-fullstack-client -- -D warnings
 cargo clippy -p example-fullstack-server -- -D warnings

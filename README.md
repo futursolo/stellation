@@ -1,4 +1,4 @@
-# stellation
+# Stellation
 
 A framework experience for Yew.
 
