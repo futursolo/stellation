@@ -18,7 +18,7 @@
 //! When the `resolvable` feature is enabled, it will require query and mutations to implement their
 //! resolver type which is responsible for resolving the request.
 //!
-//! You can check out the [example](https://github.com/futursolo/stackable/blob/master/examples/fullstack/api/src/lib.rs) for how to implement resolvers.
+//! You can check out the [example](https://github.com/futursolo/stackable/blob/main/examples/fullstack/api/src/lib.rs) for how to implement resolvers.
 
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
