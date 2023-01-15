@@ -112,8 +112,6 @@ jobs:
       - lint
       - rustfmt
       - check-templates
-    env:
-      CARGO_REGISTRIES_DRY_RUN_INDEX: file:///tmp/dry-run-registry
     steps:
       - name: Checkout Project
         uses: actions/checkout@v3
@@ -133,7 +131,15 @@ jobs:
           cargo install cargo-http-registry
           mkdir -p /tmp/dry-run-registry
           nohup cargo-http-registry /tmp/dry-run-registry &
+
           echo "CARGO_PUBLISH_EXTRA_ARGS=--registry=dry-run" >> $GITHUB_ENV
+
+          echo "[net]" >> ~/.cargo/config.toml
+          echo "git-fetch-with-cli = true" >> ~/.cargo/config.toml
+
+          echo "[registries]" >> ~/.cargo/config.toml
+          echo 'dry-run = { index = "http://127.0.0.1:35503/git" }' >> ~/.cargo/config.toml
+
           sleep 5
 
       - name: Prepare crates.io Registry
