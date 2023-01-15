@@ -141,7 +141,7 @@ jobs:
           echo "git-fetch-with-cli = true" >> ~/.cargo/config.toml
 
           echo "[registries]" >> ~/.cargo/config.toml
-          echo 'dry-run = { index = "http://127.0.0.1:35503/git" }' >> ~/.cargo/config.toml
+          echo 'dry-run = { index = "file:///tmp/dry-run-registry" }' >> ~/.cargo/config.toml
 
           sleep 5
 
