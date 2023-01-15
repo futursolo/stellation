@@ -1,5 +1,5 @@
 use example_fullstack_api::GreetingMutation;
-use stackable_bridge::hooks::use_bridged_mutation;
+use stellation_bridge::hooks::use_bridged_mutation;
 use web_sys::HtmlInputElement;
 use yew::platform::spawn_local;
 use yew::prelude::*;
@@ -61,7 +61,7 @@ pub fn Greeting() -> Html {
                     {oninput}
                     ref={input_ref}
                 />
-                <button class="greeting-button" {onclick}>{"Hello Stackable!"}</button>
+                <button class="greeting-button" {onclick}>{"Hello Stellation!"}</button>
             </div>
             <div class="greeting-message">{message}</div>
         </div>
