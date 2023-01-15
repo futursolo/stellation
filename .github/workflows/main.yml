@@ -147,6 +147,7 @@ jobs:
           BRANCH: templates-main
           FOLDER: templates
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESSAGE: "chore: sync template for {sha}"
 
       - name: Publish Release Templates
         if: startsWith(github.ref, 'refs/tags/')
@@ -156,3 +157,4 @@ jobs:
           BRANCH: templates
           FOLDER: templates
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESSAGE: "chore: sync template for ${{ github.ref_name }}"
