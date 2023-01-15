@@ -1,0 +1,5 @@
+[template]
+cargo_generate_version = ">=0.9.0"
+
+[hooks]
+init = ["resolve-crates.rhai"]
