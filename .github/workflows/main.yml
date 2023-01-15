@@ -73,10 +73,9 @@ jobs:
 
       - name: Generate Template
         run: |
+          echo 'variable::set("stackable_target", "custom");' >> stackable/templates/fullstack/resolve-crates.rhai
           cargo generate --path stackable/templates/fullstack \
-            --name template-fullstack-generated \
-            --define stackable_is_main=false \
-            --define stackable_is_release=false
+            --name template-fullstack-generated
 
       - name: Add Stackable Crates
         run: |
