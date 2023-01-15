@@ -1,2 +1,2 @@
 [template]
-sub_templates = ["fullstack"]
+sub_templates = ["default"]

@@ -73,37 +73,37 @@ jobs:
 
       - name: Generate Template
         run: |
-          cargo generate --path stackable/templates/fullstack \
-            --name template-fullstack-generated
+          cargo generate --path stackable/templates/default \
+            --name template-default-generated
 
       - name: Add Stackable Crates
         run: |
-          cargo add -p template-fullstack-generated-api \
+          cargo add -p template-default-generated-api \
             --path ../stackable/crates/stackable-bridge
 
-          cargo add -p template-fullstack-generated-client \
+          cargo add -p template-default-generated-client \
             --path ../stackable/crates/stackable-frontend
 
-          cargo add -p template-fullstack-generated-server \
+          cargo add -p template-default-generated-server \
             --path ../stackable/crates/stackable-backend \
             --features cli
 
-          cargo add -p template-fullstack-generated-view \
+          cargo add -p template-default-generated-view \
             --path ../stackable/crates/stackable-frontend
 
-          cargo add -p template-fullstack-generated-view \
+          cargo add -p template-default-generated-view \
             --path ../stackable/crates/stackable-bridge
 
-          cargo add -p template-fullstack-generated-stackctl \
+          cargo add -p template-default-generated-stackctl \
             --path ../stackable/crates/stackctl
-        working-directory: template-fullstack-generated
+        working-directory: template-default-generated
 
       - name: Run Lints
         run: |
           cargo clippy --bin stackctl
-          cargo clippy --bin template-fullstack-generated-client
-          cargo clippy --bin template-fullstack-generated-server
-        working-directory: template-fullstack-generated
+          cargo clippy --bin template-default-generated-client
+          cargo clippy --bin template-default-generated-server
+        working-directory: template-default-generated
 
   publish-templates:
     name: Publish Templates
@@ -128,17 +128,17 @@ jobs:
       - name: Set Stackable Target to 'main'
         if: github.ref == 'refs/heads/main'
         run: |
-          echo 'variable::set("stackable_target", "main");' >> templates/fullstack/resolve-crates.rhai
+          echo 'variable::set("stackable_target", "main");' >> templates/default/resolve-crates.rhai
 
       - name: Set Stackable Target to 'release'
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo 'variable::set("stackable_target", "release");' >> templates/fullstack/resolve-crates.rhai
+          echo 'variable::set("stackable_target", "release");' >> templates/default/resolve-crates.rhai
 
       - name: Set Stackable Version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo 'variable::set("stackable_release_ver", "${{ env.STACKABLE_VER }}");' >> templates/fullstack/resolve-crates.rhai
+          echo 'variable::set("stackable_release_ver", "${{ env.STACKABLE_VER }}");' >> templates/default/resolve-crates.rhai
 
       - name: Publish Main Templates
         if: github.ref == 'refs/heads/main'
