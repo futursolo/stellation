@@ -158,15 +158,15 @@ jobs:
             dependencies.stackable-core.registry dry-run > /tmp/tempfile-cargo1
           cat /tmp/tempfile-cargo1 > crates/stackable-backend/Cargo.toml
 
-          # CARGO_MODIFIED_OUTPUT=$(toml set \
-          #   crates/stackable-frontend/Cargo.toml \
-          #   dependencies.stackable-bridge.registry dry-run)
-          # echo $CARGO_MODIFIED_OUTPUT > crates/stackable-frontend/Cargo.toml
+          toml set \
+            crates/stackable-frontend/Cargo.toml \
+            dependencies.stackable-bridge.registry dry-run > /tmp/tempfile-cargo1
+          cat /tmp/tempfile-cargo1 > crates/stackable-frontend/Cargo.toml
 
-          # CARGO_MODIFIED_OUTPUT=$(toml set \
-          #   crates/stackctl/Cargo.toml \
-          #   dependencies.stackable-core.registry dry-run)
-          # echo $CARGO_MODIFIED_OUTPUT > crates/stackctl/Cargo.toml
+          toml set \
+            crates/stackctl/Cargo.toml \
+            dependencies.stackable-core.registry dry-run > /tmp/tempfile-cargo1
+          cat /tmp/tempfile-cargo1 > crates/stackctl/Cargo.toml
 
       - name: Prepare crates.io Registry
         if: startsWith(github.ref, 'refs/tags/')
