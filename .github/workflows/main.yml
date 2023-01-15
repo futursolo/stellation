@@ -173,47 +173,44 @@ jobs:
         env:
           RUSTFLAGS: "--cfg releasing"
 
-      # Not possible if stackable-core does not have a compatible version on crates.io
-      # See: https://github.com/rust-lang/cargo/issues/1169
-      # - name: Run cargo publish --dry-run for stackable-backend
-      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      #   run: cargo publish --dry-run --manifest-path crates/stackable-backend/Cargo.toml
-      #   env:
-      #     RUSTFLAGS: "--cfg releasing"
+      - name: Wait for Registry to Refresh
+        run: sleep 30s
+        shell: bash
 
-      # - name: Run cargo publish for stackable-backend
-      #   if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-      #   run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }} --manifest-path crates/stackable-backend/Cargo.toml
-      #   env:
-      #     RUSTFLAGS: "--cfg releasing"
+      - name: Run cargo publish for stackable-backend
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        run: |
+          cargo publish \
+            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
+            --manifest-path crates/stackable-backend/Cargo.toml
+        env:
+          RUSTFLAGS: "--cfg releasing"
 
-      # Not possible if stackable-core does not have a compatible version on crates.io
-      # See: https://github.com/rust-lang/cargo/issues/1169
-      # - name: Run cargo publish --dry-run for stackable-frontend
-      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      #   run: cargo publish --dry-run --manifest-path crates/stackable-frontend/Cargo.toml
-      #   env:
-      #     RUSTFLAGS: "--cfg releasing"
+      - name: Wait for Registry to Refresh
+        run: sleep 30s
+        shell: bash
 
-      # - name: Run cargo publish for stackable-frontend
-      #   if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-      #   run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }} --manifest-path crates/stackable-frontend/Cargo.toml
-      #   env:
-      #     RUSTFLAGS: "--cfg releasing"
+      - name: Run cargo publish for stackable-frontend
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        run: |
+          cargo publish \
+            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
+            --manifest-path crates/stackable-frontend/Cargo.toml
+        env:
+          RUSTFLAGS: "--cfg releasing"
 
-      # Not possible if stackable-core does not have a compatible version on crates.io
-      # See: https://github.com/rust-lang/cargo/issues/1169
-      # - name: Run cargo publish --dry-run for stackctl
-      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      #   run: cargo publish --dry-run --manifest-path crates/stackctl/Cargo.toml
-      #   env:
-      #     RUSTFLAGS: "--cfg releasing"
+      - name: Wait for Registry to Refresh
+        run: sleep 30s
+        shell: bash
 
-      # - name: Run cargo publish for stackctl
-      #   if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-      #   run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }} --manifest-path crates/stackctl/Cargo.toml
-      #   env:
-      #     RUSTFLAGS: "--cfg releasing"
+      - name: Run cargo publish for stackctl
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        run: |
+          cargo publish \
+            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
+            --manifest-path crates/stackctl/Cargo.toml
+        env:
+          RUSTFLAGS: "--cfg releasing"
 
   publish-templates:
     name: Publish Templates
