@@ -51,7 +51,8 @@ jobs:
     steps:
       - name: Checkout Project
         uses: actions/checkout@v3
-        path: stackable
+        with:
+          path: stackable
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@nightly
