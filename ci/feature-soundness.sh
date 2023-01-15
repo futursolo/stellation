@@ -15,7 +15,7 @@ cargo clippy -p stackable-backend --features=cli -- -D warnings
 
 cargo clippy -p stackable-frontend -- -D warnings
 
-cargo clippy -p stackable-cli -- -D warnings
+cargo clippy -p stackctl -- -D warnings
 
 cargo clippy -p example-fullstack-client -- -D warnings
 cargo clippy -p example-fullstack-server -- -D warnings

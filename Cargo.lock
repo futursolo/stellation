@@ -2300,7 +2300,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "stackable-cli"
+name = "stackable-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "stackable-frontend"
+version = "0.1.0"
+dependencies = [
+ "bounce",
+ "stackable-bridge",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-web",
+ "web-sys",
+ "yew",
+ "yew-router",
+]
+
+[[package]]
+name = "stackctl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2323,28 +2345,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "webbrowser",
-]
-
-[[package]]
-name = "stackable-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "stackable-frontend"
-version = "0.1.0"
-dependencies = [
- "bounce",
- "stackable-bridge",
- "tracing",
- "tracing-subscriber",
- "tracing-web",
- "web-sys",
- "yew",
- "yew-router",
 ]
 
 [[package]]
