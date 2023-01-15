@@ -137,8 +137,8 @@ jobs:
 
           echo "CARGO_PUBLISH_EXTRA_ARGS=--registry=dry-run" >> $GITHUB_ENV
 
-          echo "[net]" >> ~/.cargo/config.toml
-          echo "git-fetch-with-cli = true" >> ~/.cargo/config.toml
+          # echo "[net]" >> ~/.cargo/config.toml
+          # echo "git-fetch-with-cli = true" >> ~/.cargo/config.toml
 
           echo "[registries]" >> ~/.cargo/config.toml
           echo 'dry-run = { index = "file:///tmp/dry-run-registry" }' >> ~/.cargo/config.toml
