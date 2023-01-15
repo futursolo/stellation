@@ -1,0 +1,29 @@
+[package]
+name = "{{project-name}}-client"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew = "0.20.0"
+gloo = "0.8"
+
+{% if stackable_target == "release" %}
+# Stackable
+stackable-frontend = "{{stackable_release_ver}}"
+
+{% elsif stackable_target == "main" %}
+# Stackable
+stackable-frontend = { git = "https://github.com/futursolo/stackable" }
+
+{% endif %}
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
+
+# Example Workspace
+{{project-name}}-view = { path = "../view" }
+{{project-name}}-api = { path = "../api" }
+
