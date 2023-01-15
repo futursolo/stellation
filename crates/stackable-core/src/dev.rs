@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 /// server.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StackctlMetadata {
+    /// The address the dev server should listen to.
     pub listen_addr: String,
+    /// The directory that contains the development build of frontend artifact.
     pub frontend_dev_build_dir: PathBuf,
 }
 

@@ -18,6 +18,15 @@ pub mod trace;
 /// The Stackable Frontend Renderer.
 ///
 /// This type wraps the [Yew Renderer](yew::Renderer) and provides additional features.
+///
+/// # Note
+///
+/// Stackable provides [`BrowserRouter`](yew_router::BrowserRouter) and
+/// [`BounceRoot`](bounce::BounceRoot) to all applications.
+///
+/// Bounce Helmet is also bridged automatically.
+///
+/// You do not need to add them manually.
 #[derive(Debug)]
 pub struct Renderer<COMP>
 where

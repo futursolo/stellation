@@ -29,6 +29,7 @@ pub struct Inner {
     raw_queries: String,
 }
 
+/// The Properties provided to a server app.
 #[derive(Properties, Debug)]
 pub struct ServerAppProps<T = ()> {
     inner: Arc<Inner>,
@@ -37,10 +38,12 @@ pub struct ServerAppProps<T = ()> {
 }
 
 impl<T> ServerAppProps<T> {
+    /// Returns the path of current request.
     pub fn path(&self) -> &str {
         self.inner.path.as_str()
     }
 
+    /// Returns queries of current request.
     pub fn queries<Q>(&self) -> ServerAppResult<Q>
     where
         Q: Serialize + for<'de> Deserialize<'de>,
@@ -48,10 +51,12 @@ impl<T> ServerAppProps<T> {
         Ok(serde_urlencoded::from_str(&self.inner.raw_queries)?)
     }
 
+    /// Returns queries as a raw string.
     pub fn raw_queries(&self) -> &str {
         &self.inner.raw_queries
     }
 
+    /// Returns the current request context.
     pub fn context(&self) -> &T {
         &self.context
     }
@@ -74,6 +79,7 @@ impl<T> Clone for ServerAppProps<T> {
 }
 
 impl<T> ServerAppProps<T> {
+    // Appends a context to current server app to help resolving the request.
     pub fn with_context<CTX>(self, context: CTX) -> ServerAppProps<CTX> {
         ServerAppProps {
             inner: self.inner,
@@ -82,6 +88,7 @@ impl<T> ServerAppProps<T> {
         }
     }
 
+    /// Excludes this request from server-side rendering.
     pub fn client_only(mut self) -> Self {
         self.client_only = true;
         self
