@@ -79,23 +79,23 @@ jobs:
       - name: Add Stackable Crates
         run: |
           cargo add -p template-fullstack-generated-api \
-            --path stackable/crates/stackable-bridge
+            --path ../stackable/crates/stackable-bridge
 
           cargo add -p template-fullstack-generated-client \
-            --path stackable/crates/stackable-frontend
+            --path ../stackable/crates/stackable-frontend
 
           cargo add -p template-fullstack-generated-server \
-            --path stackable/crates/stackable-backend \
+            --path ../stackable/crates/stackable-backend \
             --features cli
 
           cargo add -p template-fullstack-generated-view \
-            --path stackable/crates/stackable-frontend
+            --path ../stackable/crates/stackable-frontend
 
           cargo add -p template-fullstack-generated-view \
-            --path stackable/crates/stackable-bridge
+            --path ../stackable/crates/stackable-bridge
 
           cargo add -p stackctl \
-            --path stackable/crates/stackable-cli
+            --path ../stackable/crates/stackable-cli
         working-directory: template-fullstack-generated
 
       - name: Check Formatting
