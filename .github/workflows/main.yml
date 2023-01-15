@@ -140,8 +140,9 @@ jobs:
           # echo "[net]" >> ~/.cargo/config.toml
           # echo "git-fetch-with-cli = true" >> ~/.cargo/config.toml
 
-          echo "[registries]" >> ~/.cargo/config.toml
-          echo 'dry-run = { index = "file:///tmp/dry-run-registry" }' >> ~/.cargo/config.toml
+          echo "[registries.dry-run]" >> ~/.cargo/config.toml
+          echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config.toml
+          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
 
           sleep 5
 
