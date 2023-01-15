@@ -1,3 +1,5 @@
+//! Tracing support.
+
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::Pretty;
 use tracing_subscriber::fmt::time::UtcTime;
@@ -5,6 +7,7 @@ use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_web::{performance_layer, MakeConsoleWriter};
 
+/// Initialises [`tracing`] with default parameters.
 pub fn init_default(min_level: LevelFilter) {
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false)

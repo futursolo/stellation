@@ -33,6 +33,9 @@ where
     }
 }
 
+/// The stackable backend server.
+///
+/// This server is a wrapper of [hyper::server::Server] that runs the request on Yew runtime.
 #[derive(Debug)]
 pub struct Server<I> {
     inner: hyper::server::Builder<I>,
@@ -40,6 +43,7 @@ pub struct Server<I> {
 }
 
 impl<I> Server<I> {
+    /// Binds an address.
     pub fn bind(addr: impl Into<SocketAddr> + 'static) -> Server<AddrIncoming> {
         Server {
             inner: hyper::server::Server::bind(&addr.into()),
@@ -47,6 +51,7 @@ impl<I> Server<I> {
         }
     }
 
+    /// Reads connections from a stream.
     pub fn from_stream<S, A, T, E>(stream: S) -> Server<impl Accept<Conn = T, Error = E>>
     where
         S: TryStream<Ok = T, Error = E, Item = Result<T, E>> + Send,
@@ -65,6 +70,9 @@ where
     I::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     I::Conn: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
+    /// Serves an http service that processes requests and returns responses.
+    ///
+    /// Services can be created by a [`warp::service`].
     pub async fn serve_service<HS, HF, HE, B, BD, BE>(self, svc: HS) -> hyper::Result<()>
     where
         HS: Service<Request<Body>, Response = Response<B>, Future = HF, Error = HE>
@@ -86,6 +94,9 @@ where
         self.serve_make_service(make_svc).await
     }
 
+    /// Serves a service that creates http services.
+    ///
+    /// Make Services can be created by calling `into_make_service()` on an axum router.
     pub async fn serve_make_service<MS, ME, MF, HS, HF, HE, B, BD, BE>(
         self,
         make_svc: MS,

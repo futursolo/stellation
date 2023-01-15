@@ -1,5 +1,16 @@
+//! The stackable command utility.
+//!
+//! This crate is vendored as `stackctl` in the templates.
+
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
+#![deny(unsafe_code)]
+#![deny(non_snake_case)]
+#![deny(clippy::cognitive_complexity)]
+#![deny(missing_docs)]
+#![cfg_attr(documenting, feature(doc_cfg))]
+#![cfg_attr(documenting, feature(doc_auto_cfg))]
+#![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
 mod cli;
 mod env_file;
@@ -634,6 +645,9 @@ impl Stackctl {
     }
 }
 
+/// Runs stackctl.
+///
+/// This is the main function for a vendored copy of stackctl.
 pub async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().pretty())

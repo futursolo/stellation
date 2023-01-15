@@ -23,6 +23,7 @@ struct Arguments {
     frontend_dir: Option<PathBuf>,
 }
 
+/// The default command line instance for the backend server.
 #[derive(Debug, TypedBuilder)]
 pub struct Cli<COMP, CTX = ()>
 where
@@ -36,6 +37,7 @@ where
     COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
     CTX: 'static,
 {
+    /// Parses the arguments and runs the server.
     pub async fn run(self) -> anyhow::Result<()> {
         let Self { mut endpoint } = self;
 

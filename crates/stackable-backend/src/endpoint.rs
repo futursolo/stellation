@@ -12,6 +12,20 @@ use crate::utils::ThreadLocalLazy;
 type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> LocalBoxFuture<'static, OUT>>;
 type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 
+/// A stackable endpoint.
+///
+/// This endpoint serves bridge requests and frontend requests.
+///
+/// This type can be turned into a tower service or a warp filter.
+///
+/// # Note
+///
+/// Stackable provides [`BrowserRouter`](yew_router::BrowserRouter) and
+/// [`BounceRoot`](bounce::BounceRoot) to all applications.
+///
+/// Bounce Helmet is also bridged automatically.
+///
+/// You do not need to add them manually.
 pub struct Endpoint<COMP, CTX = (), BCTX = ()>
 where
     COMP: BaseComponent,
@@ -56,6 +70,7 @@ where
     CTX: 'static,
     BCTX: 'static,
 {
+    /// Creates an endpoint.
     pub fn new() -> Self
     where
         CTX: Default,
@@ -77,6 +92,7 @@ where
         }
     }
 
+    /// Appends a context to current request.
     pub fn with_append_context<F, C, Fut>(self, append_context: F) -> Endpoint<COMP, C, BCTX>
     where
         F: 'static + Clone + Send + Fn(ServerAppProps<()>) -> Fut,
@@ -98,6 +114,7 @@ where
         }
     }
 
+    /// Appends a bridge context to current request.
     pub fn with_append_bridge_context<F, C, Fut>(
         self,
         append_bridge_context: F,
@@ -122,6 +139,7 @@ where
         }
     }
 
+    /// Serves a bridge on current endpoint.
     pub fn with_bridge(mut self, bridge: Bridge) -> Self {
         self.bridge = Some(bridge);
         self
@@ -132,6 +150,7 @@ where
 mod feat_warp_filter {
     use std::fmt::Write;
     use std::future::Future;
+    use std::ops::Deref;
     use std::rc::Rc;
 
     use bounce::helmet::render_static;
@@ -203,6 +222,9 @@ mod feat_warp_filter {
         CTX: 'static,
         BCTX: 'static,
     {
+        /// Enables auto refresh.
+        ///
+        /// This is useful during development.
         pub fn with_auto_refresh(mut self) -> Self {
             self.auto_refresh = true;
 
@@ -227,9 +249,9 @@ mod feat_warp_filter {
             let affix_bridge_context = self.affix_bridge_context.clone();
 
             let create_render_inner = move |props, tx: sync_oneshot::Sender<String>| async move {
-                let props = (affix_context.get())(props).await;
+                let props = (affix_context.deref())(props).await;
                 let bridge_metadata =
-                    Rc::new((affix_bridge_context.get())(BridgeMetadata::new()).await);
+                    Rc::new((affix_bridge_context.deref())(BridgeMetadata::new()).await);
 
                 let mut head_s = String::new();
                 let mut body_s = String::new();
@@ -423,12 +445,14 @@ mod feat_warp_filter {
             Some(warp::path::path("_bridge").and(http_bridge_f))
         }
 
+        /// Serves a frontend with current endpoint.
         pub fn with_frontend(mut self, frontend: Frontend) -> Self {
             self.frontend = Some(frontend);
 
             self
         }
 
+        /// Creates a warp filter from current endpoint.
         pub fn into_warp_filter(
             self,
         ) -> impl Clone + Send + Filter<Extract = (impl Reply + Send,), Error = Rejection> {
@@ -490,6 +514,7 @@ mod feat_tower_service {
         CTX: 'static,
         BCTX: 'static,
     {
+        /// Creates a tower service from current endpoint.
         pub fn into_tower_service(
             self,
         ) -> impl 'static

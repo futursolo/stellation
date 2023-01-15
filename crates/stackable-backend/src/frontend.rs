@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{fmt, str};
@@ -34,12 +35,16 @@ impl fmt::Debug for Inner {
     }
 }
 
+/// The frontend provider.
+///
+/// This type defines how the frontend is served by the server.
 #[derive(Debug, Clone)]
 pub struct Frontend {
     inner: Inner,
 }
 
 impl Frontend {
+    /// Serves the frontend from a directory in the filesystem.
     pub fn new_path<P>(p: P) -> Self
     where
         P: Into<PathBuf>,
@@ -51,6 +56,7 @@ impl Frontend {
         }
     }
 
+    /// Serves the frontend from a RustEmbed instance.
     pub fn new_embedded<E>() -> Self
     where
         E: RustEmbed,
@@ -71,7 +77,7 @@ impl Frontend {
                 .and_then(move |path: Tail| {
                     let get_file = get_file.clone();
                     async move {
-                        let get_file = get_file.get();
+                        let get_file = get_file.deref();
 
                         let asset = get_file(path.as_str()).ok_or_else(warp::reject::not_found)?;
                         let mime = mime_guess::from_path(path.as_str()).first_or_octet_stream();
@@ -93,7 +99,7 @@ impl Frontend {
     pub(crate) fn index_html(&self) -> IndexHtml {
         match self.inner {
             Inner::Path(ref m) => IndexHtml::Path(m.join("index.html").into()),
-            Inner::Embed { ref get_file } => (get_file.get())("index.html")
+            Inner::Embed { ref get_file } => (get_file.deref())("index.html")
                 .map(|m| m.data)
                 .as_deref()
                 .map(String::from_utf8_lossy)

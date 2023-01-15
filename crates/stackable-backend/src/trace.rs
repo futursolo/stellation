@@ -1,3 +1,5 @@
+//! Tracing support.
+
 use std::env;
 
 use console::style;
@@ -10,6 +12,7 @@ use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{EnvFilter, Layer};
 
+/// A layer that emits pretty access logs for stackable servers.
 #[derive(Debug, Default)]
 pub struct AccessLog {}
 

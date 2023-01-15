@@ -1,7 +1,10 @@
+//! Server utilities.
+
 mod thread_local;
 
 pub use self::thread_local::ThreadLocalLazy;
 
+/// Creates a random string.
 #[cfg(feature = "warp-filter")]
 pub(crate) fn random_str() -> String {
     use rand::distributions::Alphanumeric;
