@@ -1,4 +1,6 @@
-//! Stackable backend server.
+//! Stackable Backend
+//!
+//! This crate contains the backend server and utilities for backend.
 
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
