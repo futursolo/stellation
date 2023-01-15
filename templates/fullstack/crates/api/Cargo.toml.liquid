@@ -1,5 +1,5 @@
 [package]
-name = "{{project-name}}-api"
+name = "{{ project-name }}-api"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -11,15 +11,14 @@ time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1.59"
 thiserror = "1"
-
-{% if stackable_is_release %}
+{% if stackable_target == "release" %}
 # Stackable
-stackable-bridge = { version = "{{stackable_release_ver}}" }
-{% endif %}
+stackable-bridge = "{{ stackable_release_ver }}"
 
-{% if stackable_is_main %}
+{% elsif stackable_target == "main" %}
 # Stackable
 stackable-bridge = { git = "https://github.com/futursolo/stackable" }
+
 {% endif %}
 
 [features]

@@ -10,12 +10,11 @@ publish = false
 tokio = "1"
 anyhow = "1"
 
-{% if stackable_is_release %}
+{% if stackable_target == "release" %}
 # Stackable
+stackable-backend = { version = "{{stackable_release_ver}}", features = ["cli"] }
 stackable-cli = "{{stackable_release_ver}}"
-{% endif %}
-
-{% if stackable_is_main %}
+{% elsif stackable_target == "main" %}
 # Stackable
 stackable-cli = { git = "https://github.com/futursolo/stackable" }
 {% endif %}

@@ -10,16 +10,15 @@ publish = false
 yew = "0.20.0"
 gloo = "0.8"
 
-{% if stackable_is_release %}
+{% if stackable_target == "release" %}
 # Stackable
-stackable-frontend = { version = "{{stackable_release_ver}}" }
-{% endif %}
+stackable-frontend = "{{stackable_release_ver}}"
 
-{% if stackable_is_main %}
+{% elsif stackable_target == "main" %}
 # Stackable
 stackable-frontend = { git = "https://github.com/futursolo/stackable" }
-{% endif %}
 
+{% endif %}
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }

@@ -13,20 +13,17 @@ time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "m
 tracing = "0.1.37"
 bounce = { version = "0.6.0", features = ["helmet"] }
 
-{% if stackable_ignore_builtin == false %}
-stackable-bridge = { version = "0.1.0" }
-{% endif %}
-
-{% if stackable_is_release %}
+{% if stackable_target == "release" %}
 # Stackable
 stackable-frontend = "{{stackable_release_ver}}"
-{% endif %}
+stackable-bridge = "{{stackable_release_ver}}"
 
-{% if stackable_is_main %}
+{% elsif stackable_target == "main" %}
 # Stackable
 stackable-frontend = { git = "https://github.com/futursolo/stackable" }
-{% endif %}
+stackable-bridge = { git = "https://github.com/futursolo/stackable" }
 
+{% endif %}
 [dependencies.web-sys]
 version = "0.3"
 features = [

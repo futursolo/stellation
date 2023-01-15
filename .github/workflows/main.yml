@@ -3,6 +3,9 @@ name: Run Tests & Publishing
 
 on: [push, pull_request]
 
+permissions:
+  contents: write
+
 jobs:
   lint:
     name: Lint Codebase
@@ -45,7 +48,7 @@ jobs:
       - name: Check Formatting
         run: cargo +nightly fmt -- --unstable-features
 
-  template-checks:
+  check-templates:
     name: Check Templates
     runs-on: ubuntu-latest
     steps:
@@ -88,6 +91,9 @@ jobs:
           cargo add -p template-fullstack-generated-view \
             --path stackable/crates/stackable-frontend
 
+          cargo add -p template-fullstack-generated-view \
+            --path stackable/crates/stackable-bridge
+
           cargo add -p stackctl \
             --path stackable/crates/stackable-cli
         working-directory: template-fullstack-generated
@@ -102,3 +108,53 @@ jobs:
           cargo clippy --bin template-fullstack-generated-client
           cargo clippy --bin template-fullstack-generated-server
         working-directory: template-fullstack-generated
+
+  publish-templates:
+    name: Publish Templates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    needs: check-templates
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v3
+
+      - name: Read Stackable Version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          STACKABLE_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')
+          echo "Current version: $STACKABLE_VER"
+
+          echo "STACKABLE_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')" >> $GITHUB_ENV
+
+      - name: Set Stackable Target to 'main'
+        if: github.ref == 'refs/heads/master'
+        run: |
+          echo 'variable::set("stackable_target", "main");' >> templates/fullstack/resolve-crates.rhai
+
+      - name: Set Stackable Target to 'release'
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo 'variable::set("stackable_target", "release");' >> templates/fullstack/resolve-crates.rhai
+
+      - name: Set Stackable Version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo 'variable::set("stackable_release_ver", "${{ env.STACKABLE_VER }}");' >> templates/fullstack/resolve-crates.rhai
+
+      - name: Publish Main Templates
+        if: github.ref == 'refs/heads/master'
+        uses: s0/git-publish-subdir-action@v2.6.0
+        env:
+          REPO: self
+          BRANCH: templates-main
+          FOLDER: templates
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Release Templates
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: s0/git-publish-subdir-action@v2.6.0
+        env:
+          REPO: self
+          BRANCH: templates
+          FOLDER: templates
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

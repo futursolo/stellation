@@ -1,20 +1,7 @@
 [template]
 cargo_generate_version = ">=0.9.0"
 
-[values]
-# When the template is targeted for main, set the following variables:
+[hooks]
+init = ["resolve-crates.rhai"]
 
-# stackable_is_main = true
-# stackable_is_release = false
 
-# When the template is targeted for a release, set the following variables:
-
-# stackable_is_main = false
-# stackable_is_release = true
-# stackable_release_ver = "0.1.0"  # Should be the actual release version.
-
-# When the template is targeted for testing purposes, set the following variables:
-
-# stackable_is_main = false
-# stackable_is_release = false
-# Stackable crates should be added with `cargo add`.
