@@ -1,6 +1,6 @@
 [package]
 name = "stctl"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
@@ -36,4 +36,4 @@ tokio-stream = { version = "0.1.11", features = ["sync"] }
 webbrowser = "0.8.4"
 
 # Stellation Components
-stellation-core = { version = "0.1.0", path = "../stellation-core" }
+stellation-core = { version = "0.1.1", path = "../stellation-core" }

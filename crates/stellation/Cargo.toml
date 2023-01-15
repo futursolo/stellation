@@ -1,6 +1,6 @@
 [package]
 name = "stellation"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
@@ -15,8 +15,8 @@ homepage = "https://github.com/futursolo/stellation"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-stellation-core = { version = "0.1.0", path = "../stellation-core" }
-stellation-frontend = { version = "0.1.0", path = "../stellation-frontend" }
-stellation-backend = { version = "0.1.0", path = "../stellation-backend" }
-stellation-bridge = { version = "0.1.0", path = "../stellation-bridge" }
-stctl = { version = "0.1.0", path = "../stctl" }
+stellation-core = { version = "0.1.1", path = "../stellation-core" }
+stellation-frontend = { version = "0.1.1", path = "../stellation-frontend" }
+stellation-backend = { version = "0.1.1", path = "../stellation-backend" }
+stellation-bridge = { version = "0.1.1", path = "../stellation-bridge" }
+stctl = { version = "0.1.1", path = "../stctl" }
