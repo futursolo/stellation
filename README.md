@@ -27,10 +27,10 @@ They can be installed with `cargo install trunk cargo-generate cargo-make`
 
 2. Create project
 
-Run `cargo generate futursolo/stellation-templates` and follow the prompt.
+   Run `cargo generate futursolo/stellation-templates` and follow the prompt.
 
 3. Start development server
 
-Run `cargo make --quiet start` in the project directory.
+   Run `cargo make --quiet start` in the project directory.
 
-(This may take a couple minutes when the project is building for the first time.)
+   (This may take a couple minutes when the project is building for the first time.)
