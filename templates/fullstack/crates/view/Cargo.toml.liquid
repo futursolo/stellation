@@ -1,0 +1,34 @@
+[package]
+name = "{{project-name}}-view"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew = { version = "0.20.0" }
+{{project-name}}-api = { path = "../api" }
+time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "macros"] }
+tracing = "0.1.37"
+bounce = { version = "0.6.0", features = ["helmet"] }
+
+{% if stackable_ignore_builtin == false %}
+stackable-bridge = { version = "0.1.0" }
+{% endif %}
+
+{% if stackable_is_release %}
+# Stackable
+stackable-frontend = "{{stackable_release_ver}}"
+{% endif %}
+
+{% if stackable_is_main %}
+# Stackable
+stackable-frontend = { git = "https://github.com/futursolo/stackable" }
+{% endif %}
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "HtmlInputElement"
+]

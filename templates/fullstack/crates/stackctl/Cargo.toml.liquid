@@ -1,0 +1,21 @@
+[package]
+name = "stackctl"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = "1"
+anyhow = "1"
+
+{% if stackable_is_release %}
+# Stackable
+stackable-cli = "{{stackable_release_ver}}"
+{% endif %}
+
+{% if stackable_is_main %}
+# Stackable
+stackable-cli = { git = "https://github.com/futursolo/stackable" }
+{% endif %}

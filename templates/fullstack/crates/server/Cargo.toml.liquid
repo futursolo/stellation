@@ -1,0 +1,28 @@
+[package]
+name = "{{project-name}}-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+tokio = { version = "1.23.0", features = ["full"] }
+tracing = { version = "0.1.37" }
+yew = "0.20.0"
+rust-embed = { version = "6.4.2", features = ["interpolate-folder-path"] }
+
+{% if stackable_is_release %}
+# Stackable
+stackable-backend = { version = "{{stackable_release_ver}}", features = ["cli"] }
+{% endif %}
+
+{% if stackable_is_main %}
+# Stackable
+stackable-backend = { git = "https://github.com/futursolo/stackable", features = ["cli"] }
+{% endif %}
+
+# Example Workspace
+{{project-name}}-view = { path = "../view" }
+{{project-name}}-api = { path = "../api", features = ["resolvable"] }

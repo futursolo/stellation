@@ -14,7 +14,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown 
+          targets: wasm32-unknown-unknown
           components: clippy
 
       - name: Restore Rust Cache
@@ -36,7 +36,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@nightly
         with:
-          targets: wasm32-unknown-unknown 
+          targets: wasm32-unknown-unknown
           components: rustfmt
 
       - name: Restore Rust Cache
@@ -44,3 +44,60 @@ jobs:
 
       - name: Check Formatting
         run: cargo +nightly fmt -- --unstable-features
+
+  template-checks:
+    name: Check Templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v3
+        path: stackable
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+
+      - name: Restore Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Cargo Generate
+        run: cargo install cargo-generate
+
+      - name: Generate Template
+        run: |
+          cargo generate --path stackable/templates/fullstack \
+            --name template-fullstack-generated \
+            --define stackable_is_main=false \
+            --define stackable_is_release=false
+
+      - name: Add Stackable Crates
+        run: |
+          cargo add -p template-fullstack-generated-api \
+            --path stackable/crates/stackable-bridge
+
+          cargo add -p template-fullstack-generated-client \
+            --path stackable/crates/stackable-frontend
+
+          cargo add -p template-fullstack-generated-server \
+            --path stackable/crates/stackable-backend \
+            --features cli
+
+          cargo add -p template-fullstack-generated-view \
+            --path stackable/crates/stackable-frontend
+
+          cargo add -p stackctl \
+            --path stackable/crates/stackable-cli
+        working-directory: template-fullstack-generated
+
+      - name: Check Formatting
+        run: cargo +nightly fmt -- --unstable-features
+        working-directory: template-fullstack-generated
+
+      - name: Run Lints
+        run: |
+          cargo clippy --bin stackctl
+          cargo clippy --bin template-fullstack-generated-client
+          cargo clippy --bin template-fullstack-generated-server
+        working-directory: template-fullstack-generated
