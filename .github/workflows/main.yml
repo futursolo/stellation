@@ -125,12 +125,15 @@ jobs:
       - name: Restore Rust Cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Set Git Information
+        run: |
+          git config --global user.name "Stackable Actions"
+          git config --global user.email "actions@stackable.dummy"
+
       - name: Prepare dry-run Registry
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           cargo install cargo-http-registry
-          git config --global user.name "Stackable Registry"
-          git config --global user.email "registry@stackable.dummy"
 
           mkdir -p /tmp/dry-run-registry
           nohup cargo-http-registry /tmp/dry-run-registry &
@@ -140,8 +143,6 @@ jobs:
           echo "[registries.dry-run]" >> ~/.cargo/config.toml
           echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config.toml
           echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.cargo/config.toml
-
-          sleep 5
 
       - name: Modify to publish to dry-run Registry
         if: "!startsWith(github.ref, 'refs/tags/')"
@@ -167,6 +168,8 @@ jobs:
             crates/stackctl/Cargo.toml \
             dependencies.stackable-core.registry dry-run > /tmp/tempfile-cargo1
           cat /tmp/tempfile-cargo1 > crates/stackctl/Cargo.toml
+
+          git commit -a -m "chore: switch to dry-run registry"
 
       - name: Prepare crates.io Registry
         if: startsWith(github.ref, 'refs/tags/')
