@@ -148,21 +148,25 @@ jobs:
         run: |
           cargo install toml-cli
 
-          toml set \
+          TEMP=$(toml set \
             crates/stackable-backend/Cargo.toml \
-            dependencies.stackable-bridge.registry dry-run > crates/stackable-backend/Cargo.toml
+            dependencies.stackable-bridge.registry dry-run)
+          echo $TEMP > crates/stackable-backend/Cargo.toml
 
-          toml set \
+          TEMP=$(toml set \
             crates/stackable-backend/Cargo.toml \
-            dependencies.stackable-core.registry dry-run > crates/stackable-backend/Cargo.toml
+            dependencies.stackable-core.registry dry-run)
+          echo $TEMP > crates/stackable-backend/Cargo.toml
 
-          toml set \
+          TEMP=$(toml set \
             crates/stackable-frontend/Cargo.toml \
-            dependencies.stackable-bridge.registry dry-run > crates/stackable-frontend/Cargo.toml
+            dependencies.stackable-bridge.registry dry-run)
+          echo $TEMP > crates/stackable-frontend/Cargo.toml
 
-          toml set \
+          TEMP=$(toml set \
             crates/stackctl/Cargo.toml \
-            dependencies.stackable-core.registry dry-run > crates/stackctl/Cargo.toml
+            dependencies.stackable-core.registry dry-run)
+          echo $TEMP > crates/stackctl/Cargo.toml
 
       - name: Prepare crates.io Registry
         if: startsWith(github.ref, 'refs/tags/')
