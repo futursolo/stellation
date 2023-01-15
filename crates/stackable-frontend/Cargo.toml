@@ -2,9 +2,16 @@
 name = "stackable-frontend"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.65"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.66"
+repository = "https://github.com/futursolo/stackable"
+authors = [
+    "Kaede Hoshiakwa <futursolo@icloud.com>",
+]
+description = "The framework experience for Yew."
+keywords = ["web", "wasm", "yew", "framework", "ssr"]
+categories = ["wasm", "web-programming"]
+readme = "../../README.md"
+homepage = "https://github.com/futursolo/stackable"
 
 [dependencies]
 yew = { version = "0.20", features = ["csr", "hydration"] }
