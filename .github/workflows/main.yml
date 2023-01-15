@@ -146,6 +146,7 @@ jobs:
       - name: Modify to publish to dry-run Registry
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
+          alias echo="echo -e"
           cargo install toml-cli
 
           CARGO_MODIFIED_OUTPUT=$(toml set \
