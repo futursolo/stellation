@@ -58,7 +58,7 @@ jobs:
           path: stackable
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
           components: clippy
@@ -96,10 +96,6 @@ jobs:
 
           cargo add -p stackctl \
             --path ../stackable/crates/stackable-cli
-        working-directory: template-fullstack-generated
-
-      - name: Check Formatting
-        run: cargo +nightly fmt -- --unstable-features
         working-directory: template-fullstack-generated
 
       - name: Run Lints
