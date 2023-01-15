@@ -96,7 +96,7 @@ jobs:
           cargo add -p template-fullstack-generated-view \
             --path ../stackable/crates/stackable-bridge
 
-          cargo add -p stackctl \
+          cargo add -p template-fullstack-generated-stackctl \
             --path ../stackable/crates/stackctl
         working-directory: template-fullstack-generated
 
