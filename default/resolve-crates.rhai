@@ -13,4 +13,4 @@ variable::set("stellation_release_ver", "");
 
 // Additional definition
 variable::set("stellation_target", "release");
-variable::set("stellation_release_ver", ".1.0");
+variable::set("stellation_release_ver", ".1.1");
