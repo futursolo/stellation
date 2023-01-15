@@ -1,0 +1,31 @@
+[package]
+name = "{{project-name}}-view"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew = { version = "0.20.0" }
+{{project-name}}-api = { path = "../api" }
+time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "macros"] }
+tracing = "0.1.37"
+bounce = { version = "0.6.0", features = ["helmet"] }
+
+{% if stellation_target == "release" %}
+# Stellation
+stellation-frontend = "{{stellation_release_ver}}"
+stellation-bridge = "{{stellation_release_ver}}"
+
+{% elsif stellation_target == "main" %}
+# Stellation
+stellation-frontend = { git = "https://github.com/futursolo/stellation" }
+stellation-bridge = { git = "https://github.com/futursolo/stellation" }
+
+{% endif %}
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "HtmlInputElement"
+]

@@ -1,0 +1,22 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
+use {{crate_name}}_api as api;
+use {{crate_name}}_view as view;
+
+mod app;
+use app::App;
+use api::create_bridge;
+use tracing_subscriber::filter::LevelFilter;
+
+fn main() {
+    stellation_frontend::trace::init_default(LevelFilter::INFO);
+
+    // Create bridge
+    let bridge = create_bridge();
+
+    // Start Application
+    stellation_frontend::Renderer::<App>::new()
+        .bridge(bridge)
+        .render();
+}

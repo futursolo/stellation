@@ -1,0 +1,29 @@
+[package]
+name = "{{project-name}}-client"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew = "0.20.0"
+gloo = "0.8"
+
+{% if stellation_target == "release" %}
+# Stellation
+stellation-frontend = "{{stellation_release_ver}}"
+
+{% elsif stellation_target == "main" %}
+# Stellation
+stellation-frontend = { git = "https://github.com/futursolo/stellation" }
+
+{% endif %}
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
+
+# Example Workspace
+{{project-name}}-view = { path = "../view" }
+{{project-name}}-api = { path = "../api" }
+

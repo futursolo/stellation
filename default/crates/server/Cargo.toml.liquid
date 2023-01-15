@@ -1,0 +1,27 @@
+[package]
+name = "{{project-name}}-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+tokio = { version = "1.23.0", features = ["full"] }
+tracing = { version = "0.1.37" }
+yew = "0.20.0"
+rust-embed = { version = "6.4.2", features = ["interpolate-folder-path"] }
+
+{% if stellation_target == "release" %}
+# Stellation
+stellation-backend = { version = "{{stellation_release_ver}}", features = ["cli"] }
+
+{% elsif stellation_target == "main" %}
+# Stellation
+stellation-backend = { git = "https://github.com/futursolo/stellation", features = ["cli"] }
+
+{% endif %}
+# Example Workspace
+{{project-name}}-view = { path = "../view" }
+{{project-name}}-api = { path = "../api", features = ["resolvable"] }

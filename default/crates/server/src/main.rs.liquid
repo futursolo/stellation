@@ -1,0 +1,29 @@
+#![deny(clippy::all)]
+#![deny(missing_debug_implementations)]
+
+use {{crate_name}}_api as api;
+use {{crate_name}}_view as view;
+use stellation_backend::{Cli, Endpoint};
+
+mod app;
+use app::ServerApp;
+use api::create_bridge;
+
+#[cfg(stellation_embedded_frontend)]
+#[derive(rust_embed::RustEmbed)]
+#[folder = "$STELLATION_FRONTEND_BUILD_DIR"]
+struct Frontend;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    stellation_backend::trace::init_default("STELLATION_APP_SERVER_LOG");
+
+    let endpoint = Endpoint::<ServerApp>::new().with_bridge(create_bridge());
+
+    #[cfg(stellation_embedded_frontend)]
+    let endpoint = endpoint.with_frontend(stellation_backend::Frontend::new_embedded::<Frontend>());
+
+    Cli::builder().endpoint(endpoint).build().run().await?;
+
+    Ok(())
+}
