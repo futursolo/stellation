@@ -267,7 +267,7 @@ jobs:
           STELLATION_VER=$(echo '${{ github.ref_name }}' | sed 's/v*//')
           echo "Current version: $STELLATION_VER"
 
-          echo "STELLATION_VER=$(echo '${{ github.ref_name }}' | sed 's/v0*//')" >> $GITHUB_ENV
+          echo "STELLATION_VER=$STELLATION_VER" >> $GITHUB_ENV
 
       - name: Set Stellation Target to 'main'
         if: github.ref == 'refs/heads/main'
