@@ -142,7 +142,7 @@ jobs:
 
           echo "[registries.dry-run]" >> ~/.cargo/config.toml
           echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config.toml
-          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"'
+          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.cargo/config.toml
 
           sleep 5
 
