@@ -97,7 +97,7 @@ jobs:
             --path ../stackable/crates/stackable-bridge
 
           cargo add -p stackctl \
-            --path ../stackable/crates/stackable-cli
+            --path ../stackable/crates/stackctl
         working-directory: template-fullstack-generated
 
       - name: Run Lints
