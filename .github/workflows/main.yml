@@ -154,7 +154,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: s0/git-publish-subdir-action@v2.6.0
         env:
-          REPO: futursolo/stackable-template
+          REPO: git@github.com:futursolo/stackable-template.git
           BRANCH: stackable-main
           FOLDER: templates
           MESSAGE: "chore: sync template for {sha}"
@@ -174,7 +174,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: s0/git-publish-subdir-action@v2.6.0
         env:
-          REPO: futursolo/stackable-template
+          REPO: git@github.com:futursolo/stackable-template.git
           BRANCH: main
           FOLDER: templates
           MESSAGE: "chore: sync template for ${{ github.ref_name }}"
