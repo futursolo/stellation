@@ -275,10 +275,6 @@ jobs:
         env:
           RUSTFLAGS: "--cfg releasing"
 
-      - name: Wait for Registry to Refresh
-        run: sleep 30s
-        shell: bash
-
   publish-templates:
     name: Publish Templates
     runs-on: ubuntu-latest
