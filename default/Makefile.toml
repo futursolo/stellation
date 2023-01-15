@@ -1,18 +1,18 @@
 [env]
 CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 
-# stackctl
-[tasks.stackctl]
+# stctl
+[tasks.stctl]
 workspace = false
 command = "cargo"
-args = ["run", "--bin", "stackctl", "--", "${@}"]
+args = ["run", "--bin", "stctl", "--", "${@}"]
 
 [tasks.start]
 workspace = false
 command = "cargo"
-args = ["run", "--bin", "stackctl", "--", "serve", "--open"]
+args = ["run", "--bin", "stctl", "--", "serve", "--open"]
 
 [tasks.build]
 workspace = false
 command = "cargo"
-args = ["run", "--bin", "stackctl", "--", "build", "--release"]
+args = ["run", "--bin", "stctl", "--", "build", "--release"]

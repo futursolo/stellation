@@ -7,7 +7,7 @@ pub use types::*;
 #[cfg(feature = "resolvable")]
 mod resolvers;
 
-use stackable_bridge::Bridge;
+use stellation_bridge::Bridge;
 
 pub fn create_bridge() -> Bridge {
     Bridge::builder()

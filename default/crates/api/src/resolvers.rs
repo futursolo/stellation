@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use stackable_bridge::resolvers::{MutationResolver, QueryResolver};
-use stackable_bridge::types::{MutationResult, QueryResult};
-use stackable_bridge::BridgeMetadata;
+use stellation_bridge::resolvers::{MutationResolver, QueryResolver};
+use stellation_bridge::types::{MutationResult, QueryResult};
+use stellation_bridge::BridgeMetadata;
 use time::OffsetDateTime;
 
 use crate::types::*;

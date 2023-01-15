@@ -1,0 +1,19 @@
+[package]
+name = "{{project-name}}-stctl"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = "1"
+anyhow = "1"
+
+{% if stellation_target == "release" %}
+# Stellation
+stctl = "{{stellation_release_ver}}"
+{% elsif stellation_target == "main" %}
+# Stellation
+stctl = { git = "https://github.com/futursolo/stellation" }
+{% endif %}
