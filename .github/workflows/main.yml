@@ -73,7 +73,6 @@ jobs:
 
       - name: Generate Template
         run: |
-          echo 'variable::set("stackable_target", "custom");' >> stackable/templates/fullstack/resolve-crates.rhai
           cargo generate --path stackable/templates/fullstack \
             --name template-fullstack-generated
 
