@@ -1,6 +1,6 @@
 [package]
 name = "stellation-frontend"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
@@ -23,7 +23,7 @@ tracing-web = "0.1.2"
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 # Stellation Components
-stellation-bridge = { version = "0.1.3", path = "../stellation-bridge" }
+stellation-bridge = { version = "0.1.4", path = "../stellation-bridge" }
 
 [dependencies.web-sys]
 version = "0.3"

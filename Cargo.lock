@@ -2247,7 +2247,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stctl"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -2273,7 +2273,7 @@ dependencies = [
 
 [[package]]
 name = "stellation"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "stctl",
  "stellation-backend",
@@ -2284,7 +2284,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-backend"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2319,7 +2319,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-bridge"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "async-trait",
  "bincode",
@@ -2334,7 +2334,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-core"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -2342,7 +2342,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-frontend"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "bounce",
  "stellation-bridge",
