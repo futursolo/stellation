@@ -58,3 +58,7 @@ warp-filter = ["dep:warp", "dep:tokio", "dep:bytes", "dep:http", "dep:rust-embed
 tower-service = ["warp-filter", "dep:tower", "dep:hyper"]
 hyper-server = ["tower-service"]
 cli = ["dep:clap", "dep:anyhow", "hyper-server"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "documenting"]
