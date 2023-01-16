@@ -20,3 +20,7 @@ stellation-frontend = { version = "0.1.3", path = "../stellation-frontend" }
 stellation-backend = { version = "0.1.3", path = "../stellation-backend" }
 stellation-bridge = { version = "0.1.3", path = "../stellation-bridge" }
 stctl = { version = "0.1.3", path = "../stctl" }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "documenting"]
