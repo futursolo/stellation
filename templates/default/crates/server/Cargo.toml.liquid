@@ -21,6 +21,10 @@ stellation-backend = { version = "{{stellation_release_ver}}", features = ["cli"
 # Stellation
 stellation-backend = { git = "https://github.com/futursolo/stellation", features = ["cli"] }
 
+{% elsif stellation_target == "ci" %}
+# Stellation
+stellation-backend = { path = "../stellation/crates/stellation-backend", features = ["cli"] }
+
 {% endif %}
 # Example Workspace
 {{project-name}}-view = { path = "../view" }

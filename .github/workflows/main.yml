@@ -20,8 +20,8 @@ jobs:
           targets: wasm32-unknown-unknown
           components: clippy
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Configure sccache
+        uses: visvirial/sccache-action@v1.0.1
 
       - name: Install cargo-make
         uses: davidB/rust-cargo-make@v1
@@ -42,9 +42,6 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
-
       - name: Check Formatting
         run: cargo +nightly fmt -- --unstable-features
 
@@ -63,40 +60,23 @@ jobs:
           targets: wasm32-unknown-unknown
           components: clippy
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Configure sccache
+        uses: visvirial/sccache-action@v1.0.1
 
       - name: Install Cargo Generate
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-generate
 
+      - name: Set Stellation Target to 'ci'
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo 'variable::set("stellation_target", "ci");' >> templates/default/resolve-crates.rhai
+
       - name: Generate Template
         run: |
           cargo generate --path stellation/templates/default \
             --name template-default-generated
-
-      - name: Add Stellation Crates
-        run: |
-          cargo add -p template-default-generated-api \
-            --path ../stellation/crates/stellation-bridge
-
-          cargo add -p template-default-generated-client \
-            --path ../stellation/crates/stellation-frontend
-
-          cargo add -p template-default-generated-server \
-            --path ../stellation/crates/stellation-backend \
-            --features cli
-
-          cargo add -p template-default-generated-view \
-            --path ../stellation/crates/stellation-frontend
-
-          cargo add -p template-default-generated-view \
-            --path ../stellation/crates/stellation-bridge
-
-          cargo add -p template-default-generated-stctl \
-            --path ../stellation/crates/stctl
-        working-directory: template-default-generated
 
       - name: Run Lints
         run: |
@@ -122,8 +102,13 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Configure sccache
+        uses: visvirial/sccache-action@v1.0.1
 
       - name: Set Git Information
         run: |
@@ -140,59 +125,15 @@ jobs:
 
           echo "CARGO_PUBLISH_EXTRA_ARGS=--registry=dry-run" >> $GITHUB_ENV
 
-          echo "[registries.dry-run]" >> ~/.cargo/config.toml
-          echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config.toml
-          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.cargo/config.toml
+          echo "[registries.dry-run]" >> ~/.cargo/config
+          echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config
+          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.cargo/config
 
       - name: Modify to publish to dry-run Registry
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
-          cargo install toml-cli
-
-          toml set \
-            crates/stellation-backend/Cargo.toml \
-            dependencies.stellation-bridge.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation-backend/Cargo.toml
-
-          toml set \
-            crates/stellation-backend/Cargo.toml \
-            dependencies.stellation-core.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation-backend/Cargo.toml
-
-          toml set \
-            crates/stellation-frontend/Cargo.toml \
-            dependencies.stellation-bridge.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation-frontend/Cargo.toml
-
-          toml set \
-            crates/stctl/Cargo.toml \
-            dependencies.stellation-core.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stctl/Cargo.toml
-
-          toml set \
-            crates/stellation/Cargo.toml \
-            dependencies.stellation-core.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation/Cargo.toml
-
-          toml set \
-            crates/stellation/Cargo.toml \
-            dependencies.stellation-bridge.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation/Cargo.toml
-
-          toml set \
-            crates/stellation/Cargo.toml \
-            dependencies.stellation-frontend.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation/Cargo.toml
-
-          toml set \
-            crates/stellation/Cargo.toml \
-            dependencies.stellation-backend.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation/Cargo.toml
-
-          toml set \
-            crates/stellation/Cargo.toml \
-            dependencies.stctl.registry dry-run > /tmp/tempfile-cargo1
-          cat /tmp/tempfile-cargo1 > crates/stellation/Cargo.toml
+          pip install tomlkit
+          python3 ci/switch-registry.py
 
           git commit -a -m "chore: switch to dry-run registry"
 
@@ -201,51 +142,24 @@ jobs:
         run: |
           echo "CARGO_PUBLISH_EXTRA_ARGS=--token=${{ secrets.CRATES_IO_TOKEN }}" >> $GITHUB_ENV
 
-      - name: Run cargo publish for stellation-core
+      - name: Run cargo publish
         run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-core/Cargo.toml
-        env:
-          RUSTFLAGS: "--cfg releasing"
+          CRATES=(
+            stellation-core
+            stellation-bridge
+            stellation-backend
+            stellation-frontend
+            stctl
+            stellation
+          )
 
-      - name: Run cargo publish for stellation-bridge
-        run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-bridge/Cargo.toml
-        env:
-          RUSTFLAGS: "--cfg releasing"
+          for CRATE_NAME in "${CRATES[@]}";
+          do
+            cargo publish \
+              ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
+              --manifest-path crates/$CRATE_NAME/Cargo.toml
+          done
 
-      - name: Run cargo publish for stellation-backend
-        run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-backend/Cargo.toml
-        env:
-          RUSTFLAGS: "--cfg releasing"
-
-      - name: Run cargo publish for stellation-frontend
-        run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-frontend/Cargo.toml
-        env:
-          RUSTFLAGS: "--cfg releasing"
-
-      - name: Run cargo publish for stctl
-        run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stctl/Cargo.toml
-        env:
-          RUSTFLAGS: "--cfg releasing"
-
-      - name: Run cargo publish for stellation
-        run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 
