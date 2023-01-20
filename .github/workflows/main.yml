@@ -71,32 +71,15 @@ jobs:
         with:
           tool: cargo-generate
 
+      - name: Set Stellation Target to 'ci'
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo 'variable::set("stellation_target", "ci");' >> templates/default/resolve-crates.rhai
+
       - name: Generate Template
         run: |
           cargo generate --path stellation/templates/default \
             --name template-default-generated
-
-      - name: Add Stellation Crates
-        run: |
-          cargo add -p template-default-generated-api \
-            --path ../stellation/crates/stellation-bridge
-
-          cargo add -p template-default-generated-client \
-            --path ../stellation/crates/stellation-frontend
-
-          cargo add -p template-default-generated-server \
-            --path ../stellation/crates/stellation-backend \
-            --features cli
-
-          cargo add -p template-default-generated-view \
-            --path ../stellation/crates/stellation-frontend
-
-          cargo add -p template-default-generated-view \
-            --path ../stellation/crates/stellation-bridge
-
-          cargo add -p template-default-generated-stctl \
-            --path ../stellation/crates/stctl
-        working-directory: template-default-generated
 
       - name: Run Lints
         run: |
