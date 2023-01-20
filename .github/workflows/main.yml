@@ -125,9 +125,9 @@ jobs:
 
           echo "CARGO_PUBLISH_EXTRA_ARGS=--registry=dry-run" >> $GITHUB_ENV
 
-          echo "[registries.dry-run]" >> ~/.cargo/config.toml
-          echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config.toml
-          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.cargo/config.toml
+          echo "[registries.dry-run]" >> ~/.cargo/config
+          echo 'index = "file:///tmp/dry-run-registry"' >> ~/.cargo/config
+          echo 'token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.cargo/config
 
       - name: Modify to publish to dry-run Registry
         if: "!startsWith(github.ref, 'refs/tags/')"
