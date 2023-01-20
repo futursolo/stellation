@@ -2,7 +2,8 @@
 #![deny(missing_debug_implementations)]
 
 use example_fullstack_api::create_bridge;
-use stellation_backend::{Cli, Endpoint};
+use stellation_backend::Endpoint;
+use stellation_backend_cli::Cli;
 
 mod app;
 use app::ServerApp;
@@ -14,7 +15,7 @@ struct Frontend;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    stellation_backend::trace::init_default("STELLATION_APP_SERVER_LOG");
+    stellation_backend_cli::trace::init_default("STELLATION_APP_SERVER_LOG");
 
     let endpoint = Endpoint::<ServerApp>::new().with_bridge(create_bridge());
 
