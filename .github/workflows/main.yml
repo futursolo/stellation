@@ -147,29 +147,22 @@ jobs:
 
       - name: Run cargo publish
         run: |
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-core/Cargo.toml
+          CRATES=(
+            stellation-core
+            stellation-bridge
+            stellation-backend
+            stellation-frontend
+            stctl
+            stellation
+          )
 
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-bridge/Cargo.toml
+          for CRATE_NAME in "${CRATES[@]}";
+          do
+            cargo publish \
+              ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
+              --manifest-path crates/$CRATE_NAME/Cargo.toml
+          done
 
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-backend/Cargo.toml
-
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation-frontend/Cargo.toml
-
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stctl/Cargo.toml
-
-          cargo publish \
-            ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-            --manifest-path crates/stellation/Cargo.toml
         env:
           RUSTFLAGS: "--cfg releasing"
 

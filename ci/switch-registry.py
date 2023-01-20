@@ -14,11 +14,16 @@ def main() -> None:
 
         for (key, value) in cfg["dependencies"].items():
             if key != "stctl" or not key.startswith("stellation-"):
+                print(f"  Skipping {key}...")
                 continue
+
+            print(f"  Updating {key}...")
 
             value["registry"] = "dry-run"
 
-        cargo_toml_path.open("w").write(tomlkit.dumps(cfg))
+        with cargo_toml_path.open("w") as f:
+            f.write(tomlkit.dumps(cfg))
+            f.flush()
 
 if __name__ == '__main__':
     main()
