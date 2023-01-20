@@ -122,10 +122,10 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-       - name: Setup Python
-         uses: actions/setup-python@v4
-         with:
-           python-version: 3.11
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
       - name: Restore Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -167,7 +167,7 @@ jobs:
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
             --manifest-path crates/stellation-core/Cargo.toml
-          
+
           cargo publish \
             ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
             --manifest-path crates/stellation-bridge/Cargo.toml
