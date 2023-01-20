@@ -70,7 +70,7 @@ jobs:
 
       - name: Set Stellation Target to 'ci'
         run: |
-          echo 'variable::set("stellation_target", "ci");' >> templates/default/resolve-crates.rhai
+          echo 'variable::set("stellation_target", "ci");' >> stellation/templates/default/resolve-crates.rhai
 
       - name: Generate Template
         run: |
