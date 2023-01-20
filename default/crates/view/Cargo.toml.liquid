@@ -23,6 +23,11 @@ stellation-bridge = "{{stellation_release_ver}}"
 stellation-frontend = { git = "https://github.com/futursolo/stellation" }
 stellation-bridge = { git = "https://github.com/futursolo/stellation" }
 
+{% elsif stellation_target == "ci" %}
+# Stellation
+stellation-frontend = { path = "../../../stellation/crates/stellation-frontend" }
+stellation-bridge = { path = "../../../stellation/crates/stellation-bridge" }
+
 {% endif %}
 [dependencies.web-sys]
 version = "0.3"

@@ -19,6 +19,10 @@ stellation-bridge = "{{ stellation_release_ver }}"
 # Stellation
 stellation-bridge = { git = "https://github.com/futursolo/stellation" }
 
+{% elsif stellation_target == "ci" %}
+# Stellation
+stellation-bridge = { path = "../../../stellation/crates/stellation-bridge" }
+
 {% endif %}
 
 [features]
