@@ -13,7 +13,7 @@ def main() -> None:
         print(f"Updating {cargo_toml_path}...")
 
         for (key, value) in cfg["dependencies"].items():
-            if key != "stctl" or not key.startswith("stellation-"):
+            if key != "stctl" and not key.startswith("stellation-"):
                 print(f"  Skipping {key}...")
                 continue
 
