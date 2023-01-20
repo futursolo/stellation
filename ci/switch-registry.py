@@ -6,8 +6,11 @@ from pathlib import Path
 
 def main() -> None:
     cwd = Path.cwd()
+    print(f"Running in {cwd}...")
+
     for cargo_toml_path in cwd.glob("crates/*/Cargo.toml"):
         cfg = tomlkit.loads(cargo_toml_path.open().read())
+        print(f"Updating {cargo_toml_path}...")
 
         for (key, value) in cfg["dependencies"].items():
             if key != "stctl" or not key.startswith("stellation-"):
