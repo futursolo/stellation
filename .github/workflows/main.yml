@@ -20,8 +20,8 @@ jobs:
           targets: wasm32-unknown-unknown
           components: clippy
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Configure sccache
+        uses: visvirial/sccache-action@v1
 
       - name: Install cargo-make
         uses: davidB/rust-cargo-make@v1
@@ -42,9 +42,6 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
-
       - name: Check Formatting
         run: cargo +nightly fmt -- --unstable-features
 
@@ -63,8 +60,8 @@ jobs:
           targets: wasm32-unknown-unknown
           components: clippy
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Configure sccache
+        uses: visvirial/sccache-action@v1
 
       - name: Install Cargo Generate
         uses: taiki-e/install-action@v2
@@ -110,8 +107,8 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Restore Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Configure sccache
+        uses: visvirial/sccache-action@v1
 
       - name: Set Git Information
         run: |
