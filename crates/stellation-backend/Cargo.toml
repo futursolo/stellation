@@ -24,6 +24,7 @@ once_cell = "1.17.0"
 bincode = "1.3.3"
 rand = "0.8.5"
 lol_html = "0.3.2"
+tracing = { version = "0.1.37" }
 
 # Stellation Components
 stellation-bridge = { version = "0.1.4", path = "../stellation-bridge", features = ["resolvable"] }
@@ -43,21 +44,12 @@ serde_urlencoded = "0.7.1"
 bytes = { version = "1", optional = true }
 http = { version = "0.2", optional = true }
 rust-embed = { version = "6.4.2", optional = true }
-
-# Command Line Tools
-anyhow = { version = "1", optional = true }
-clap = { version = "4.1.1", features = ["derive", "env"], optional = true }
-serde_json = "1.0.91"
-tracing = { version = "0.1.37" }
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-console = "0.15.5"
 mime_guess = "2.0.4"
 
 [features]
 warp-filter = ["dep:warp", "dep:tokio", "dep:bytes", "dep:http", "dep:rust-embed"]
 tower-service = ["warp-filter", "dep:tower", "dep:hyper"]
 hyper-server = ["tower-service"]
-cli = ["dep:clap", "dep:anyhow", "hyper-server"]
 
 [package.metadata.docs.rs]
 all-features = true

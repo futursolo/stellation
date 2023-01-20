@@ -4,14 +4,10 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
+use stellation_backend::{Endpoint, Frontend, Server, ServerAppProps};
 use stellation_core::dev::StctlMetadata;
 use typed_builder::TypedBuilder;
 use yew::BaseComponent;
-
-use crate::endpoint::Endpoint;
-use crate::props::ServerAppProps;
-use crate::server::Server;
-use crate::Frontend;
 
 #[derive(Parser)]
 struct Arguments {

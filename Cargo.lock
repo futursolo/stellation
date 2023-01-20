@@ -486,6 +486,7 @@ dependencies = [
  "example-fullstack-view",
  "rust-embed",
  "stellation-backend",
+ "stellation-backend-cli",
  "tokio",
  "tracing",
  "yew",
@@ -2287,12 +2288,9 @@ dependencies = [
 name = "stellation-backend"
 version = "0.1.4"
 dependencies = [
- "anyhow",
  "bincode",
  "bounce",
  "bytes",
- "clap",
- "console",
  "futures",
  "http",
  "hyper",
@@ -2302,7 +2300,6 @@ dependencies = [
  "rand 0.8.5",
  "rust-embed",
  "serde",
- "serde_json",
  "serde_urlencoded",
  "stellation-bridge",
  "stellation-core",
@@ -2311,11 +2308,25 @@ dependencies = [
  "tokio",
  "tower",
  "tracing",
- "tracing-subscriber",
  "typed-builder",
  "warp",
  "yew",
  "yew-router",
+]
+
+[[package]]
+name = "stellation-backend-cli"
+version = "0.1.4"
+dependencies = [
+ "anyhow",
+ "clap",
+ "console",
+ "stellation-backend",
+ "stellation-core",
+ "tracing",
+ "tracing-subscriber",
+ "typed-builder",
+ "yew",
 ]
 
 [[package]]

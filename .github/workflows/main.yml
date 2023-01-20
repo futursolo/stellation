@@ -69,9 +69,8 @@ jobs:
           tool: cargo-generate
 
       - name: Set Stellation Target to 'ci'
-        if: github.ref == 'refs/heads/main'
         run: |
-          echo 'variable::set("stellation_target", "ci");' >> templates/default/resolve-crates.rhai
+          echo 'variable::set("stellation_target", "ci");' >> stellation/templates/default/resolve-crates.rhai
 
       - name: Generate Template
         run: |
@@ -148,6 +147,7 @@ jobs:
             stellation-core
             stellation-bridge
             stellation-backend
+            stellation-backend-cli
             stellation-frontend
             stctl
             stellation
