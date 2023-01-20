@@ -11,7 +11,8 @@ cargo clippy -p stellation-backend -- -D warnings
 cargo clippy -p stellation-backend --features=warp-filter -- -D warnings
 cargo clippy -p stellation-backend --features=tower-service -- -D warnings
 cargo clippy -p stellation-backend --features=hyper-server -- -D warnings
-cargo clippy -p stellation-backend --features=cli -- -D warnings
+
+cargo clippy -p stellation-backend-cli -- -D warnings
 
 cargo clippy -p stellation-frontend -- -D warnings
 
