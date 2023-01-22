@@ -41,9 +41,9 @@ where
         self.request.context()
     }
 
-    pub(crate) fn from_request(request: REQ) -> Self {
+    pub(crate) fn from_request(request: Rc<REQ>) -> Self {
         Self {
-            request: request.into(),
+            request,
             _marker: PhantomData,
         }
     }

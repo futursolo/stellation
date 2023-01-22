@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Write;
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 use bounce::helmet::render_static;
 use stellation_bridge::{Bridge, BridgeMetadata};
@@ -90,8 +91,9 @@ where
         let mut head_s = String::new();
 
         let (reader, writer) = render_static();
+        let request: Rc<_> = request.into();
 
-        let props = ServerAppProps::from_request(request);
+        let props = ServerAppProps::from_request(request.clone());
 
         let body_s = match bridge {
             Some((bridge, bridge_metadata)) => {
@@ -126,6 +128,6 @@ where
             r#"<meta name="stellation-mode" content="hydrate">"#
         );
 
-        html::format_html("", helmet_tags, head_s, body_s).await
+        html::format_html(request.template(), helmet_tags, head_s, body_s).await
     }
 }

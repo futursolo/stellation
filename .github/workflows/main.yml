@@ -148,6 +148,8 @@ jobs:
             stellation-bridge
             stellation-backend
             stellation-backend-cli
+            stellation-backend-warp
+            stellation-backend-tower
             stellation-frontend
             stctl
             stellation
