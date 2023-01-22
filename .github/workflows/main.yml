@@ -82,7 +82,7 @@ jobs:
 
           for x in $(ls ../stellation/templates); do
             cargo generate --path ../stellation/templates/$x \
-              --name $s
+              --name $x
           done
 
       - name: Run Lints
@@ -166,11 +166,11 @@ jobs:
             stellation
           )
 
-          for CRATE_NAME in "${CRATES[@]}";
+          for s in "${CRATES[@]}";
           do
             cargo publish \
               ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-              --manifest-path crates/$CRATE_NAME/Cargo.toml
+              --manifest-path crates/$s/Cargo.toml
           done
 
         env:
