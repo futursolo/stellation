@@ -1,6 +1,6 @@
 [package]
 name = "example-fullstack-client"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
 publish = false
 
@@ -16,6 +16,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 # Example Workspace
-example-fullstack-view = { path = "../view", version = "0.2.0"}
-example-fullstack-api = { path = "../api", version = "0.2.0"}
+example-fullstack-view = { path = "../view" }
+example-fullstack-api = { path = "../api" }
 

@@ -455,7 +455,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-api"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "serde",
@@ -466,7 +466,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-client"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "example-fullstack-api",
  "example-fullstack-view",
@@ -479,7 +479,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-server"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "example-fullstack-api",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-view"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "bounce",
  "example-fullstack-api",

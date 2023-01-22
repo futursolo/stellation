@@ -36,10 +36,8 @@ def main() -> None:
         cfg = tomlkit.loads(cargo_toml_path.open().read())
         print(f"Updating example {cargo_toml_path} to version {next_ver}...")
 
-        cfg["package"]["version"] = next_ver
-
         for (key, value) in cfg["dependencies"].items():
-            if not isinstance(value, dict) or "path" not in value.keys():
+            if not isinstance(value, dict) or "path" not in value.keys() or "version" not in value.keys():
                 print(f"  Skipping {key}...")
                 continue
 

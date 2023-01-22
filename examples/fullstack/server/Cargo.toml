@@ -1,6 +1,6 @@
 [package]
 name = "example-fullstack-server"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
 publish = false
 
@@ -18,6 +18,6 @@ stellation-backend-tower = { version = "0.2.0", path = "../../../crates/stellati
 stellation-backend-cli = { version = "0.2.0", path = "../../../crates/stellation-backend-cli" }
 
 # Example Workspace
-example-fullstack-view = { path = "../view", version = "0.2.0"}
-example-fullstack-api = { path = "../api", features = ["resolvable"], version = "0.2.0"}
+example-fullstack-view = { path = "../view" }
+example-fullstack-api = { path = "../api", features = ["resolvable"] }
 rust-embed = { version = "6.4.2", features = ["interpolate-folder-path"] }
