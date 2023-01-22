@@ -77,10 +77,12 @@ jobs:
 
       - name: Generate Template
         run: |
+          set -x
           mkdir templates-generated/
           cd templates-generated
 
           for x in $(ls ../stellation/templates); do
+            echo "Creating Template $x..."
             cargo generate --path ../stellation/templates/$x \
               --name $x
           done
