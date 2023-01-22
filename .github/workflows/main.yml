@@ -86,12 +86,14 @@ jobs:
               then
               echo "Creating Template $x..."
               cargo generate --path ../stellation/templates/$x \
-                --name $x
+                --name generated-$x
             fi
           done
 
       - name: Run Lints
         run: |
+          set -x
+
           for x in $(ls); do
             cd $x
             cargo make clippy
