@@ -68,21 +68,32 @@ jobs:
         with:
           tool: cargo-generate
 
+      - name: Install cargo-make
+        uses: davidB/rust-cargo-make@v1
+
       - name: Set Stellation Target to 'ci'
         run: |
           echo 'variable::set("stellation_target", "ci");' >> stellation/templates/default/resolve-crates.rhai
 
       - name: Generate Template
         run: |
-          cargo generate --path stellation/templates/default \
-            --name template-default-generated
+          mkdir templates-generated/
+          cd templates-generated
+
+          for x in $(ls ../stellation/templates); do
+            cargo generate --path ../stellation/templates/$x \
+              --name $s
+          done
 
       - name: Run Lints
         run: |
-          cargo clippy --bin stctl
-          cargo clippy --bin template-default-generated-client
-          cargo clippy --bin template-default-generated-server
-        working-directory: template-default-generated
+          for x in $(ls stellation/templates); do
+            cd $x
+            cargo make clippy
+            cd ..
+          done
+
+        working-directory: templates-generated
 
   publish:
     name: Publish to crates.io
