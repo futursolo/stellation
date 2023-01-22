@@ -3,7 +3,7 @@
 
 use {{crate_name}}_api as api;
 use {{crate_name}}_view as view;
-use stellation_backend::Endpoint;
+use stellation_backend_tower::TowerEndpoint;
 use stellation_backend_cli::Cli;
 
 mod app;
@@ -19,10 +19,10 @@ struct Frontend;
 async fn main() -> anyhow::Result<()> {
     stellation_backend_cli::trace::init_default("STELLATION_APP_SERVER_LOG");
 
-    let endpoint = Endpoint::<ServerApp>::new().with_bridge(create_bridge());
+    let endpoint = TowerEndpoint::<ServerApp<_>>::new().with_bridge(create_bridge());
 
     #[cfg(stellation_embedded_frontend)]
-    let endpoint = endpoint.with_frontend(stellation_backend::Frontend::new_embedded::<Frontend>());
+    let endpoint = endpoint.with_frontend(stellation_backend_tower::Frontend::new_embedded::<Frontend>());
 
     Cli::builder().endpoint(endpoint).build().run().await?;
 
