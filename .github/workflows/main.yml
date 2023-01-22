@@ -159,6 +159,10 @@ jobs:
         run: |
           echo "CARGO_PUBLISH_EXTRA_ARGS=--token=${{ secrets.CRATES_IO_TOKEN }}" >> $GITHUB_ENV
 
+      # Run lints first so it will be faster to run publish checks.
+      - name: Run Lints
+        run: cargo make clippy
+
       - name: Run cargo publish
         run: |
           CRATES=(
