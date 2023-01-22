@@ -1,6 +1,6 @@
 [package]
 name = "stellation-backend"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
@@ -23,8 +23,8 @@ lol_html = "0.3.2"
 serde_urlencoded = "0.7.1"
 
 # Stellation Components
-stellation-bridge = { version = "0.1.4", path = "../stellation-bridge", features = ["resolvable"] }
-stellation-core = { version = "0.1.4", path = "../stellation-core" }
+stellation-bridge = { version = "0.2.0", path = "../stellation-bridge", features = ["resolvable"] }
+stellation-core = { version = "0.2.0", path = "../stellation-core" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }

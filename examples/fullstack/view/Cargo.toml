@@ -1,6 +1,6 @@
 [package]
 name = "example-fullstack-view"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 publish = false
 
@@ -8,8 +8,8 @@ publish = false
 
 [dependencies]
 yew = { version = "0.20.0" }
-example-fullstack-api = { path = "../api" }
-stellation-bridge = { version = "0.1.4", path = "../../../crates/stellation-bridge" }
+example-fullstack-api = { path = "../api", version = "0.2.0"}
+stellation-bridge = { version = "0.2.0", path = "../../../crates/stellation-bridge" }
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "macros"] }
 tracing = "0.1.37"
 bounce = { version = "0.6.0", features = ["helmet"] }

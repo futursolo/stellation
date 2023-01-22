@@ -32,5 +32,23 @@ def main() -> None:
             f.write(tomlkit.dumps(cfg))
             f.flush()
 
+    for cargo_toml_path in cwd.glob("examples/**/Cargo.toml"):
+        cfg = tomlkit.loads(cargo_toml_path.open().read())
+        print(f"Updating example {cargo_toml_path} to version {next_ver}...")
+
+        cfg["package"]["version"] = next_ver
+
+        for (key, value) in cfg["dependencies"].items():
+            if not isinstance(value, dict) or "path" not in value.keys():
+                print(f"  Skipping {key}...")
+                continue
+
+            print(f"  Updating {key} to version {next_ver}...")
+            value["version"] = next_ver
+
+        with cargo_toml_path.open("w") as f:
+            f.write(tomlkit.dumps(cfg))
+            f.flush()
+
 if __name__ == '__main__':
     main()

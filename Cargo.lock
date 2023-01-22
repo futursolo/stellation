@@ -455,7 +455,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-api"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "serde",
@@ -466,7 +466,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-client"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "example-fullstack-api",
  "example-fullstack-view",
@@ -479,7 +479,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-server"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "example-fullstack-api",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "example-fullstack-view"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bounce",
  "example-fullstack-api",
@@ -2250,7 +2250,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stctl"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -2276,7 +2276,7 @@ dependencies = [
 
 [[package]]
 name = "stellation"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "stctl",
  "stellation-backend",
@@ -2287,7 +2287,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-backend"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "bounce",
  "futures",
@@ -2304,7 +2304,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-backend-cli"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2320,7 +2320,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-backend-tower"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "futures",
  "hyper",
@@ -2335,7 +2335,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-backend-warp"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "bounce",
  "bytes",
@@ -2359,7 +2359,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-bridge"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "bincode",
@@ -2374,7 +2374,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-core"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -2382,7 +2382,7 @@ dependencies = [
 
 [[package]]
 name = "stellation-frontend"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "bounce",
  "stellation-bridge",

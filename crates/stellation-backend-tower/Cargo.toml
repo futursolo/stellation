@@ -1,6 +1,6 @@
 [package]
 name = "stellation-backend-tower"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
@@ -23,9 +23,9 @@ yew = { version = "0.20", features = ["ssr"] }
 warp = { version = "0.3.3", default-features = false }
 
 # Stellation Components
-stellation-backend-warp = { version = "0.1.4", path = "../stellation-backend-warp" }
-stellation-backend = { version = "0.1.4", path = "../stellation-backend" }
-stellation-bridge = { version = "0.1.4", path = "../stellation-bridge", features = ["resolvable"] }
+stellation-backend-warp = { version = "0.2.0", path = "../stellation-backend-warp" }
+stellation-backend = { version = "0.2.0", path = "../stellation-backend" }
+stellation-bridge = { version = "0.2.0", path = "../stellation-bridge", features = ["resolvable"] }
 
 [package.metadata.docs.rs]
 all-features = true

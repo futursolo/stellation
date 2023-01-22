@@ -1,13 +1,13 @@
 [package]
 name = "example-fullstack-client"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stellation-frontend = { version = "0.1.4", path = "../../../crates/stellation-frontend" }
+stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
 yew = "0.20.0"
 gloo = "0.8"
 
@@ -16,6 +16,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 # Example Workspace
-example-fullstack-view = { path = "../view" }
-example-fullstack-api = { path = "../api" }
+example-fullstack-view = { path = "../view", version = "0.2.0"}
+example-fullstack-api = { path = "../api", version = "0.2.0"}
 
