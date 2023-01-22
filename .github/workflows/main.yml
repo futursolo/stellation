@@ -165,9 +165,9 @@ jobs:
             stellation-core
             stellation-bridge
             stellation-backend
-            stellation-backend-cli
             stellation-backend-warp
             stellation-backend-tower
+            stellation-backend-cli
             stellation-frontend
             stctl
             stellation
