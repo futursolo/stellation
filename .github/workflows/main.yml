@@ -87,7 +87,7 @@ jobs:
 
       - name: Run Lints
         run: |
-          for x in $(ls stellation/templates); do
+          for x in $(ls); do
             cd $x
             cargo make clippy
             cd ..
