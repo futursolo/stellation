@@ -82,9 +82,12 @@ jobs:
           cd templates-generated
 
           for x in $(ls ../stellation/templates); do
-            echo "Creating Template $x..."
-            cargo generate --path ../stellation/templates/$x \
-              --name $x
+            if [ -d ../stellation/templates/$x ];
+              then
+              echo "Creating Template $x..."
+              cargo generate --path ../stellation/templates/$x \
+                --name $x
+            fi
           done
 
       - name: Run Lints
