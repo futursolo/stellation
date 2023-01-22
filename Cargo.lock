@@ -487,6 +487,7 @@ dependencies = [
  "rust-embed",
  "stellation-backend",
  "stellation-backend-cli",
+ "stellation-backend-tower",
  "tokio",
  "tracing",
  "yew",
@@ -2288,28 +2289,15 @@ dependencies = [
 name = "stellation-backend"
 version = "0.1.4"
 dependencies = [
- "bincode",
  "bounce",
- "bytes",
  "futures",
- "http",
- "hyper",
  "lol_html",
- "mime_guess",
- "once_cell",
- "rand 0.8.5",
- "rust-embed",
  "serde",
  "serde_urlencoded",
  "stellation-bridge",
  "stellation-core",
  "thiserror",
  "thread_local",
- "tokio",
- "tower",
- "tracing",
- "typed-builder",
- "warp",
  "yew",
  "yew-router",
 ]
@@ -2322,11 +2310,51 @@ dependencies = [
  "clap",
  "console",
  "stellation-backend",
+ "stellation-backend-tower",
  "stellation-core",
  "tracing",
  "tracing-subscriber",
  "typed-builder",
  "yew",
+]
+
+[[package]]
+name = "stellation-backend-tower"
+version = "0.1.4"
+dependencies = [
+ "futures",
+ "hyper",
+ "stellation-backend",
+ "stellation-backend-warp",
+ "stellation-bridge",
+ "tokio",
+ "tower",
+ "warp",
+ "yew",
+]
+
+[[package]]
+name = "stellation-backend-warp"
+version = "0.1.4"
+dependencies = [
+ "bounce",
+ "bytes",
+ "futures",
+ "http",
+ "hyper",
+ "lol_html",
+ "mime_guess",
+ "once_cell",
+ "rand 0.8.5",
+ "rust-embed",
+ "serde_urlencoded",
+ "stellation-backend",
+ "stellation-bridge",
+ "tokio",
+ "tracing",
+ "warp",
+ "yew",
+ "yew-router",
 ]
 
 [[package]]

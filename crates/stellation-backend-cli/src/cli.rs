@@ -4,7 +4,8 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
-use stellation_backend::{Endpoint, Frontend, Server, ServerAppProps};
+use stellation_backend::ServerAppProps;
+use stellation_backend_tower::{Frontend, Server, TowerEndpoint, TowerRequest};
 use stellation_core::dev::StctlMetadata;
 use typed_builder::TypedBuilder;
 use yew::BaseComponent;
@@ -21,17 +22,18 @@ struct Arguments {
 
 /// The default command line instance for the backend server.
 #[derive(Debug, TypedBuilder)]
-pub struct Cli<COMP, CTX = ()>
+pub struct Cli<COMP, CTX = (), BCTX = ()>
 where
     COMP: BaseComponent,
 {
-    endpoint: Endpoint<COMP, CTX>,
+    endpoint: TowerEndpoint<COMP, CTX, BCTX>,
 }
 
-impl<COMP, CTX> Cli<COMP, CTX>
+impl<COMP, CTX, BCTX> Cli<COMP, CTX, BCTX>
 where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX, TowerRequest<CTX>>>,
     CTX: 'static,
+    BCTX: 'static,
 {
     /// Parses the arguments and runs the server.
     pub async fn run(self) -> anyhow::Result<()> {

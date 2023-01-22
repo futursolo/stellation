@@ -10,16 +10,17 @@ use yew_router::history::{AnyHistory, History, MemoryHistory};
 use yew_router::Router;
 
 use crate::props::ServerAppProps;
+use crate::Request;
 
 #[derive(Properties)]
-pub(crate) struct StellationRootProps<CTX, BCTX> {
+pub(crate) struct StellationRootProps<CTX, REQ, BCTX> {
     pub helmet_writer: StaticWriter,
-    pub server_app_props: ServerAppProps<CTX>,
+    pub server_app_props: ServerAppProps<CTX, REQ>,
     pub bridge: Bridge,
     pub bridge_metadata: Rc<BridgeMetadata<BCTX>>,
 }
 
-impl<CTX, BCTX> PartialEq for StellationRootProps<CTX, BCTX> {
+impl<CTX, REQ, BCTX> PartialEq for StellationRootProps<CTX, REQ, BCTX> {
     fn eq(&self, other: &Self) -> bool {
         self.helmet_writer == other.helmet_writer
             && self.server_app_props == other.server_app_props
@@ -28,7 +29,7 @@ impl<CTX, BCTX> PartialEq for StellationRootProps<CTX, BCTX> {
     }
 }
 
-impl<CTX, BCTX> Clone for StellationRootProps<CTX, BCTX> {
+impl<CTX, REQ, BCTX> Clone for StellationRootProps<CTX, REQ, BCTX> {
     fn clone(&self) -> Self {
         Self {
             helmet_writer: self.helmet_writer.clone(),
@@ -40,9 +41,10 @@ impl<CTX, BCTX> Clone for StellationRootProps<CTX, BCTX> {
 }
 
 #[function_component]
-fn Inner<COMP, CTX, BCTX>(props: &StellationRootProps<CTX, BCTX>) -> Html
+fn Inner<COMP, CTX, REQ, BCTX>(props: &StellationRootProps<CTX, REQ, BCTX>) -> Html
 where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX, REQ>>,
+    REQ: Request<Context = CTX>,
     BCTX: 'static,
 {
     let StellationRootProps {
@@ -85,9 +87,12 @@ where
 }
 
 #[function_component]
-pub(crate) fn StellationRoot<COMP, CTX, BCTX>(props: &StellationRootProps<CTX, BCTX>) -> Html
+pub(crate) fn StellationRoot<COMP, CTX, REQ, BCTX>(
+    props: &StellationRootProps<CTX, REQ, BCTX>,
+) -> Html
 where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX>>,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX, REQ>>,
+    REQ: 'static + Request<Context = CTX>,
     CTX: 'static,
     BCTX: 'static,
 {
@@ -95,7 +100,7 @@ where
 
     html! {
         <BounceRoot>
-            <Inner<COMP, CTX, BCTX> ..props />
+            <Inner<COMP, CTX, REQ, BCTX> ..props />
         </BounceRoot>
     }
 }

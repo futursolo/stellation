@@ -27,7 +27,7 @@ jobs:
         uses: davidB/rust-cargo-make@v1
 
       - name: Run Lints
-        run: ci/feature-soundness.sh
+        run: cargo make clippy
 
   rustfmt:
     name: Check Formatting
@@ -68,21 +68,39 @@ jobs:
         with:
           tool: cargo-generate
 
+      - name: Install cargo-make
+        uses: davidB/rust-cargo-make@v1
+
       - name: Set Stellation Target to 'ci'
         run: |
           echo 'variable::set("stellation_target", "ci");' >> stellation/templates/default/resolve-crates.rhai
 
       - name: Generate Template
         run: |
-          cargo generate --path stellation/templates/default \
-            --name template-default-generated
+          set -x
+          mkdir templates-generated/
+          cd templates-generated
+
+          for x in $(ls ../stellation/templates); do
+            if [ -d ../stellation/templates/$x ];
+              then
+              echo "Creating Template $x..."
+              cargo generate --path ../stellation/templates/$x \
+                --name generated-$x
+            fi
+          done
 
       - name: Run Lints
         run: |
-          cargo clippy --bin stctl
-          cargo clippy --bin template-default-generated-client
-          cargo clippy --bin template-default-generated-server
-        working-directory: template-default-generated
+          set -x
+
+          for x in $(ls); do
+            cd $x
+            cargo make clippy
+            cd ..
+          done
+
+        working-directory: templates-generated
 
   publish:
     name: Publish to crates.io
@@ -108,6 +126,9 @@ jobs:
 
       - name: Configure sccache
         uses: visvirial/sccache-action@v1.0.1
+
+      - name: Install cargo-make
+        uses: davidB/rust-cargo-make@v1
 
       - name: Set Git Information
         run: |
@@ -141,23 +162,29 @@ jobs:
         run: |
           echo "CARGO_PUBLISH_EXTRA_ARGS=--token=${{ secrets.CRATES_IO_TOKEN }}" >> $GITHUB_ENV
 
+      # Run lints first so it will be faster to run publish checks.
+      - name: Run Lints
+        run: cargo make clippy
+
       - name: Run cargo publish
         run: |
           CRATES=(
             stellation-core
             stellation-bridge
             stellation-backend
+            stellation-backend-warp
+            stellation-backend-tower
             stellation-backend-cli
             stellation-frontend
             stctl
             stellation
           )
 
-          for CRATE_NAME in "${CRATES[@]}";
+          for s in "${CRATES[@]}";
           do
             cargo publish \
               ${{ env.CARGO_PUBLISH_EXTRA_ARGS }} \
-              --manifest-path crates/$CRATE_NAME/Cargo.toml
+              --manifest-path crates/$s/Cargo.toml
           done
 
         env:

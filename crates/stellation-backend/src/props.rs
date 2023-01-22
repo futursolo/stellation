@@ -1,46 +1,26 @@
-use std::sync::Arc;
+use std::marker::PhantomData;
+use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 use yew::Properties;
 
 use crate::error::ServerAppResult;
-
-#[derive(Debug)]
-#[non_exhaustive]
-enum Path {
-    #[cfg(feature = "warp-filter")]
-    Warp(warp::path::FullPath),
-}
-
-impl Path {
-    fn as_str(&self) -> &str {
-        match self {
-            #[cfg(feature = "warp-filter")]
-            Self::Warp(m) => m.as_str(),
-            #[cfg(not(feature = "warp-filter"))]
-            _ => panic!("not implemented variant"),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Inner {
-    path: Path,
-    raw_queries: String,
-}
+use crate::Request;
 
 /// The Properties provided to a server app.
 #[derive(Properties, Debug)]
-pub struct ServerAppProps<T = ()> {
-    inner: Arc<Inner>,
-    context: Arc<T>,
-    client_only: bool,
+pub struct ServerAppProps<CTX, REQ> {
+    request: Rc<REQ>,
+    _marker: PhantomData<CTX>,
 }
 
-impl<T> ServerAppProps<T> {
+impl<CTX, REQ> ServerAppProps<CTX, REQ>
+where
+    REQ: Request<Context = CTX>,
+{
     /// Returns the path of current request.
     pub fn path(&self) -> &str {
-        self.inner.path.as_str()
+        self.request.path()
     }
 
     /// Returns queries of current request.
@@ -48,75 +28,38 @@ impl<T> ServerAppProps<T> {
     where
         Q: Serialize + for<'de> Deserialize<'de>,
     {
-        Ok(serde_urlencoded::from_str(&self.inner.raw_queries)?)
+        self.request.queries()
     }
 
     /// Returns queries as a raw string.
     pub fn raw_queries(&self) -> &str {
-        &self.inner.raw_queries
+        self.request.raw_queries()
     }
 
     /// Returns the current request context.
-    pub fn context(&self) -> &T {
-        &self.context
+    pub fn context(&self) -> &CTX {
+        self.request.context()
+    }
+
+    pub(crate) fn from_request(request: Rc<REQ>) -> Self {
+        Self {
+            request,
+            _marker: PhantomData,
+        }
     }
 }
 
-impl<T> PartialEq for ServerAppProps<T> {
+impl<REQ, CTX> PartialEq for ServerAppProps<REQ, CTX> {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.inner, &other.inner) && Arc::ptr_eq(&self.context, &other.context)
+        Rc::ptr_eq(&self.request, &other.request)
     }
 }
 
-impl<T> Clone for ServerAppProps<T> {
+impl<REQ, CTX> Clone for ServerAppProps<REQ, CTX> {
     fn clone(&self) -> Self {
         Self {
-            inner: self.inner.clone(),
-            context: self.context.clone(),
-            client_only: self.client_only,
-        }
-    }
-}
-
-impl<T> ServerAppProps<T> {
-    /// Appends a context to current server app to help resolving the request.
-    pub fn with_context<CTX>(self, context: CTX) -> ServerAppProps<CTX> {
-        ServerAppProps {
-            inner: self.inner,
-            context: context.into(),
-            client_only: false,
-        }
-    }
-
-    /// Excludes this request from server-side rendering.
-    pub fn client_only(mut self) -> Self {
-        self.client_only = true;
-        self
-    }
-
-    #[cfg(feature = "warp-filter")]
-    pub(crate) fn is_client_only(&self) -> bool {
-        self.client_only
-    }
-}
-
-#[cfg(feature = "warp-filter")]
-mod feat_warp_filter {
-    use warp::path::FullPath;
-
-    use super::*;
-
-    impl ServerAppProps<()> {
-        pub(crate) fn from_warp_request(path: FullPath, raw_queries: String) -> Self {
-            Self {
-                inner: Inner {
-                    path: Path::Warp(path),
-                    raw_queries,
-                }
-                .into(),
-                context: ().into(),
-                client_only: false,
-            }
+            request: self.request.clone(),
+            _marker: PhantomData,
         }
     }
 }
