@@ -26,3 +26,7 @@ warp = { version = "0.3.3", default-features = false }
 stellation-backend-warp = { version = "0.1.4", path = "../stellation-backend-warp" }
 stellation-backend = { version = "0.1.4", path = "../stellation-backend" }
 stellation-bridge = { version = "0.1.4", path = "../stellation-bridge", features = ["resolvable"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "documenting"]

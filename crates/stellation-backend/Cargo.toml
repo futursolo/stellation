@@ -16,13 +16,10 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 futures = { version = "0.3", default-features = false, features = ["std"] }
-typed-builder = "0.11.0"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 thread_local = "1.1.4"
-once_cell = "1.17.0"
 lol_html = "0.3.2"
-tracing = { version = "0.1.37" }
 serde_urlencoded = "0.7.1"
 
 # Stellation Components
@@ -33,7 +30,6 @@ stellation-core = { version = "0.1.4", path = "../stellation-core" }
 yew = { version = "0.20", features = ["ssr"] }
 bounce = { version = "0.6", features = ["helmet", "ssr"] }
 yew-router = "0.17"
-
 
 [package.metadata.docs.rs]
 all-features = true
