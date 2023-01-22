@@ -1,0 +1,33 @@
+[package]
+name = "stellation-backend-warp"
+version = "0.1.4"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Yew / Component Related
+yew = { version = "0.20", features = ["ssr"] }
+yew-router = "0.17"
+bounce = { version = "0.6", features = ["helmet", "ssr"] }
+
+# Stellation Components
+stellation-backend = { version = "0.1.4", path = "../stellation-backend" }
+stellation-bridge = { version = "0.1.4", path = "../stellation-bridge", features = ["resolvable"] }
+
+# HTTP
+hyper = { version = "0.14.23", features = ["runtime", "server", "http1"] }
+warp = { version = "0.3.3", default-features = false, features = ["websocket"] }
+serde_urlencoded = "0.7.1"
+bytes = { version = "1" }
+http = { version = "0.2" }
+rust-embed = { version = "6.4.2" }
+mime_guess = "2.0.4"
+lol_html = "0.3.2"
+
+# Other
+futures = { version = "0.3", default-features = false, features = ["std"] }
+tokio = { version = "1" }
+once_cell = "1.17.0"
+tracing = { version = "0.1.37" }
+rand = "0.8.5"

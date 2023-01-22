@@ -1,6 +1,4 @@
-//! Stellation Backend
-//!
-//! This crate contains the server renderer and tools used for server-side rendering.
+//! Stellation's wrap support.
 
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
@@ -12,14 +10,16 @@
 #![cfg_attr(documenting, feature(doc_auto_cfg))]
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
-mod error;
-mod props;
-mod root;
-pub mod utils;
-pub use error::{ServerAppError, ServerAppResult};
-pub use props::ServerAppProps;
-mod request;
-pub use request::Request;
-mod renderer;
-pub use renderer::ServerRenderer;
+mod endpoint;
+mod frontend;
 mod html;
+mod request;
+mod utils;
+
+pub use endpoint::WarpEndpoint;
+pub use frontend::Frontend;
+use once_cell::sync::Lazy;
+pub use request::WarpRequest;
+
+// A server id that is different every time it starts.
+static SERVER_ID: Lazy<String> = Lazy::new(crate::utils::random_str);

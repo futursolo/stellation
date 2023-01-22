@@ -16,7 +16,8 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Stellation Components
-stellation-backend = { version = "0.1.4", path = "../stellation-backend", features = ["hyper-server"] }
+stellation-backend = { version = "0.1.4", path = "../stellation-backend" }
+stellation-backend-tower = { version = "0.1.4", path = "../stellation-backend-tower" }
 stellation-core = { version = "0.1.4", path = "../stellation-core" }
 
 # Yew / Component Related

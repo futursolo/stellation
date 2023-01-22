@@ -8,11 +8,14 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-stellation-backend = { version = "0.1.4", path = "../../../crates/stellation-backend" }
-stellation-backend-cli = { version = "0.1.4", path = "../../../crates/stellation-backend-cli" }
 tokio = { version = "1.24.1", features = ["full"] }
 tracing = { version = "0.1.37" }
 yew = "0.20.0"
+
+# Stellation Components
+stellation-backend = { version = "0.1.4", path = "../../../crates/stellation-backend" }
+stellation-backend-tower = { version = "0.1.4", path = "../../../crates/stellation-backend-tower" }
+stellation-backend-cli = { version = "0.1.4", path = "../../../crates/stellation-backend-cli" }
 
 # Example Workspace
 example-fullstack-view = { path = "../view" }
