@@ -7,5 +7,19 @@ workspace = false
 command = "cargo"
 args = ["run", "--bin", "stctl", "--", "${@}"]
 
-[config]
-log_level = "info"
+[tasks.clippy]
+clear = true
+workspace = false
+script = '''
+#!/usr/bin/env bash
+set -e
+
+cargo clippy --workspace --all-features -- -D warnings
+
+# We should lint bridge separately as resolvable features result in different behaviours. 
+cargo clippy -p stellation-bridge -- -D warnings
+cargo clippy -p stellation-bridge --features=resolvable -- -D warnings
+
+cargo clippy -p example-fullstack-client -- -D warnings
+cargo clippy -p example-fullstack-server -- -D warnings
+'''

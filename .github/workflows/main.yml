@@ -27,7 +27,7 @@ jobs:
         uses: davidB/rust-cargo-make@v1
 
       - name: Run Lints
-        run: ci/feature-soundness.sh
+        run: cargo make clippy
 
   rustfmt:
     name: Check Formatting
