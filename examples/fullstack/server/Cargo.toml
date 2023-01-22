@@ -13,9 +13,9 @@ tracing = { version = "0.1.37" }
 yew = "0.20.0"
 
 # Stellation Components
-stellation-backend = { version = "0.1.4", path = "../../../crates/stellation-backend" }
-stellation-backend-tower = { version = "0.1.4", path = "../../../crates/stellation-backend-tower" }
-stellation-backend-cli = { version = "0.1.4", path = "../../../crates/stellation-backend-cli" }
+stellation-backend = { version = "0.2.0", path = "../../../crates/stellation-backend" }
+stellation-backend-tower = { version = "0.2.0", path = "../../../crates/stellation-backend-tower" }
+stellation-backend-cli = { version = "0.2.0", path = "../../../crates/stellation-backend-cli" }
 
 # Example Workspace
 example-fullstack-view = { path = "../view" }

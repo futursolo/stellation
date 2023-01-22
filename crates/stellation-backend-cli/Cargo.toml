@@ -1,6 +1,6 @@
 [package]
 name = "stellation-backend-cli"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
@@ -16,9 +16,9 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Stellation Components
-stellation-backend = { version = "0.1.4", path = "../stellation-backend" }
-stellation-backend-tower = { version = "0.1.4", path = "../stellation-backend-tower" }
-stellation-core = { version = "0.1.4", path = "../stellation-core" }
+stellation-backend = { version = "0.2.0", path = "../stellation-backend" }
+stellation-backend-tower = { version = "0.2.0", path = "../stellation-backend-tower" }
+stellation-core = { version = "0.2.0", path = "../stellation-core" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
