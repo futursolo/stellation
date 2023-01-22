@@ -34,7 +34,7 @@ def main() -> None:
 
     for cargo_toml_path in cwd.glob("examples/**/Cargo.toml"):
         cfg = tomlkit.loads(cargo_toml_path.open().read())
-        print(f"Updating example {cargo_toml_path} to version {next_ver}...")
+        print(f"Updating example {cargo_toml_path}...")
 
         for (key, value) in cfg["dependencies"].items():
             if not isinstance(value, dict) or "path" not in value.keys() or "version" not in value.keys():
