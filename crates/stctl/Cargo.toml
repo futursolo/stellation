@@ -33,7 +33,7 @@ indicatif = "0.17.3"
 console = "0.15.5"
 reqwest = { version = "0.11.13", features = ["rustls-tls-webpki-roots", "stream"] }
 tokio-stream = { version = "0.1.11", features = ["fs", "sync"] }
-webbrowser = "0.8.4"
+webbrowser = "0.8.7"
 
 # Stellation Components
 stellation-core = { version = "0.2.0", path = "../stellation-core" }
