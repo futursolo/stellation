@@ -92,9 +92,9 @@ checksum = "cfa8873f51c92e232f9bac4065cddef41b714152812bfc5f7672ba16d6ef8cd9"
 
 [[package]]
 name = "bounce"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db8f1c644faff6ae15d83c21b2ffd45bd1e7a3781ccb0d2b6f9488475a52bc0a"
+checksum = "5c6d93ceff05b2939e6656d2a7a091f8a9e4ccabb2c52c74f15a666526abb944"
 dependencies = [
  "anymap2",
  "async-trait",
@@ -112,9 +112,9 @@ dependencies = [
 
 [[package]]
 name = "bounce-macros"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abc7b6337ade1643f014bf6e49a8ca27c020c17933953e172b9ffbbad8410e57"
+checksum = "b1452ffe40563716a2ba1e0ccf47fce0b714df33cdf2ad474b1d5595ecff5766"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
