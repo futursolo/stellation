@@ -30,7 +30,7 @@ impl Profile {
         match self.name() {
             "debug" => None,
             "release" => Some("--release".to_string()),
-            other => Some(format!("--profile={}", other)),
+            other => Some(format!("--profile={other}")),
         }
     }
 }

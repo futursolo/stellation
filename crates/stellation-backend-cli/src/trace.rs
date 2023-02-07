@@ -59,7 +59,7 @@ where
 
             fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
                 if field.as_ref() == "method" {
-                    self.method = Some(format!("{:?}", value));
+                    self.method = Some(format!("{value:?}"));
                 }
             }
         }
@@ -84,7 +84,7 @@ where
             }
             .bold();
 
-            eprintln!("{method:>6} {status} {:>8.2}ms {path}", duration);
+            eprintln!("{method:>6} {status} {duration:>8.2}ms {path}");
         }
     }
 }
