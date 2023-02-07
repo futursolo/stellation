@@ -550,14 +550,14 @@ impl Stctl {
 
                     eprintln!(
                         "{}",
-                        style(format!("Built in {:.2}s!", time_taken_in_f64))
+                        style(format!("Built in {time_taken_in_f64:.2}s!"))
                             .green()
                             .bold()
                     );
                     eprintln!("Stellation development server has started!");
                     eprintln!();
                     eprintln!();
-                    eprintln!("    Listening at: {}", http_listen_addr);
+                    eprintln!("    Listening at: {http_listen_addr}");
                     eprintln!();
                     eprintln!();
                     eprintln!(
@@ -622,7 +622,7 @@ impl Stctl {
             f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
         eprintln!(
             "{}",
-            style(format!("Built in {:.2}s!", time_taken_in_f64))
+            style(format!("Built in {time_taken_in_f64:.2}s!"))
                 .green()
                 .bold()
         );

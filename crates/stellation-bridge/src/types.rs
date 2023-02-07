@@ -11,7 +11,7 @@ use crate::error::BridgeError;
 
 #[cold]
 fn panic_network_error(e: BridgeError) -> ! {
-    panic!("failed to communicate with server: {:?}", e);
+    panic!("failed to communicate with server: {e:?}");
 }
 
 /// A Bridged Query.
