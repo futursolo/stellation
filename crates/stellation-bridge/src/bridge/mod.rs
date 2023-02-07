@@ -262,7 +262,7 @@ mod not_feat_resolvable {
                 .body(input);
 
             if let Some(m) = self.metadata.token() {
-                req = req.header("authorization", &format!("Bearer {}", m));
+                req = req.header("authorization", &format!("Bearer {m}"));
             }
 
             let resp = req.send().await?;
