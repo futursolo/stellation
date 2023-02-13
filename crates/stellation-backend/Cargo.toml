@@ -18,7 +18,7 @@ license = "MIT OR Apache-2.0"
 futures = { version = "0.3", default-features = false, features = ["std"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
-thread_local = "1.1.4"
+thread_local = "1.1.7"
 lol_html = "0.3.2"
 serde_urlencoded = "0.7.1"
 
