@@ -19,7 +19,7 @@ futures = { version = "0.3", default-features = false, features = ["std"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 thread_local = "1.1.7"
-lol_html = "0.3.2"
+lol_html = "1.0.1"
 serde_urlencoded = "0.7.1"
 
 # Stellation Components
@@ -28,7 +28,7 @@ stellation-core = { version = "0.2.0", path = "../stellation-core" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
-bounce = { version = "0.6", features = ["helmet", "ssr"] }
+bounce = { version = "0.7", features = ["helmet", "ssr"] }
 yew-router = "0.17"
 
 [package.metadata.docs.rs]

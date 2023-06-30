@@ -15,25 +15,25 @@ homepage = "https://github.com/futursolo/stellation"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.69"
-clap = { version = "4.1.4", features = ["derive"] }
-serde = { version = "1.0.152", features = ["derive"] }
-tokio = { version = "1.25.0", features = ["full"] }
-toml = "0.7.3"
+anyhow = "1.0.71"
+clap = { version = "4.3.10", features = ["derive"] }
+serde = { version = "1.0.164", features = ["derive"] }
+tokio = { version = "1.29.1", features = ["full"] }
+toml = "0.7.5"
 tracing = { version = "0.1.37" }
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-notify = "5.1.0"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+notify = "6.0.1"
 futures = { version = "0.3", features = ["std", "async-await"], default-features = false }
 cargo_metadata = "0.15"
-serde_json = "1.0.96"
-dotenvy = "0.15.6"
+serde_json = "1.0.99"
+dotenvy = "0.15.7"
 time = "0.3"
 rand = "0.8.5"
-indicatif = "0.17.3"
-console = "0.15.5"
-reqwest = { version = "0.11.14", features = ["rustls-tls-webpki-roots", "stream"] }
-tokio-stream = { version = "0.1.11", features = ["fs", "sync"] }
-webbrowser = "0.8.7"
+indicatif = "0.17.5"
+console = "0.15.7"
+reqwest = { version = "0.11.18", features = ["rustls-tls-webpki-roots", "stream"] }
+tokio-stream = { version = "0.1.14", features = ["fs", "sync"] }
+webbrowser = "0.8.10"
 
 # Stellation Components
 stellation-core = { version = "0.2.0", path = "../stellation-core" }
