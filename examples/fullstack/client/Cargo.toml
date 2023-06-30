@@ -13,7 +13,7 @@ gloo = "0.8"
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
+tracing-subscriber = { version = "0.3.17", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 # Example Workspace
 example-fullstack-view = { path = "../view" }

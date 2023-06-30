@@ -16,11 +16,11 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 yew = { version = "0.20", features = ["csr", "hydration"] }
-bounce = { version = "0.6", features = ["helmet"] }
+bounce = { version = "0.7", features = ["helmet"] }
 yew-router = "0.17"
 tracing = "0.1"
 tracing-web = "0.1.2"
-tracing-subscriber = { version = "0.3.16", default-features = false, features = ["time", "std", "fmt", "ansi"] }
+tracing-subscriber = { version = "0.3.17", default-features = false, features = ["time", "std", "fmt", "ansi"] }
 
 # Stellation Components
 stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }

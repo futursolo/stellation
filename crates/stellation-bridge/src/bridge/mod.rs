@@ -78,6 +78,7 @@ impl fmt::Debug for BridgeBuilder {
 #[cfg(feature = "resolvable")]
 mod feat_resolvable {
     use std::any::Any;
+    use std::marker::PhantomData;
     use std::rc::Rc;
     use std::sync::Arc;
 
@@ -211,6 +212,7 @@ mod feat_resolvable {
         where
             T: 'static + Selector + AsRef<str>,
         {
+            let _marker: PhantomData<T> = PhantomData;
             self
         }
     }
@@ -257,15 +259,13 @@ mod not_feat_resolvable {
             let incoming = bincode::serialize(&incoming)?;
 
             let input = Uint8Array::from(incoming.as_slice());
-            let mut req = Request::post("/_bridge")
-                .header("content-type", "application/x-bincode")
-                .body(input);
+            let mut req = Request::post("/_bridge").header("content-type", "application/x-bincode");
 
             if let Some(m) = self.metadata.token() {
                 req = req.header("authorization", &format!("Bearer {m}"));
             }
 
-            let resp = req.send().await?;
+            let resp = req.body(input)?.send().await?;
 
             resp.binary().await.map_err(|m| m.into())
         }
