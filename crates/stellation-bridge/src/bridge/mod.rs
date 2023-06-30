@@ -78,6 +78,7 @@ impl fmt::Debug for BridgeBuilder {
 #[cfg(feature = "resolvable")]
 mod feat_resolvable {
     use std::any::Any;
+    use std::marker::PhantomData;
     use std::rc::Rc;
     use std::sync::Arc;
 
@@ -211,6 +212,7 @@ mod feat_resolvable {
         where
             T: 'static + Selector + AsRef<str>,
         {
+            let _marker: PhantomData<T> = PhantomData;
             self
         }
     }
