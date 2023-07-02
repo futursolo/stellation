@@ -2538,6 +2538,7 @@ dependencies = [
  "js-sys",
  "serde",
  "thiserror",
+ "typed-builder",
  "yew",
 ]
 

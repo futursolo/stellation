@@ -33,7 +33,8 @@
 mod bridge;
 mod error;
 pub mod hooks;
-#[cfg(feature = "resolvable")]
+pub mod links;
+pub mod registry;
 pub mod resolvers;
 pub mod state;
 pub mod types;
