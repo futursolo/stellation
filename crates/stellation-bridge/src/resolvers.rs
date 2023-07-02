@@ -6,7 +6,7 @@ use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 
 /// The resolver of a bridge query.
 ///
-/// This type is required to be implemented when the `resolvable` feature is enabled.
+/// This type is required to be implemented for `LocalLink`.
 /// Please refer to the crate implementation for more information.
 #[async_trait(?Send)]
 pub trait QueryResolver: BridgedQuery {
@@ -21,7 +21,7 @@ pub trait QueryResolver: BridgedQuery {
 
 /// The resolver of a bridge mutation.
 ///
-/// This type is required to be implemented when the `resolvable` feature is enabled.
+/// This type is required to be implemented for `LocalLink`.
 /// Please refer to the crate implementation for more information.
 #[async_trait(?Send)]
 pub trait MutationResolver: BridgedMutation {

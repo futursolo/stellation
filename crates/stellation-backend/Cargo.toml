@@ -23,7 +23,7 @@ lol_html = "1.0.1"
 serde_urlencoded = "0.7.1"
 
 # Stellation Components
-stellation-bridge = { version = "0.2.0", path = "../stellation-bridge", features = ["resolvable"] }
+stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }
 stellation-core = { version = "0.2.0", path = "../stellation-core" }
 
 # Yew / Component Related

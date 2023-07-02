@@ -16,10 +16,6 @@ set -e
 
 cargo clippy --workspace --all-features -- -D warnings
 
-# We should lint bridge separately as resolvable features result in different behaviours. 
-cargo clippy -p stellation-bridge -- -D warnings
-cargo clippy -p stellation-bridge --features=resolvable -- -D warnings
-
 cargo clippy -p example-fullstack-client -- -D warnings
 cargo clippy -p example-fullstack-server -- -D warnings
 '''

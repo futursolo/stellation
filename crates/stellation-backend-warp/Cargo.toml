@@ -22,7 +22,7 @@ bounce = { version = "0.7", features = ["helmet", "ssr"] }
 
 # Stellation Components
 stellation-backend = { version = "0.2.0", path = "../stellation-backend" }
-stellation-bridge = { version = "0.2.0", path = "../stellation-bridge", features = ["resolvable"] }
+stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }
 
 # HTTP
 hyper = { version = "0.14.27", features = ["runtime", "server", "http1"] }
