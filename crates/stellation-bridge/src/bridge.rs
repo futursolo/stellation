@@ -6,13 +6,26 @@ use bounce::{BounceStates, Selector};
 
 use crate::links::Link;
 
-pub(super) type ReadToken = Box<dyn Fn(&BounceStates) -> Rc<dyn AsRef<str>>>;
+pub(super) type ReadToken = Rc<dyn Fn(&BounceStates) -> Rc<dyn AsRef<str>>>;
 
 /// The Bridge.
 pub struct Bridge<L> {
     id: usize,
     pub(crate) link: L,
     read_token: Option<ReadToken>,
+}
+
+impl<L> Clone for Bridge<L>
+where
+    L: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            link: self.link.clone(),
+            read_token: self.read_token.clone(),
+        }
+    }
 }
 
 impl<L> fmt::Debug for Bridge<L> {
@@ -55,7 +68,7 @@ where
     where
         T: 'static + Selector + AsRef<str>,
     {
-        let read_token = Box::new(move |states: &BounceStates| {
+        let read_token = Rc::new(move |states: &BounceStates| {
             let state = states.get_selector_value::<T>();
 
             state as Rc<dyn AsRef<str>>

@@ -14,6 +14,7 @@
 
 use std::marker::PhantomData;
 
+use stellation_bridge::links::{FetchLink, Link};
 use stellation_bridge::Bridge;
 use yew::prelude::*;
 
@@ -35,12 +36,12 @@ pub mod trace;
 ///
 /// You do not need to add them manually.
 #[derive(Debug)]
-pub struct Renderer<COMP>
+pub struct Renderer<COMP, L = FetchLink>
 where
     COMP: BaseComponent,
 {
     props: COMP::Properties,
-    bridge: Option<Bridge>,
+    bridge: Option<Bridge<L>>,
     _marker: PhantomData<COMP>,
 }
 
@@ -54,12 +55,13 @@ where
     }
 }
 
-impl<COMP> Renderer<COMP>
+impl<COMP, L> Renderer<COMP, L>
 where
     COMP: BaseComponent,
+    L: 'static + Link,
 {
     /// Creates a Renderer with default props.
-    pub fn new() -> Renderer<COMP>
+    pub fn new() -> Renderer<COMP, L>
     where
         COMP::Properties: Default,
     {
@@ -67,7 +69,7 @@ where
     }
 
     /// Creates a Renderer with specified props.
-    pub fn with_props(props: COMP::Properties) -> Renderer<COMP> {
+    pub fn with_props(props: COMP::Properties) -> Renderer<COMP, L> {
         Renderer {
             props,
             bridge: None,
@@ -76,15 +78,14 @@ where
     }
 
     /// Connects a bridge to the application.
-    pub fn bridge(mut self, bridge: Bridge) -> Self {
+    pub fn bridge(mut self, bridge: Bridge<L>) -> Self {
         self.bridge = Some(bridge);
 
         self
     }
 
-    fn into_yew_renderer(self) -> yew::Renderer<StellationRoot<COMP>> {
+    fn into_yew_renderer(self) -> yew::Renderer<StellationRoot<COMP, L>> {
         let Self { props, bridge, .. } = self;
-        let bridge = bridge.unwrap_or_default();
 
         let children = html! {
             <COMP ..props />

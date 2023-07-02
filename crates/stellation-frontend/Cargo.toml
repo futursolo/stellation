@@ -24,6 +24,7 @@ tracing-subscriber = { version = "0.3.17", default-features = false, features = 
 
 # Stellation Components
 stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }
+anymap2 = "0.13.0"
 
 [dependencies.web-sys]
 version = "0.3"

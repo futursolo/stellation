@@ -2554,6 +2554,7 @@ dependencies = [
 name = "stellation-frontend"
 version = "0.2.0"
 dependencies = [
+ "anymap2",
  "bounce",
  "stellation-bridge",
  "tracing",
