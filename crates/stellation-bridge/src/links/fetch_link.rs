@@ -32,7 +32,7 @@ pub struct FetchLink {
     /// The routine registry for all registered routines.
     routines: RoutineRegistry,
     /// The bearer token to send to the server.
-    #[builder(setter(into, strip_option), default)]
+    #[builder(setter(skip), default)]
     token: Option<String>,
 }
 
@@ -58,6 +58,17 @@ impl FetchLink {
 
 #[async_trait(?Send)]
 impl Link for FetchLink {
+    fn with_token<T>(&self, token: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        let mut self_ = self.clone();
+
+        self_.token = Some(token.as_ref().to_string());
+
+        self_
+    }
+
     async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
     where
         T: 'static + BridgedQuery,

@@ -13,7 +13,12 @@ pub use local_link::LocalLink;
 
 /// Common methods across all links.
 #[async_trait(?Send)]
-pub trait Link {
+pub trait Link: Clone {
+    /// Creates a new Link with token.
+    fn with_token<T>(&self, token: T) -> Self
+    where
+        T: AsRef<str>;
+
     /// Resolves a Query.
     async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
     where

@@ -6,13 +6,10 @@ use futures::{FutureExt, TryFutureExt};
 
 use super::Incoming;
 use crate::resolvers::{MutationResolver, QueryResolver};
-use crate::{BridgeError, BridgeMetadata, BridgeResult};
+use crate::{BridgeError, BridgeResult};
 
-pub(super) type Resolver<CTX> = Arc<
-    dyn Send
-        + Sync
-        + Fn(&BridgeMetadata<CTX>, &[u8]) -> LocalBoxFuture<'static, BridgeResult<Vec<u8>>>,
->;
+pub(super) type Resolver<CTX> =
+    Arc<dyn Send + Sync + Fn(&Arc<CTX>, &[u8]) -> LocalBoxFuture<'static, BridgeResult<Vec<u8>>>>;
 
 pub(super) type Resolvers<CTX> = Vec<Resolver<CTX>>;
 
@@ -57,8 +54,8 @@ where
     where
         T: 'static + QueryResolver<Context = CTX>,
     {
-        let resolver = Arc::new(|metadata: &BridgeMetadata<CTX>, input: &[u8]| {
-            let metadata = metadata.duplicate();
+        let resolver = Arc::new(|metadata: &Arc<CTX>, input: &[u8]| {
+            let metadata = metadata.clone();
             let input = match bincode::deserialize::<T::Input>(input)
                 .map_err(BridgeError::Encoding)
                 .map_err(future::err)
@@ -82,8 +79,8 @@ where
     where
         T: 'static + MutationResolver<Context = CTX>,
     {
-        let resolver = Arc::new(|metadata: &BridgeMetadata<CTX>, input: &[u8]| {
-            let metadata = metadata.duplicate();
+        let resolver = Arc::new(|metadata: &Arc<CTX>, input: &[u8]| {
+            let metadata = metadata.clone();
             let input = match bincode::deserialize::<T::Input>(input)
                 .map_err(BridgeError::Encoding)
                 .map_err(future::err)
@@ -131,7 +128,7 @@ impl<CTX> ResolverRegistry<CTX> {
     /// Resolves an encoded request.
     pub async fn resolve_encoded(
         &self,
-        metadata: &BridgeMetadata<CTX>,
+        metadata: &Arc<CTX>,
         incoming: &[u8],
     ) -> BridgeResult<Vec<u8>> {
         let incoming: Incoming<'_> = bincode::deserialize(incoming)?;

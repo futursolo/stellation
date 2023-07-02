@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use futures::{future, FutureExt, TryFutureExt};
 use typed_builder::TypedBuilder;
@@ -5,7 +7,7 @@ use typed_builder::TypedBuilder;
 use super::Link;
 use crate::registry::{ResolverRegistry, RoutineRegistry};
 use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
-use crate::{BridgeMetadata, BridgeResult};
+use crate::BridgeResult;
 
 /// A Link that resolves routine with local resolvers.
 ///
@@ -18,8 +20,8 @@ pub struct LocalLink<CTX = ()> {
     resolvers: ResolverRegistry<CTX>,
 
     /// The bridge context
-    #[builder(setter(transform = |ctx: CTX| BridgeMetadata::<()>::new().with_context(ctx)))]
-    context: BridgeMetadata<CTX>,
+    #[builder(setter(into))]
+    context: Arc<CTX>,
 }
 
 impl<CTX> Clone for LocalLink<CTX> {
@@ -27,7 +29,7 @@ impl<CTX> Clone for LocalLink<CTX> {
         Self {
             routines: self.routines.clone(),
             resolvers: self.resolvers.clone(),
-            context: self.context.duplicate(),
+            context: self.context.clone(),
         }
     }
 }
@@ -45,6 +47,13 @@ impl<CTX> LocalLink<CTX> {
 
 #[async_trait(?Send)]
 impl<CTX> Link for LocalLink<CTX> {
+    fn with_token<T>(&self, _token: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        self.clone()
+    }
+
     async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
     where
         T: 'static + BridgedQuery,

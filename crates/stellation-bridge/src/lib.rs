@@ -39,5 +39,5 @@ pub mod resolvers;
 pub mod state;
 pub mod types;
 
-pub use bridge::{Bridge, BridgeBuilder, BridgeMetadata, ConnectedBridge};
+pub use bridge::Bridge;
 pub use error::{BridgeError, BridgeResult};

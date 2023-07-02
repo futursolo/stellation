@@ -3,7 +3,6 @@
 use async_trait::async_trait;
 
 use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
-use crate::BridgeMetadata;
 
 /// The resolver of a bridge query.
 ///
@@ -17,10 +16,7 @@ pub trait QueryResolver: BridgedQuery {
     type Context: 'static;
 
     /// Resolves the current query.
-    async fn resolve(
-        meta: &BridgeMetadata<Self::Context>,
-        input: &Self::Input,
-    ) -> QueryResult<Self>;
+    async fn resolve(meta: &Self::Context, input: &Self::Input) -> QueryResult<Self>;
 }
 
 /// The resolver of a bridge mutation.
@@ -35,8 +31,5 @@ pub trait MutationResolver: BridgedMutation {
     type Context: 'static;
 
     /// Resolves the current mutation.
-    async fn resolve(
-        meta: &BridgeMetadata<Self::Context>,
-        input: &Self::Input,
-    ) -> MutationResult<Self>;
+    async fn resolve(meta: &Self::Context, input: &Self::Input) -> MutationResult<Self>;
 }
