@@ -34,17 +34,6 @@ impl<CTX> Clone for LocalLink<CTX> {
     }
 }
 
-impl<CTX> LocalLink<CTX> {
-    /// Resolve a routine with encoded input.
-    ///
-    /// Returns `BridgeError` when a malformed input is provided.
-    pub async fn resolve_encoded(&self, input_buf: &[u8]) -> BridgeResult<Vec<u8>> {
-        self.resolvers
-            .resolve_encoded(&self.context, input_buf)
-            .await
-    }
-}
-
 #[async_trait(?Send)]
 impl<CTX> Link for LocalLink<CTX> {
     fn with_token<T>(&self, _token: T) -> Self
@@ -52,6 +41,12 @@ impl<CTX> Link for LocalLink<CTX> {
         T: AsRef<str>,
     {
         self.clone()
+    }
+
+    async fn resolve_encoded(&self, input_buf: &[u8]) -> BridgeResult<Vec<u8>> {
+        self.resolvers
+            .resolve_encoded(&self.context, input_buf)
+            .await
     }
 
     async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>

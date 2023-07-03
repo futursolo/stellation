@@ -5,11 +5,12 @@ use std::ops::Deref;
 
 use bytes::Bytes;
 use futures::future::LocalBoxFuture;
-use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use http::status::StatusCode;
 use stellation_backend::utils::ThreadLocalLazy;
 use stellation_backend::{ServerAppProps, ServerRenderer};
-use stellation_bridge::{Bridge, BridgeError, BridgeMetadata};
+use stellation_bridge::links::{Link, LocalLink};
+use stellation_bridge::{Bridge, BridgeError};
 use tokio::sync::oneshot as sync_oneshot;
 use warp::body::bytes;
 use warp::path::FullPath;
@@ -31,21 +32,20 @@ type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 ///
 /// This endpoint serves bridge requests and frontend requests.
 /// You can turn this type into a tower service by calling [`into_warp_filter()`].
-pub struct WarpEndpoint<COMP, CTX = (), BCTX = ()>
+pub struct WarpEndpoint<COMP, CTX = (), L = LocalLink>
 where
     COMP: BaseComponent,
 {
     frontend: Option<crate::frontend::Frontend>,
     affix_context: SendFn<WarpRequest<()>, WarpRequest<CTX>>,
 
-    bridge: Option<Bridge>,
-    affix_bridge_context: SendFn<BridgeMetadata<()>, BridgeMetadata<BCTX>>,
+    affix_bridge: Option<SendFn<Option<String>, Bridge<L>>>,
 
     auto_refresh: bool,
     _marker: PhantomData<COMP>,
 }
 
-impl<COMP, CTX, BCTX> fmt::Debug for WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX, L> fmt::Debug for WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
 {
@@ -54,37 +54,33 @@ where
     }
 }
 
-impl<COMP, CTX, BCTX> Default for WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX, L> Default for WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
     CTX: 'static + Default,
-    BCTX: 'static + Default,
+    L: 'static,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<COMP, CTX, BCTX> WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
     CTX: 'static,
-    BCTX: 'static,
+    L: 'static,
 {
     /// Creates an endpoint.
     pub fn new() -> Self
     where
         CTX: Default,
-        BCTX: Default,
     {
         Self {
             affix_context: SendFn::<WarpRequest<()>, WarpRequest<CTX>>::new(move || {
                 Box::new(|m| async move { m.with_context(CTX::default()) }.boxed())
             }),
-            affix_bridge_context: SendFn::<BridgeMetadata<()>, BridgeMetadata<BCTX>>::new(
-                move || Box::new(|m| async move { m.with_context(BCTX::default()) }.boxed()),
-            ),
-            bridge: None,
+            affix_bridge: None,
             frontend: None,
             auto_refresh: false,
             _marker: PhantomData,
@@ -92,7 +88,7 @@ where
     }
 
     /// Appends a context to current request.
-    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, BCTX>
+    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, L>
     where
         F: 'static + Clone + Send + Fn(WarpRequest<()>) -> Fut,
         Fut: 'static + Future<Output = WarpRequest<C>>,
@@ -103,41 +99,30 @@ where
                 let append_context = append_context.clone();
                 Box::new(move |input| append_context(input).boxed_local())
             }),
-            affix_bridge_context: self.affix_bridge_context,
-            bridge: self.bridge,
+            affix_bridge: self.affix_bridge,
             frontend: self.frontend,
             auto_refresh: self.auto_refresh,
             _marker: PhantomData,
         }
     }
 
-    /// Appends a bridge context to current request.
-    pub fn with_append_bridge_context<F, C, Fut>(
-        self,
-        append_bridge_context: F,
-    ) -> WarpEndpoint<COMP, CTX, C>
+    /// Appends a bridge to current request.
+    pub fn with_append_bridge<F, LINK, Fut>(self, append_bridge: F) -> WarpEndpoint<COMP, CTX, LINK>
     where
-        F: 'static + Clone + Send + Fn(BridgeMetadata<()>) -> Fut,
-        Fut: 'static + Future<Output = BridgeMetadata<C>>,
-        C: 'static,
+        F: 'static + Clone + Send + Fn(Option<String>) -> Fut,
+        Fut: 'static + Future<Output = Bridge<LINK>>,
+        LINK: 'static + Link,
     {
         WarpEndpoint {
             affix_context: self.affix_context,
-            affix_bridge_context: SendFn::<BridgeMetadata<()>, BridgeMetadata<C>>::new(move || {
-                let append_bridge_context = append_bridge_context.clone();
-                Box::new(move |input| append_bridge_context(input).boxed_local())
-            }),
-            bridge: self.bridge,
+            affix_bridge: Some(SendFn::<Option<String>, Bridge<LINK>>::new(move || {
+                let append_bridge = append_bridge.clone();
+                Box::new(move |input| append_bridge(input).boxed_local())
+            })),
             frontend: self.frontend,
             auto_refresh: self.auto_refresh,
             _marker: PhantomData,
         }
-    }
-
-    /// Serves a bridge on current endpoint.
-    pub fn with_bridge(mut self, bridge: Bridge) -> Self {
-        self.bridge = Some(bridge);
-        self
     }
 
     /// Enables auto refresh.
@@ -157,11 +142,11 @@ where
     }
 }
 
-impl<COMP, CTX, BCTX> WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRequest<CTX>>>,
     CTX: 'static,
-    BCTX: 'static,
+    L: 'static + Link,
 {
     fn create_index_filter(
         &self,
@@ -176,20 +161,28 @@ where
     > {
         let index_html = self.frontend.as_ref()?.index_html();
         let affix_context = self.affix_context.clone();
-        let bridge = self.bridge.clone().unwrap_or_default();
         let auto_refresh = self.auto_refresh;
-        let affix_bridge_context = self.affix_bridge_context.clone();
+        let affix_bridge = self.affix_bridge.clone();
 
         let create_render_inner = move |req, tx: sync_oneshot::Sender<String>| async move {
             let req = (affix_context.deref())(req).await;
-            let bridge_metadata = (affix_bridge_context.deref())(BridgeMetadata::new()).await;
 
-            let s = ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
-                .bridge(bridge, bridge_metadata)
-                .render()
-                .await;
+            if let Some(m) = affix_bridge.as_deref() {
+                let bridge = m(None).await;
 
-            let _ = tx.send(s);
+                let s = ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
+                    .bridge(bridge)
+                    .render()
+                    .await;
+
+                let _ = tx.send(s);
+            } else {
+                let s = ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
+                    .render()
+                    .await;
+
+                let _ = tx.send(s);
+            }
         };
 
         let render_html = move |req| async move {
@@ -297,7 +290,10 @@ where
     fn create_bridge_filter(
         &self,
     ) -> Option<impl Clone + Send + Filter<Extract = (Response,), Error = Rejection>> {
-        let bridge = self.bridge.clone()?;
+        let affix_bridge = match self.affix_bridge.clone() {
+            Some(m) => m,
+            None => return None,
+        };
 
         let http_bridge_f = warp::post()
             .and(header::exact_ignore_case(
@@ -307,28 +303,23 @@ where
             .and(header::optional("authorization"))
             .and(bytes())
             .then(move |token: Option<String>, input: Bytes| {
-                let bridge = bridge.clone();
+                let affix_bridge = affix_bridge.clone();
                 let (tx, rx) = sync_oneshot::channel();
 
                 let resolve_encoded = move || async move {
-                    let mut meta = BridgeMetadata::<()>::new();
-
-                    if let Some(m) = token {
-                        if !m.starts_with("Bearer ") {
+                    let token = match token {
+                        Some(m) if !m.starts_with("Bearer ") => {
                             let reply =
                                 reply::with_status("", StatusCode::BAD_REQUEST).into_response();
 
                             let _ = tx.send(reply);
                             return;
                         }
+                        m => m,
+                    };
+                    let bridge = affix_bridge(token).await;
 
-                        meta = meta.with_token(m.split_at(7).1);
-                    }
-
-                    let content = bridge
-                        .connect(meta)
-                        .and_then(|m| async move { m.resolve_encoded(&input).await })
-                        .await;
+                    let content = bridge.link().resolve_encoded(&input).await;
 
                     let reply = match content {
                         Ok(m) => reply::with_header(m, "content-type", "application/x-bincode")

@@ -36,25 +36,7 @@ pub struct FetchLink {
     token: Option<String>,
 }
 
-impl FetchLink {
-    async fn resolve_once(&self, input: &[u8]) -> BridgeResult<Vec<u8>> {
-        future::ready(self.url.as_str())
-            .map(Request::post)
-            .map(|m| m.header("content-type", "application/x-bincode"))
-            .map(|req| {
-                if let Some(ref m) = self.token {
-                    return req.header("authorization", &format!("Bearer {m}"));
-                }
-
-                req
-            })
-            .map(move |m| m.body(&Uint8Array::from(input)))
-            .and_then(|m| m.send())
-            .and_then(|m| async move { m.binary().await })
-            .map_err(BridgeError::Network)
-            .await
-    }
-}
+impl FetchLink {}
 
 #[async_trait(?Send)]
 impl Link for FetchLink {
@@ -69,13 +51,31 @@ impl Link for FetchLink {
         self_
     }
 
+    async fn resolve_encoded(&self, input_buf: &[u8]) -> BridgeResult<Vec<u8>> {
+        future::ready(self.url.as_str())
+            .map(Request::post)
+            .map(|m| m.header("content-type", "application/x-bincode"))
+            .map(|req| {
+                if let Some(ref m) = self.token {
+                    return req.header("authorization", &format!("Bearer {m}"));
+                }
+
+                req
+            })
+            .map(move |m| m.body(&Uint8Array::from(input_buf)))
+            .and_then(|m| m.send())
+            .and_then(|m| async move { m.binary().await })
+            .map_err(BridgeError::Network)
+            .await
+    }
+
     async fn resolve_query<T>(&self, input: &T::Input) -> QueryResult<T>
     where
         T: 'static + BridgedQuery,
     {
         future::ready(input)
             .map(|m| self.routines.encode_query_input::<T>(m))
-            .and_then(|m| async move { self.resolve_once(&m).await })
+            .and_then(|m| async move { self.resolve_encoded(&m).await })
             .map_err(T::into_query_error)
             .and_then(|m| async move { self.routines.decode_query_output::<T>(&m) })
             .await
@@ -87,7 +87,7 @@ impl Link for FetchLink {
     {
         future::ready(input)
             .map(|m| self.routines.encode_mutation_input::<T>(m))
-            .and_then(|m| async move { self.resolve_once(&m).await })
+            .and_then(|m| async move { self.resolve_encoded(&m).await })
             .map_err(T::into_mutation_error)
             .and_then(|m| async move { self.routines.decode_mutation_output::<T>(&m) })
             .await

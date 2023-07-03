@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use stellation_bridge::links::FetchLink;
 use stellation_bridge::types::{BridgedMutation, BridgedQuery};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -36,3 +37,6 @@ impl BridgedMutation for GreetingMutation {
         Error::Network
     }
 }
+
+#[allow(dead_code)]
+pub type DefaultLink = FetchLink;

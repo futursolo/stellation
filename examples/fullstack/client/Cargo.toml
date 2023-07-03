@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
+stellation-bridge = { version = "0.2.0", path = "../../../crates/stellation-bridge" }
 yew = "0.20.0"
 gloo = "0.8"
 

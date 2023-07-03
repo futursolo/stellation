@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context};
 use clap::Parser;
 use stellation_backend::ServerAppProps;
 use stellation_backend_tower::{Frontend, Server, TowerEndpoint, TowerRequest};
+use stellation_bridge::links::Link;
 use stellation_core::dev::StctlMetadata;
 use typed_builder::TypedBuilder;
 use yew::BaseComponent;
@@ -22,18 +23,18 @@ struct Arguments {
 
 /// The default command line instance for the backend server.
 #[derive(Debug, TypedBuilder)]
-pub struct Cli<COMP, CTX = (), BCTX = ()>
+pub struct Cli<COMP, CTX = (), L = ()>
 where
     COMP: BaseComponent,
 {
-    endpoint: TowerEndpoint<COMP, CTX, BCTX>,
+    endpoint: TowerEndpoint<COMP, CTX, L>,
 }
 
-impl<COMP, CTX, BCTX> Cli<COMP, CTX, BCTX>
+impl<COMP, CTX, L> Cli<COMP, CTX, L>
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, TowerRequest<CTX>>>,
     CTX: 'static,
-    BCTX: 'static,
+    L: 'static + Link,
 {
     /// Parses the arguments and runs the server.
     pub async fn run(self) -> anyhow::Result<()> {

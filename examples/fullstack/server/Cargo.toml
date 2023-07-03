@@ -16,6 +16,7 @@ yew = "0.20.0"
 stellation-backend = { version = "0.2.0", path = "../../../crates/stellation-backend" }
 stellation-backend-tower = { version = "0.2.0", path = "../../../crates/stellation-backend-tower" }
 stellation-backend-cli = { version = "0.2.0", path = "../../../crates/stellation-backend-cli" }
+stellation-bridge = { version = "0.2.0", path = "../../../crates/stellation-bridge" }
 
 # Example Workspace
 example-fullstack-view = { path = "../view" }

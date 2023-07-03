@@ -19,6 +19,7 @@ license = "MIT OR Apache-2.0"
 stellation-backend = { version = "0.2.0", path = "../stellation-backend" }
 stellation-backend-tower = { version = "0.2.0", path = "../stellation-backend-tower" }
 stellation-core = { version = "0.2.0", path = "../stellation-core" }
+stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }

@@ -78,4 +78,9 @@ where
 
         self
     }
+
+    /// Returns the link used by current instance.
+    pub fn link(&self) -> &L {
+        &self.link
+    }
 }

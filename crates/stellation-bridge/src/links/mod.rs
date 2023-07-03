@@ -5,6 +5,7 @@
 use async_trait::async_trait;
 
 use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
+use crate::BridgeResult;
 mod fetch_link;
 mod local_link;
 
@@ -28,4 +29,9 @@ pub trait Link: Clone {
     async fn resolve_mutation<T>(&self, input: &T::Input) -> MutationResult<T>
     where
         T: 'static + BridgedMutation;
+
+    /// Resolve a routine with encoded input.
+    ///
+    /// Returns `BridgeError` when a malformed input is provided.
+    async fn resolve_encoded(&self, input_buf: &[u8]) -> BridgeResult<Vec<u8>>;
 }
