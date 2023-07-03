@@ -2,6 +2,7 @@ use anymap2::AnyMap;
 use bounce::helmet::HelmetBridge;
 use bounce::BounceRoot;
 use stellation_bridge::links::Link;
+use stellation_bridge::state::BridgeState;
 use stellation_bridge::Bridge;
 use yew::prelude::*;
 use yew_router::BrowserRouter;
@@ -43,7 +44,9 @@ where
         move |_, bridge| {
             let mut states = AnyMap::new();
 
-            states.insert(bridge.clone());
+            states.insert(BridgeState {
+                inner: bridge.clone(),
+            });
 
             states
         },

@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
+use anymap2::AnyMap;
 use bounce::helmet::{HelmetBridge, StaticWriter};
-use bounce::{use_atom_setter, BounceRoot};
+use bounce::BounceRoot;
+use stellation_bridge::links::Link;
 use stellation_bridge::state::BridgeState;
 use stellation_bridge::Bridge;
 use yew::prelude::*;
@@ -15,7 +17,7 @@ use crate::Request;
 pub(crate) struct StellationRootProps<CTX, REQ, L> {
     pub helmet_writer: StaticWriter,
     pub server_app_props: ServerAppProps<CTX, REQ>,
-    pub bridge: Bridge<L>,
+    pub bridge: Option<Bridge<L>>,
 }
 
 impl<CTX, REQ, L> PartialEq for StellationRootProps<CTX, REQ, L> {
@@ -26,7 +28,10 @@ impl<CTX, REQ, L> PartialEq for StellationRootProps<CTX, REQ, L> {
     }
 }
 
-impl<CTX, REQ, L> Clone for StellationRootProps<CTX, REQ, L> {
+impl<CTX, REQ, L> Clone for StellationRootProps<CTX, REQ, L>
+where
+    L: Link,
+{
     fn clone(&self) -> Self {
         Self {
             helmet_writer: self.helmet_writer.clone(),
@@ -37,19 +42,32 @@ impl<CTX, REQ, L> Clone for StellationRootProps<CTX, REQ, L> {
 }
 
 #[function_component]
-fn Inner<COMP, CTX, REQ, L>(props: &StellationRootProps<CTX, REQ, L>) -> Html
+pub(crate) fn StellationRoot<COMP, CTX, REQ, L>(props: &StellationRootProps<CTX, REQ, L>) -> Html
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, REQ>>,
-    REQ: Request<Context = CTX>,
-    L: 'static,
+    REQ: 'static + Request<Context = CTX>,
+    CTX: 'static,
+    L: 'static + Link,
 {
     let StellationRootProps {
         helmet_writer,
         server_app_props,
         bridge,
-        bridge_metadata,
         ..
     } = props.clone();
+
+    let get_init_states = use_callback(
+        move |_, bridge| {
+            let mut states = AnyMap::new();
+
+            states.insert(BridgeState {
+                inner: bridge.clone(),
+            });
+
+            states
+        },
+        bridge,
+    );
 
     let history: AnyHistory = MemoryHistory::new().into();
     history
@@ -61,38 +79,14 @@ where
         )
         .expect("failed to push path.");
 
-    let set_bridge = use_atom_setter::<BridgeState>();
-
-    use_memo(
-        move |_| {
-            set_bridge(BridgeState { inner: bridge });
-        },
-        (),
-    );
-
     let children = html! { <COMP ..server_app_props /> };
 
     html! {
-        <Router {history}>
+        <BounceRoot {get_init_states}>
             <HelmetBridge writer={helmet_writer} />
-            {children}
-        </Router>
-    }
-}
-
-#[function_component]
-pub(crate) fn StellationRoot<COMP, CTX, REQ, L>(props: &StellationRootProps<CTX, REQ, L>) -> Html
-where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX, REQ>>,
-    REQ: 'static + Request<Context = CTX>,
-    CTX: 'static,
-    L: 'static,
-{
-    let props = props.clone();
-
-    html! {
-        <BounceRoot>
-            <Inner<COMP, CTX, REQ, L> ..props />
+            <Router {history}>
+                {children}
+            </Router>
         </BounceRoot>
     }
 }

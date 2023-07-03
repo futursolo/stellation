@@ -2458,6 +2458,7 @@ dependencies = [
 name = "stellation-backend"
 version = "0.2.0"
 dependencies = [
+ "anymap2",
  "bounce",
  "futures",
  "lol_html",

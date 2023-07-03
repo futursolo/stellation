@@ -4,7 +4,8 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use bounce::helmet::render_static;
-use stellation_bridge::{Bridge, BridgeMetadata};
+use stellation_bridge::links::{Link, LocalLink};
+use stellation_bridge::Bridge;
 use yew::BaseComponent;
 
 use crate::root::{StellationRoot, StellationRootProps};
@@ -22,13 +23,13 @@ use crate::{html, Request, ServerAppProps};
 /// Bounce Helmet is also bridged automatically.
 ///
 /// You do not need to add them manually.
-pub struct ServerRenderer<COMP, REQ = (), CTX = (), BCTX = ()>
+pub struct ServerRenderer<COMP, REQ = (), CTX = (), L = LocalLink>
 where
     COMP: BaseComponent,
 {
     request: REQ,
-    bridge: Option<(Bridge, BridgeMetadata<BCTX>)>,
-    _marker: PhantomData<(COMP, REQ, CTX, BCTX)>,
+    bridge: Option<Bridge<L>>,
+    _marker: PhantomData<(COMP, REQ, CTX)>,
 }
 
 impl<COMP, REQ, CTX, BCTX> fmt::Debug for ServerRenderer<COMP, REQ, CTX, BCTX>
@@ -55,19 +56,15 @@ where
     }
 }
 
-impl<COMP, REQ, CTX, BCTX> ServerRenderer<COMP, REQ, CTX, BCTX>
+impl<COMP, REQ, CTX, L> ServerRenderer<COMP, REQ, CTX, L>
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, REQ>>,
 {
     /// Connects a bridge to the application.
-    pub fn bridge<T>(
-        self,
-        bridge: Bridge,
-        metadata: BridgeMetadata<T>,
-    ) -> ServerRenderer<COMP, REQ, CTX, T> {
+    pub fn bridge<T>(self, bridge: Bridge<T>) -> ServerRenderer<COMP, REQ, CTX, T> {
         ServerRenderer {
             request: self.request,
-            bridge: Some((bridge, metadata)),
+            bridge: Some(bridge),
             _marker: PhantomData,
         }
     }
@@ -81,7 +78,7 @@ where
     where
         CTX: 'static,
         REQ: 'static,
-        BCTX: 'static,
+        L: 'static + Link,
         REQ: Request<Context = CTX>,
     {
         let Self {
@@ -95,32 +92,15 @@ where
 
         let props = ServerAppProps::from_request(request.clone());
 
-        let body_s = match bridge {
-            Some((bridge, bridge_metadata)) => {
-                yew::LocalServerRenderer::<StellationRoot<COMP, CTX, REQ, BCTX>>::with_props(
-                    StellationRootProps {
-                        server_app_props: props,
-                        helmet_writer: writer,
-                        bridge,
-                        bridge_metadata: bridge_metadata.into(),
-                    },
-                )
-                .render()
-                .await
-            }
-            None => {
-                yew::LocalServerRenderer::<StellationRoot<COMP, CTX, REQ, ()>>::with_props(
-                    StellationRootProps {
-                        server_app_props: props,
-                        helmet_writer: writer,
-                        bridge: Bridge::default(),
-                        bridge_metadata: BridgeMetadata::new().into(),
-                    },
-                )
-                .render()
-                .await
-            }
-        };
+        let body_s = yew::LocalServerRenderer::<StellationRoot<COMP, CTX, REQ, L>>::with_props(
+            StellationRootProps {
+                server_app_props: props,
+                helmet_writer: writer,
+                bridge,
+            },
+        )
+        .render()
+        .await;
 
         let helmet_tags = reader.render().await;
         let _ = write!(
