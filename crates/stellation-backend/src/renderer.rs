@@ -32,7 +32,7 @@ where
     _marker: PhantomData<(COMP, REQ, CTX)>,
 }
 
-impl<COMP, REQ, CTX, BCTX> fmt::Debug for ServerRenderer<COMP, REQ, CTX, BCTX>
+impl<COMP, REQ, CTX, L> fmt::Debug for ServerRenderer<COMP, REQ, CTX, L>
 where
     COMP: BaseComponent,
 {

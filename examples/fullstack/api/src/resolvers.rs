@@ -12,7 +12,7 @@ pub use crate::types::*;
 impl QueryResolver for ServerTimeQuery {
     type Context = ();
 
-    async fn resolve(_metadata: &(), _input: &Self::Input) -> QueryResult<Self> {
+    async fn resolve(_ctx: &(), _input: &Self::Input) -> QueryResult<Self> {
         Ok(Self {
             value: OffsetDateTime::now_utc(),
         }
@@ -24,7 +24,7 @@ impl QueryResolver for ServerTimeQuery {
 impl MutationResolver for GreetingMutation {
     type Context = ();
 
-    async fn resolve(_metadata: &(), name: &Self::Input) -> MutationResult<Self> {
+    async fn resolve(_ctx: &(), name: &Self::Input) -> MutationResult<Self> {
         Ok(Self {
             message: format!("Hello, {name}!"),
         }

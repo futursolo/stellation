@@ -54,8 +54,8 @@ where
     where
         T: 'static + QueryResolver<Context = CTX>,
     {
-        let resolver = Arc::new(|metadata: &Arc<CTX>, input: &[u8]| {
-            let metadata = metadata.clone();
+        let resolver = Arc::new(|ctx: &Arc<CTX>, input: &[u8]| {
+            let ctx = ctx.clone();
             let input = match bincode::deserialize::<T::Input>(input)
                 .map_err(BridgeError::Encoding)
                 .map_err(future::err)
@@ -64,7 +64,7 @@ where
                 Ok(m) => m,
                 Err(e) => return e,
             };
-            async move { T::resolve(&metadata, &input).await }
+            async move { T::resolve(&ctx, &input).await }
                 .map(|m| bincode::serialize(&m.as_deref()))
                 .map_err(BridgeError::Encoding)
                 .boxed_local()
@@ -79,8 +79,8 @@ where
     where
         T: 'static + MutationResolver<Context = CTX>,
     {
-        let resolver = Arc::new(|metadata: &Arc<CTX>, input: &[u8]| {
-            let metadata = metadata.clone();
+        let resolver = Arc::new(|ctx: &Arc<CTX>, input: &[u8]| {
+            let ctx = ctx.clone();
             let input = match bincode::deserialize::<T::Input>(input)
                 .map_err(BridgeError::Encoding)
                 .map_err(future::err)
@@ -89,7 +89,7 @@ where
                 Ok(m) => m,
                 Err(e) => return e,
             };
-            async move { T::resolve(&metadata, &input).await }
+            async move { T::resolve(&ctx, &input).await }
                 .map(|m| bincode::serialize(&m.as_deref()))
                 .map_err(BridgeError::Encoding)
                 .boxed_local()
@@ -126,11 +126,7 @@ impl<CTX> ResolverRegistry<CTX> {
     }
 
     /// Resolves an encoded request.
-    pub async fn resolve_encoded(
-        &self,
-        metadata: &Arc<CTX>,
-        incoming: &[u8],
-    ) -> BridgeResult<Vec<u8>> {
+    pub async fn resolve_encoded(&self, ctx: &Arc<CTX>, incoming: &[u8]) -> BridgeResult<Vec<u8>> {
         let incoming: Incoming<'_> = bincode::deserialize(incoming)?;
 
         let resolver = self
@@ -139,6 +135,6 @@ impl<CTX> ResolverRegistry<CTX> {
             .get(incoming.query_index)
             .ok_or(BridgeError::InvalidIndex(incoming.query_index))?;
 
-        resolver(metadata, incoming.input).await
+        resolver(ctx, incoming.input).await
     }
 }
