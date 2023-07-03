@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use http::HeaderMap;
 use stellation_backend::Request;
 use warp::path::FullPath;
 
@@ -10,6 +11,7 @@ pub struct WarpRequest<CTX> {
     pub(crate) raw_queries: String,
     pub(crate) template: Arc<str>,
     pub(crate) context: CTX,
+    pub(crate) headers: HeaderMap,
 }
 
 impl<CTX> Request for WarpRequest<CTX> {
@@ -30,6 +32,10 @@ impl<CTX> Request for WarpRequest<CTX> {
     fn context(&self) -> &Self::Context {
         &self.context
     }
+
+    fn headers(&self) -> &HeaderMap {
+        &self.headers
+    }
 }
 
 impl<CTX> WarpRequest<CTX> {
@@ -39,6 +45,7 @@ impl<CTX> WarpRequest<CTX> {
             path: self.path,
             raw_queries: self.raw_queries,
             template: self.template,
+            headers: self.headers,
             context,
         }
     }

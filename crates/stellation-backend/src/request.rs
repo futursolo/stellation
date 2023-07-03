@@ -1,3 +1,4 @@
+use http::HeaderMap;
 use serde::{Deserialize, Serialize};
 
 use crate::ServerAppResult;
@@ -15,6 +16,9 @@ pub trait Request {
 
     /// Returns queries as a raw string.
     fn raw_queries(&self) -> &str;
+
+    /// Returns the headers of current request.
+    fn headers(&self) -> &HeaderMap;
 
     /// Returns queries of current request.
     fn queries<Q>(&self) -> ServerAppResult<Q>

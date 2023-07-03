@@ -203,7 +203,8 @@ where
             .and(
                 warp::query::raw().or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
             )
-            .then(move |path: FullPath, raw_queries| {
+            .and(warp::header::headers_cloned())
+            .then(move |path: FullPath, raw_queries, headers| {
                 let render_html = render_html.clone();
                 let index_html = index_html.clone();
 
@@ -218,6 +219,7 @@ where
                         raw_queries,
                         template,
                         context: (),
+                        headers,
                     };
 
                     render_html(req).await.into_response()

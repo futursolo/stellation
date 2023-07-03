@@ -2461,6 +2461,7 @@ dependencies = [
  "anymap2",
  "bounce",
  "futures",
+ "http",
  "lol_html",
  "serde",
  "serde_urlencoded",

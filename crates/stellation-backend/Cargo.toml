@@ -22,6 +22,7 @@ thread_local = "1.1.7"
 lol_html = "1.0.1"
 serde_urlencoded = "0.7.1"
 anymap2 = "0.13.0"
+http = "0.2.9"
 
 # Stellation Components
 stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }
