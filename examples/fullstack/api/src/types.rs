@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use stellation_bridge::links::FetchLink;
+use stellation_bridge::registry::RoutineRegistry;
 use stellation_bridge::types::{BridgedMutation, BridgedQuery};
+use stellation_bridge::Bridge;
 use thiserror::Error;
 use time::OffsetDateTime;
 
@@ -37,6 +39,20 @@ impl BridgedMutation for GreetingMutation {
         Error::Network
     }
 }
+pub fn create_routine_registry() -> RoutineRegistry {
+    RoutineRegistry::builder()
+        .add_query::<ServerTimeQuery>()
+        .add_mutation::<GreetingMutation>()
+        .build()
+}
 
-#[allow(dead_code)]
 pub type DefaultLink = FetchLink;
+pub type DefaultBridge = Bridge<DefaultLink>;
+
+pub fn create_frontend_bridge() -> DefaultBridge {
+    Bridge::new(
+        FetchLink::builder()
+            .routines(create_routine_registry())
+            .build(),
+    )
+}
