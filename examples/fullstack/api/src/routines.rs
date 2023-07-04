@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use stellation_bridge::links::FetchLink;
 use stellation_bridge::registry::RoutineRegistry;
 use stellation_bridge::routines::{BridgedMutation, BridgedQuery};
-use stellation_bridge::Bridge;
+use stellation_bridge::Bridge as Bridge_;
 use thiserror::Error;
 use time::OffsetDateTime;
 
@@ -46,10 +46,10 @@ pub fn create_routine_registry() -> RoutineRegistry {
         .build()
 }
 
-pub type DefaultLink = FetchLink;
-pub type DefaultBridge = Bridge<DefaultLink>;
+pub type Link = FetchLink;
+pub type Bridge = Bridge_<Link>;
 
-pub fn create_frontend_bridge() -> DefaultBridge {
+pub fn create_frontend_bridge() -> Bridge {
     Bridge::new(
         FetchLink::builder()
             .routines(create_routine_registry())

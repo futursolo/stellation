@@ -3,7 +3,7 @@ use stellation_bridge::links::LocalLink;
 use stellation_bridge::registry::ResolverRegistry;
 use stellation_bridge::resolvers::{MutationResolver, QueryResolver};
 use stellation_bridge::routines::{MutationResult, QueryResult};
-use stellation_bridge::Bridge;
+use stellation_bridge::Bridge as Bridge_;
 use time::OffsetDateTime;
 
 pub use crate::routines::*;
@@ -39,5 +39,5 @@ pub fn create_resolver_registry() -> ResolverRegistry<()> {
         .build()
 }
 
-pub type DefaultLink = LocalLink<()>;
-pub type DefaultBridge = Bridge<DefaultLink>;
+pub type Link = LocalLink<()>;
+pub type Bridge = Bridge_<Link>;

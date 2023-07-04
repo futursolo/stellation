@@ -3,8 +3,15 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bounce::{BounceStates, Selector};
+use yew::functional::BoxedHook;
+use yew::prelude::*;
+use yew::suspense::SuspensionResult;
 
+use crate::hooks::{
+    use_bridged_mutation, use_bridged_query, UseBridgedMutationHandle, UseBridgedQueryHandle,
+};
 use crate::links::Link;
+use crate::routines::{BridgedMutation, BridgedQuery};
 
 pub(super) type ReadToken = Rc<dyn Fn(&BounceStates) -> Rc<dyn AsRef<str>>>;
 
@@ -82,5 +89,29 @@ where
     /// Returns the link used by current instance.
     pub fn link(&self) -> &L {
         &self.link
+    }
+
+    /// Bridges a mutation.
+    pub fn use_mutation<T>() -> BoxedHook<'static, UseBridgedMutationHandle<T, L>>
+    where
+        T: 'static + BridgedMutation,
+        L: 'static,
+    {
+        // Undocumented Behaviour.
+        // needs return position impl trait in trait to fix...
+        BoxedHook::new(Box::new(move |ctx| use_bridged_mutation().run(ctx)))
+    }
+
+    /// Bridges a query.
+    pub fn use_query<T>(
+        input: Rc<T::Input>,
+    ) -> BoxedHook<'static, SuspensionResult<UseBridgedQueryHandle<T, L>>>
+    where
+        T: 'static + BridgedQuery,
+        L: 'static,
+    {
+        // Undocumented Behaviour.
+        // needs return position impl trait in trait to fix...
+        BoxedHook::new(Box::new(move |ctx| use_bridged_query(input).run(ctx)))
     }
 }
