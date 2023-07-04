@@ -7,11 +7,23 @@ use warp::path::FullPath;
 /// A stellation request with information extracted with warp filters.
 #[derive(Debug)]
 pub struct WarpRequest<CTX> {
-    pub(crate) path: FullPath,
-    pub(crate) raw_queries: String,
+    pub(crate) path: Arc<FullPath>,
+    pub(crate) raw_queries: Arc<str>,
     pub(crate) template: Arc<str>,
-    pub(crate) context: CTX,
+    pub(crate) context: Arc<CTX>,
     pub(crate) headers: HeaderMap,
+}
+
+impl<CTX> Clone for WarpRequest<CTX> {
+    fn clone(&self) -> Self {
+        Self {
+            path: self.path.clone(),
+            raw_queries: self.raw_queries.clone(),
+            template: self.template.clone(),
+            context: self.context.clone(),
+            headers: self.headers.clone(),
+        }
+    }
 }
 
 impl<CTX> Request for WarpRequest<CTX> {
@@ -46,7 +58,7 @@ impl<CTX> WarpRequest<CTX> {
             raw_queries: self.raw_queries,
             template: self.template,
             headers: self.headers,
-            context,
+            context: context.into(),
         }
     }
 }

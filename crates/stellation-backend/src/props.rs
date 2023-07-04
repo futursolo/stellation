@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
+use http::HeaderMap;
 use serde::{Deserialize, Serialize};
 use yew::Properties;
 
@@ -34,6 +35,11 @@ where
     /// Returns queries as a raw string.
     pub fn raw_queries(&self) -> &str {
         self.request.raw_queries()
+    }
+
+    /// Returns request headers.
+    pub fn headers(&self) -> &HeaderMap {
+        self.request.headers()
     }
 
     /// Returns the current request context.

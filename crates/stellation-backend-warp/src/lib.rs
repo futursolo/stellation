@@ -11,6 +11,7 @@
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
 mod endpoint;
+mod filters;
 mod frontend;
 mod html;
 mod request;
