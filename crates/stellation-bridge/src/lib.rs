@@ -32,8 +32,8 @@ pub mod hooks;
 pub mod links;
 pub mod registry;
 pub mod resolvers;
+pub mod routines;
 pub mod state;
-pub mod types;
 
 pub use bridge::Bridge;
 pub use error::{BridgeError, BridgeResult};

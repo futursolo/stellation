@@ -3,9 +3,9 @@
 
 #[cfg(feature = "resolvable")]
 mod resolvers;
-mod types;
+mod routines;
 
 #[cfg(feature = "resolvable")]
 pub use resolvers::*;
 #[cfg(not(feature = "resolvable"))]
-pub use types::*;
+pub use routines::*;

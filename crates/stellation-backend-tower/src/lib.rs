@@ -11,7 +11,7 @@
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
 mod endpoint;
-pub use endpoint::TowerEndpoint;
+pub use endpoint::{TowerEndpoint, TowerEndpointWithBridge};
 /// A stellation request with information extracted with tower services.
 ///
 /// Currently, this is a type alias to [`WarpRequest`](stellation_backend_warp::WarpRequest).

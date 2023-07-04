@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 
-use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
+use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 use crate::BridgeResult;
 mod fetch_link;
 mod local_link;

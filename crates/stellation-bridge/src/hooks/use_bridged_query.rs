@@ -12,8 +12,8 @@ use yew::prelude::*;
 use yew::suspense::SuspensionResult;
 
 use crate::links::Link;
+use crate::routines::{BridgedQuery, QueryResult};
 use crate::state::BridgeState;
-use crate::types::{BridgedQuery, QueryResult};
 
 #[derive(Debug)]
 struct QueryState<Q, L>

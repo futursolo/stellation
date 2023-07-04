@@ -10,8 +10,8 @@ use bounce::BounceStates;
 use yew::prelude::*;
 
 use crate::links::Link;
+use crate::routines::{BridgedMutation, MutationResult};
 use crate::state::BridgeState;
-use crate::types::{BridgedMutation, MutationResult};
 
 struct MutationState<M, L>
 where

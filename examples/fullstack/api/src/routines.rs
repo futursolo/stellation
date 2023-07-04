@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use stellation_bridge::links::FetchLink;
 use stellation_bridge::registry::RoutineRegistry;
-use stellation_bridge::types::{BridgedMutation, BridgedQuery};
+use stellation_bridge::routines::{BridgedMutation, BridgedQuery};
 use stellation_bridge::Bridge;
 use thiserror::Error;
 use time::OffsetDateTime;

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use super::Incoming;
-use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
+use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 use crate::{BridgeError, BridgeResult};
 
 /// The Registry Builder for Routine Registry

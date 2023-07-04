@@ -1,11 +1,13 @@
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
 
-use example_fullstack_api::create_backend_bridge;
+use bridge::create_backend_bridge;
 use stellation_backend_cli::Cli;
 use stellation_backend_tower::TowerEndpoint;
 
 mod app;
+mod bridge;
+
 use app::ServerApp;
 
 #[cfg(stellation_embedded_frontend)]
@@ -19,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     stellation_backend_cli::trace::init_default("STELLATION_APP_SERVER_LOG");
 
     // Creates Endpoint
-    let endpoint = TowerEndpoint::<ServerApp<_>>::new().with_append_bridge(create_backend_bridge);
+    let endpoint = TowerEndpoint::<ServerApp<_>>::new().with_create_bridge(create_backend_bridge);
 
     #[cfg(stellation_embedded_frontend)]
     let endpoint =

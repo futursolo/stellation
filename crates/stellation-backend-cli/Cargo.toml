@@ -31,6 +31,8 @@ tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 console = "0.15.7"
 typed-builder = "0.14.0"
+tower = "0.4.13"
+hyper = "0.14.27"
 
 [package.metadata.docs.rs]
 all-features = true

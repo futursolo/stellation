@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 
-use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
+use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 
 /// The resolver of a bridge query.
 ///

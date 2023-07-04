@@ -13,3 +13,4 @@
 mod cli;
 pub mod trace;
 pub use cli::Cli;
+mod endpoint;

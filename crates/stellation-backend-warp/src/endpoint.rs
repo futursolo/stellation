@@ -329,6 +329,27 @@ where
 
 impl<COMP, CTX, L> WarpEndpointWithBridge<COMP, CTX, L>
 where
+    COMP: BaseComponent,
+    CTX: 'static,
+    L: 'static,
+{
+    /// Enables auto refresh.
+    ///
+    /// This is useful during development.
+    pub fn with_auto_refresh(mut self) -> Self {
+        self.inner = self.inner.with_auto_refresh();
+        self
+    }
+
+    /// Serves a frontend with current endpoint.
+    pub fn with_frontend(mut self, frontend: Frontend) -> Self {
+        self.inner = self.inner.with_frontend(frontend);
+        self
+    }
+}
+
+impl<COMP, CTX, L> WarpEndpointWithBridge<COMP, CTX, L>
+where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRequest<CTX>>>,
     CTX: 'static,
     L: 'static + Link,

@@ -6,7 +6,7 @@ use typed_builder::TypedBuilder;
 
 use super::Link;
 use crate::registry::RoutineRegistry;
-use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
+use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 use crate::{BridgeError, BridgeResult};
 
 /// A Link implemented with `fetch`, this requires a WebAssembly target with available global
