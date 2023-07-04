@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use bounce::helmet::render_static;
-use stellation_bridge::links::{Link, LocalLink};
+use stellation_bridge::links::{Link, PhantomLink};
 use stellation_bridge::Bridge;
 use yew::BaseComponent;
 
@@ -23,7 +23,7 @@ use crate::{html, Request, ServerAppProps};
 /// Bounce Helmet is also bridged automatically.
 ///
 /// You do not need to add them manually.
-pub struct ServerRenderer<COMP, REQ = (), CTX = (), L = LocalLink>
+pub struct ServerRenderer<COMP, REQ = (), CTX = (), L = PhantomLink>
 where
     COMP: BaseComponent,
 {

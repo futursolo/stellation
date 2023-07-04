@@ -9,7 +9,7 @@ use futures::{FutureExt, SinkExt, StreamExt};
 use http::status::StatusCode;
 use stellation_backend::utils::ThreadLocalLazy;
 use stellation_backend::{ServerAppProps, ServerRenderer};
-use stellation_bridge::links::Link;
+use stellation_bridge::links::{Link, PhantomLink};
 use stellation_bridge::{Bridge, BridgeError};
 use tokio::sync::oneshot as sync_oneshot;
 use warp::body::bytes;
@@ -29,7 +29,7 @@ type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> LocalBoxFuture<'static, OUT
 type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 
 type AppendContext<CTX> = SendFn<WarpRequest<()>, WarpRequest<CTX>>;
-type CreateBridge<CTX, L> = SendFn<WarpRequest<CTX>, Bridge<L>>;
+type CreateBridge<L> = SendFn<WarpRequest<()>, Bridge<L>>;
 
 type RenderIndex = SendFn<WarpRequest<()>, String>;
 
@@ -37,17 +37,18 @@ type RenderIndex = SendFn<WarpRequest<()>, String>;
 ///
 /// This endpoint serves bridge requests and frontend requests.
 /// You can turn this type into a tower service by calling [`into_warp_filter()`].
-pub struct WarpEndpoint<COMP, CTX = ()>
+pub struct WarpEndpoint<COMP, CTX = (), L = PhantomLink>
 where
     COMP: BaseComponent,
 {
     frontend: Option<crate::frontend::Frontend>,
     append_context: AppendContext<CTX>,
+    create_bridge: Option<CreateBridge<L>>,
     auto_refresh: bool,
     _marker: PhantomData<COMP>,
 }
 
-impl<COMP, CTX> fmt::Debug for WarpEndpoint<COMP, CTX>
+impl<COMP, CTX, L> fmt::Debug for WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
 {
@@ -56,7 +57,7 @@ where
     }
 }
 
-impl<COMP, CTX> Default for WarpEndpoint<COMP, CTX>
+impl<COMP, CTX, L> Default for WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
     CTX: 'static + Default,
@@ -66,7 +67,7 @@ where
     }
 }
 
-impl<COMP, CTX> WarpEndpoint<COMP, CTX>
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
     CTX: 'static,
@@ -81,13 +82,14 @@ where
                 Box::new(|m| async move { m.with_context(CTX::default()) }.boxed())
             }),
             frontend: None,
+            create_bridge: None,
             auto_refresh: false,
             _marker: PhantomData,
         }
     }
 
     /// Appends a context to current request.
-    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C>
+    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, L>
     where
         F: 'static + Clone + Send + Fn(WarpRequest<()>) -> Fut,
         Fut: 'static + Future<Output = WarpRequest<C>>,
@@ -99,6 +101,7 @@ where
                 Box::new(move |input| append_context(input).boxed_local())
             }),
             frontend: self.frontend,
+            create_bridge: self.create_bridge,
             auto_refresh: self.auto_refresh,
             _marker: PhantomData,
         }
@@ -121,67 +124,87 @@ where
     }
 
     /// Appends a bridge to current request.
-    pub fn with_create_bridge<F, LINK, Fut>(
-        self,
-        create_bridge: F,
-    ) -> WarpEndpointWithBridge<COMP, CTX, LINK>
+    pub fn with_create_bridge<F, LINK, Fut>(self, create_bridge: F) -> WarpEndpoint<COMP, CTX, LINK>
     where
-        F: 'static + Clone + Send + Fn(WarpRequest<CTX>) -> Fut,
+        F: 'static + Clone + Send + Fn(WarpRequest<()>) -> Fut,
         Fut: 'static + Future<Output = Bridge<LINK>>,
         LINK: 'static + Link,
     {
-        WarpEndpointWithBridge {
-            inner: self,
-            create_bridge: CreateBridge::new(move || {
+        WarpEndpoint {
+            append_context: self.append_context,
+            frontend: self.frontend,
+            create_bridge: Some(CreateBridge::new(move || {
                 let create_bridge = create_bridge.clone();
                 Box::new(move |input| create_bridge(input).boxed_local())
-            }),
+            })),
+            auto_refresh: self.auto_refresh,
+            _marker: PhantomData,
         }
     }
 }
 
-impl<COMP, CTX> WarpEndpoint<COMP, CTX>
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRequest<CTX>>>,
     CTX: 'static,
+    L: 'static + Link,
 {
     fn create_render_index(&self) -> RenderIndex {
         let append_context = self.append_context.clone();
 
-        RenderIndex::new(move || {
-            let append_context = append_context.clone();
-            Box::new(move |req| {
+        match self.create_bridge.clone() {
+            Some(create_bridge) => RenderIndex::new(move || {
                 let append_context = append_context.clone();
-                async move {
-                    let req = (append_context.deref())(req).await;
+                let create_bridge = create_bridge.clone();
 
-                    ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
-                        .render()
-                        .await
-                }
-                .boxed_local()
-            })
-        })
+                Box::new(move |req| {
+                    let append_context = append_context.clone();
+                    let create_bridge = create_bridge.clone();
+                    async move {
+                        let bridge = create_bridge(req.clone()).await;
+                        let req = (append_context.deref())(req).await;
+
+                        ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
+                            .bridge(bridge)
+                            .render()
+                            .await
+                    }
+                    .boxed_local()
+                })
+            }),
+            None => RenderIndex::new(move || {
+                let append_context = append_context.clone();
+                Box::new(move |req| {
+                    let append_context = append_context.clone();
+                    async move {
+                        let req = (append_context.deref())(req).await;
+
+                        ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
+                            .render()
+                            .await
+                    }
+                    .boxed_local()
+                })
+            }),
+        }
     }
 
     fn create_index_filter(
         &self,
-        render_index: RenderIndex,
-    ) -> impl Clone
-           + Send
-           + Filter<
-        Extract = (Response,),
-        Error = Rejection,
-        Future = impl Future<Output = Result<(Response,), Rejection>>,
+    ) -> Option<
+        impl Clone
+            + Send
+            + Filter<
+                Extract = (Response,),
+                Error = Rejection,
+                Future = impl Future<Output = Result<(Response,), Rejection>>,
+            >,
     > {
-        let index_html = match self.frontend {
-            Some(ref m) => m.index_html(),
-            None => return reject().boxed(),
-        };
-
+        let render_index = self.create_render_index();
+        let index_html = self.frontend.as_ref()?.index_html();
         let auto_refresh = self.auto_refresh;
 
-        warp::get()
+        let f = warp::get()
             .and(warp_request(index_html, auto_refresh))
             .then(move |req: WarpRequest<()>| {
                 let render_index = render_index.clone();
@@ -196,17 +219,14 @@ where
 
                     warp::reply::html(rx.await.expect("renderer panicked?")).into_response()
                 }
-            })
-            .boxed()
+            });
+
+        Some(f)
     }
 
     fn create_refresh_filter(
         &self,
     ) -> impl Clone + Send + Filter<Extract = (Response,), Error = Rejection> {
-        if !self.auto_refresh {
-            return reject().boxed();
-        }
-
         warp::path::path("_refresh")
             .and(warp::ws())
             .then(|m: Ws| async move {
@@ -263,135 +283,19 @@ where
                 })
                 .into_response()
             })
-            .boxed()
-    }
-
-    /// Creates a warp filter from current endpoint.
-    fn create_warp_filter(
-        self,
-        render_index: RenderIndex,
-    ) -> impl Clone + Send + Filter<Extract = (impl Reply + Send,), Error = Rejection> {
-        let index_html_f = self.create_index_filter(render_index);
-        let auto_refresh_f = self.create_refresh_filter();
-        let Self { frontend, .. } = self;
-
-        let frontend_f = frontend
-            .map(|m| m.into_warp_filter().boxed())
-            .unwrap_or_else(|| reject().boxed());
-
-        let routes = auto_refresh_f
-            // Make sure "/" is rendered as index.html
-            .or(warp::path::end().and(index_html_f.clone()))
-            // Serve any static resources
-            .or(frontend_f)
-            // Fallback to index.html
-            .or(index_html_f);
-
-        routes.with(log::custom(|info| {
-            // We emit a custom span so it won't interfere with warp's default tracing event.
-            tracing::info!(target: "stellation_backend::endpoint::trace",
-                remote_addr = ?info.remote_addr(),
-                method = %info.method(),
-                path = info.path(),
-                status = info.status().as_u16(),
-                referer = ?info.referer(),
-                user_agent = ?info.user_agent(),
-                duration = info.elapsed().as_nanos());
-        }))
-    }
-
-    /// Creates a warp filter from current endpoint.
-    pub fn into_warp_filter(
-        self,
-    ) -> impl Clone + Send + Filter<Extract = (impl Reply + Send,), Error = Rejection> {
-        let render_index = self.create_render_index();
-        self.create_warp_filter(render_index)
-    }
-}
-
-/// Similar to [`WarpEndpoint`], but also serves a bridge.
-pub struct WarpEndpointWithBridge<COMP, CTX, L>
-where
-    COMP: BaseComponent,
-{
-    inner: WarpEndpoint<COMP, CTX>,
-    create_bridge: SendFn<WarpRequest<CTX>, Bridge<L>>,
-}
-
-impl<COMP, CTX, L> fmt::Debug for WarpEndpointWithBridge<COMP, CTX, L>
-where
-    COMP: BaseComponent,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("WarpEndpointWithBridge<_>")
-    }
-}
-
-impl<COMP, CTX, L> WarpEndpointWithBridge<COMP, CTX, L>
-where
-    COMP: BaseComponent,
-    CTX: 'static,
-    L: 'static,
-{
-    /// Enables auto refresh.
-    ///
-    /// This is useful during development.
-    pub fn with_auto_refresh(mut self) -> Self {
-        self.inner = self.inner.with_auto_refresh();
-        self
-    }
-
-    /// Serves a frontend with current endpoint.
-    pub fn with_frontend(mut self, frontend: Frontend) -> Self {
-        self.inner = self.inner.with_frontend(frontend);
-        self
-    }
-}
-
-impl<COMP, CTX, L> WarpEndpointWithBridge<COMP, CTX, L>
-where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRequest<CTX>>>,
-    CTX: 'static,
-    L: 'static + Link,
-{
-    fn create_render_index(&self) -> RenderIndex {
-        let append_context = self.inner.append_context.clone();
-        let create_bridge = self.create_bridge.clone();
-
-        RenderIndex::new(move || {
-            let append_context = append_context.clone();
-            let create_bridge = create_bridge.clone();
-
-            Box::new(move |req| {
-                let append_context = append_context.clone();
-                let create_bridge = create_bridge.clone();
-                async move {
-                    let req = (append_context.deref())(req).await;
-                    let bridge = create_bridge(req.clone()).await;
-
-                    ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
-                        .bridge(bridge)
-                        .render()
-                        .await
-                }
-                .boxed_local()
-            })
-        })
     }
 
     fn create_bridge_filter(
         &self,
-    ) -> impl Clone + Send + Filter<Extract = (Response,), Error = Rejection> {
-        let create_bridge = self.create_bridge.clone();
-        let append_context = self.inner.append_context.clone();
+    ) -> Option<impl Clone + Send + Filter<Extract = (Response,), Error = Rejection>> {
+        let create_bridge = self.create_bridge.clone()?;
 
         let index_html = self
-            .inner
             .frontend
             .as_ref()
             .map(|m| m.index_html())
             .unwrap_or_else(IndexHtml::fallback);
-        let auto_refresh = self.inner.auto_refresh;
+        let auto_refresh = self.auto_refresh;
 
         let http_bridge_f = warp::post()
             .and(header::exact_ignore_case(
@@ -402,12 +306,10 @@ where
             .and(bytes())
             .then(move |req: WarpRequest<()>, input: Bytes| {
                 let create_bridge = create_bridge.clone();
-                let append_context = append_context.clone();
 
                 let (tx, rx) = sync_oneshot::channel();
 
                 let resolve_encoded = move || async move {
-                    let req = append_context(req).await;
                     let bridge = create_bridge(req).await;
 
                     let content = bridge.link().resolve_encoded(&input).await;
@@ -434,18 +336,51 @@ where
                 async move { rx.await.expect("failed to resolve the bridge request") }
             });
 
-        warp::path::path("_bridge").and(http_bridge_f)
+        Some(warp::path::path("_bridge").and(http_bridge_f))
     }
 
     /// Creates a warp filter from current endpoint.
     pub fn into_warp_filter(
         self,
     ) -> impl Clone + Send + Filter<Extract = (impl Reply + Send,), Error = Rejection> {
-        let render_index = self.create_render_index();
+        let index_html_f = self.create_index_filter();
+        let auto_refresh_f = self.auto_refresh.then(|| self.create_refresh_filter());
         let bridge_f = self.create_bridge_filter();
 
-        let Self { inner, .. } = self;
+        let Self { frontend, .. } = self;
 
-        bridge_f.or(inner.create_warp_filter(render_index))
+        let frontend_f = frontend.map(|m| m.into_warp_filter());
+
+        let routes =
+        // Bridge goes first
+        bridge_f
+            .map(|m| m.boxed())
+            .into_iter()
+            // Then auto refresh
+            .chain(auto_refresh_f.map(|m| m.boxed()).into_iter())
+            // Make sure "/" is rendered as index.html
+            .chain(
+                index_html_f
+                    .clone()
+                    .map(|m| warp::path::end().and(m).boxed())
+                    .into_iter(),
+            )
+            // Serve other resources, if available.
+            .chain(frontend_f.map(|m| m.boxed()).into_iter())
+            // Fallback to index.html
+            .chain(index_html_f.map(|m| m.boxed()).into_iter())
+            .fold(reject().boxed(), |last, item| last.or(item).unify().boxed());
+
+        routes.with(log::custom(|info| {
+            // We emit a custom span so it won't interfere with warp's default tracing event.
+            tracing::info!(target: "stellation_backend::endpoint::trace",
+                remote_addr = ?info.remote_addr(),
+                method = %info.method(),
+                path = info.path(),
+                status = info.status().as_u16(),
+                referer = ?info.referer(),
+                user_agent = ?info.user_agent(),
+                duration = info.elapsed().as_nanos());
+        }))
     }
 }

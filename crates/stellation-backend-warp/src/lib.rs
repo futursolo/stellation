@@ -17,7 +17,7 @@ mod html;
 mod request;
 mod utils;
 
-pub use endpoint::{WarpEndpoint, WarpEndpointWithBridge};
+pub use endpoint::WarpEndpoint;
 pub use frontend::Frontend;
 use once_cell::sync::Lazy;
 pub use request::WarpRequest;

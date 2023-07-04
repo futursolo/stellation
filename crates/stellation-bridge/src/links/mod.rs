@@ -8,9 +8,11 @@ use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult
 use crate::BridgeResult;
 mod fetch_link;
 mod local_link;
+mod phantom_link;
 
 pub use fetch_link::FetchLink;
 pub use local_link::LocalLink;
+pub use phantom_link::PhantomLink;
 
 /// Common methods across all links.
 #[async_trait(?Send)]
