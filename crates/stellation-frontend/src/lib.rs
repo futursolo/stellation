@@ -91,7 +91,7 @@ where
         }
     }
 
-    fn into_yew_renderer(self) -> yew::Renderer<StellationRoot<COMP, L>> {
+    fn into_yew_renderer(self) -> yew::Renderer<StellationRoot<L>> {
         let Self { props, bridge, .. } = self;
 
         let children = html! {

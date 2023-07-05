@@ -33,9 +33,8 @@ where
 }
 
 #[function_component]
-pub(crate) fn StellationRoot<COMP, L>(props: &StellationRootProps<L>) -> Html
+pub(crate) fn StellationRoot<L>(props: &StellationRootProps<L>) -> Html
 where
-    COMP: BaseComponent,
     L: 'static + Link,
 {
     let StellationRootProps { children, bridge } = props.clone();
