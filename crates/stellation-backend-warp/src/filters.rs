@@ -42,6 +42,7 @@ pub(crate) fn warp_request(
         })
 }
 
+/// A filter that rejects all responses.
 pub(crate) fn reject() -> impl Clone
        + Send
        + Filter<
