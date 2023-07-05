@@ -57,7 +57,7 @@ where
     }
 }
 
-impl<COMP, CTX, L> Default for WarpEndpoint<COMP, CTX, L>
+impl<COMP, CTX> Default for WarpEndpoint<COMP, CTX>
 where
     COMP: BaseComponent,
     CTX: 'static + Default,
@@ -67,7 +67,7 @@ where
     }
 }
 
-impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
+impl<COMP, CTX> WarpEndpoint<COMP, CTX>
 where
     COMP: BaseComponent,
     CTX: 'static,
@@ -87,7 +87,13 @@ where
             _marker: PhantomData,
         }
     }
+}
 
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
+where
+    COMP: BaseComponent,
+    CTX: 'static,
+{
     /// Appends a context to current request.
     pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, L>
     where
