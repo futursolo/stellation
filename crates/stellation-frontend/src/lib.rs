@@ -55,19 +55,24 @@ where
     }
 }
 
-impl<COMP, L> Renderer<COMP, L>
+impl<COMP> Renderer<COMP>
 where
     COMP: BaseComponent,
-    L: 'static + Link,
 {
     /// Creates a Renderer with default props.
-    pub fn new() -> Renderer<COMP, L>
+    pub fn new() -> Renderer<COMP>
     where
         COMP::Properties: Default,
     {
         Self::with_props(Default::default())
     }
+}
 
+impl<COMP, L> Renderer<COMP, L>
+where
+    COMP: BaseComponent,
+    L: 'static + Link,
+{
     /// Creates a Renderer with specified props.
     pub fn with_props(props: COMP::Properties) -> Renderer<COMP, L> {
         Renderer {
@@ -78,10 +83,12 @@ where
     }
 
     /// Connects a bridge to the application.
-    pub fn bridge(mut self, bridge: Bridge<L>) -> Self {
-        self.bridge = Some(bridge);
-
-        self
+    pub fn bridge<LINK>(self, bridge: Bridge<LINK>) -> Renderer<COMP, LINK> {
+        Renderer {
+            props: self.props,
+            bridge: Some(bridge),
+            _marker: PhantomData,
+        }
     }
 
     fn into_yew_renderer(self) -> yew::Renderer<StellationRoot<COMP, L>> {

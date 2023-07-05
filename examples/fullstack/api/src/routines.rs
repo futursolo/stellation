@@ -50,9 +50,5 @@ pub type Link = FetchLink;
 pub type Bridge = Bridge_<Link>;
 
 pub fn create_frontend_bridge() -> Bridge {
-    Bridge::new(
-        FetchLink::builder()
-            .routines(create_routine_registry())
-            .build(),
-    )
+    Bridge::new(Link::builder().routines(create_routine_registry()).build())
 }
