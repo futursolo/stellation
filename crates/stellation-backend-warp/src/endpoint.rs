@@ -33,7 +33,7 @@ type CreateBridge<L> = SendFn<WarpRequest<()>, Bridge<L>>;
 
 type RenderIndex = SendFn<WarpRequest<()>, String>;
 
-/// Creates a stellation endpoint that can be turned into a wrap filter.
+/// Creates a stellation endpoint that can be turned into a warp filter.
 ///
 /// This endpoint serves bridge requests and frontend requests.
 /// You can turn this type into a tower service by calling [`into_warp_filter()`].

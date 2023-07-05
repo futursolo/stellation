@@ -14,7 +14,7 @@
 
 use std::marker::PhantomData;
 
-use stellation_bridge::links::{FetchLink, Link};
+use stellation_bridge::links::{Link, PhantomLink};
 use stellation_bridge::Bridge;
 use yew::prelude::*;
 
@@ -36,7 +36,7 @@ pub mod trace;
 ///
 /// You do not need to add them manually.
 #[derive(Debug)]
-pub struct Renderer<COMP, L = FetchLink>
+pub struct Renderer<COMP, L = PhantomLink>
 where
     COMP: BaseComponent,
 {

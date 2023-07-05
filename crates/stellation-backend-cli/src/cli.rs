@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context};
 use clap::Parser;
 use stellation_backend::ServerAppProps;
 use stellation_backend_tower::{Frontend, Server, TowerEndpoint, TowerRequest};
-use stellation_bridge::links::Link;
+use stellation_bridge::links::{Link, PhantomLink};
 use stellation_core::dev::StctlMetadata;
 use typed_builder::TypedBuilder;
 use yew::BaseComponent;
@@ -23,7 +23,7 @@ struct Arguments {
 
 /// The default command line instance for the backend server.
 #[derive(Debug, TypedBuilder)]
-pub struct Cli<COMP, CTX = (), L = ()>
+pub struct Cli<COMP, CTX = (), L = PhantomLink>
 where
     COMP: BaseComponent,
 {

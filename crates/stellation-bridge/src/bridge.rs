@@ -3,7 +3,6 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bounce::{BounceStates, Selector};
-use yew::functional::BoxedHook;
 use yew::prelude::*;
 use yew::suspense::SuspensionResult;
 
@@ -92,26 +91,22 @@ where
     }
 
     /// Bridges a mutation.
-    pub fn use_mutation<T>() -> BoxedHook<'static, UseBridgedMutationHandle<T, L>>
+    pub fn use_mutation<T>() -> impl Hook<Output = UseBridgedMutationHandle<T, L>>
     where
         T: 'static + BridgedMutation,
         L: 'static,
     {
-        // Undocumented Behaviour.
-        // needs return position impl trait in trait to fix...
-        BoxedHook::new(Box::new(move |ctx| use_bridged_mutation().run(ctx)))
+        use_bridged_mutation()
     }
 
     /// Bridges a query.
     pub fn use_query<T>(
         input: Rc<T::Input>,
-    ) -> BoxedHook<'static, SuspensionResult<UseBridgedQueryHandle<T, L>>>
+    ) -> impl Hook<Output = SuspensionResult<UseBridgedQueryHandle<T, L>>>
     where
         T: 'static + BridgedQuery,
         L: 'static,
     {
-        // Undocumented Behaviour.
-        // needs return position impl trait in trait to fix...
-        BoxedHook::new(Box::new(move |ctx| use_bridged_query(input).run(ctx)))
+        use_bridged_query(input)
     }
 }
