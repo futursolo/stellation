@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use async_trait::async_trait;
 use futures::{future, FutureExt, TryFutureExt};
 use gloo_net::http::Request;
@@ -34,9 +36,31 @@ pub struct FetchLink {
     /// The bearer token to send to the server.
     #[builder(setter(skip), default)]
     token: Option<String>,
+
+    /// The link equity tracker.
+    #[builder(setter(skip), default_code = r#"FetchLink::next_id()"#)]
+    id: usize,
 }
 
-impl FetchLink {}
+impl PartialEq for FetchLink {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl FetchLink {
+    fn next_id() -> usize {
+        thread_local! {
+            static ID: Cell<usize> = Cell::new(0);
+        }
+
+        ID.with(|m| {
+            m.set(m.get() + 1);
+
+            m.get()
+        })
+    }
+}
 
 #[async_trait(?Send)]
 impl Link for FetchLink {

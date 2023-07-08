@@ -1,3 +1,4 @@
+use bounce::{Atom, Selector};
 use serde::{Deserialize, Serialize};
 use stellation_bridge::links::FetchLink;
 use stellation_bridge::registry::RoutineRegistry;
@@ -51,4 +52,29 @@ pub type Bridge = Bridge_<Link>;
 
 pub fn create_frontend_bridge() -> Bridge {
     Bridge::new(Link::builder().routines(create_routine_registry()).build())
+}
+
+#[derive(Debug, PartialEq, Atom)]
+pub struct FrontendBridge {
+    inner: Bridge,
+}
+
+impl Default for FrontendBridge {
+    fn default() -> Self {
+        Self {
+            inner: Bridge::new(Link::builder().routines(create_routine_registry()).build()),
+        }
+    }
+}
+
+impl AsRef<Bridge> for FrontendBridge {
+    fn as_ref(&self) -> &Bridge {
+        &self.inner
+    }
+}
+
+impl Selector for FrontendBridge {
+    fn select(states: &bounce::BounceStates) -> std::rc::Rc<Self> {
+        states.get_atom_value()
+    }
 }

@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -22,6 +23,16 @@ pub struct LocalLink<CTX = ()> {
     /// The bridge context
     #[builder(setter(into))]
     context: Arc<CTX>,
+
+    /// The link equity tracker.
+    #[builder(setter(skip), default_code = r#"LocalLink::<()>::next_id()"#)]
+    id: usize,
+}
+
+impl<CTX> PartialEq for LocalLink<CTX> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 impl<CTX> Clone for LocalLink<CTX> {
@@ -30,7 +41,22 @@ impl<CTX> Clone for LocalLink<CTX> {
             routines: self.routines.clone(),
             resolvers: self.resolvers.clone(),
             context: self.context.clone(),
+            id: self.id,
         }
+    }
+}
+
+impl<CTX> LocalLink<CTX> {
+    fn next_id() -> usize {
+        thread_local! {
+            static ID: Cell<usize> = Cell::new(0);
+        }
+
+        ID.with(|m| {
+            m.set(m.get() + 1);
+
+            m.get()
+        })
     }
 }
 

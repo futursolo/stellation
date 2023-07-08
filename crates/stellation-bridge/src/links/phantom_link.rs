@@ -10,6 +10,12 @@ pub struct PhantomLink {
     _marker: PhantomData<()>,
 }
 
+impl PartialEq for PhantomLink {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
 impl Link for PhantomLink {
     fn with_token<T>(&self, _token: T) -> Self
     where

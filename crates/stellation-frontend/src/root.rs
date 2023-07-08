@@ -8,13 +8,19 @@ use yew::prelude::*;
 use yew_router::BrowserRouter;
 
 #[derive(Properties)]
-pub(crate) struct StellationRootProps<L> {
+pub(crate) struct StellationRootProps<L>
+where
+    L: Link,
+{
     #[prop_or_default]
     pub children: Html,
     pub bridge: Option<Bridge<L>>,
 }
 
-impl<L> PartialEq for StellationRootProps<L> {
+impl<L> PartialEq for StellationRootProps<L>
+where
+    L: Link,
+{
     fn eq(&self, other: &Self) -> bool {
         self.children == other.children && self.bridge == other.bridge
     }

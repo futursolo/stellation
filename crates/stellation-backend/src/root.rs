@@ -14,13 +14,19 @@ use crate::props::ServerAppProps;
 use crate::Request;
 
 #[derive(Properties)]
-pub(crate) struct StellationRootProps<CTX, REQ, L> {
+pub(crate) struct StellationRootProps<CTX, REQ, L>
+where
+    L: Link,
+{
     pub helmet_writer: StaticWriter,
     pub server_app_props: ServerAppProps<CTX, REQ>,
     pub bridge: Option<Bridge<L>>,
 }
 
-impl<CTX, REQ, L> PartialEq for StellationRootProps<CTX, REQ, L> {
+impl<CTX, REQ, L> PartialEq for StellationRootProps<CTX, REQ, L>
+where
+    L: Link,
+{
     fn eq(&self, other: &Self) -> bool {
         self.helmet_writer == other.helmet_writer
             && self.server_app_props == other.server_app_props

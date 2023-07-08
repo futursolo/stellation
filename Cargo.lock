@@ -553,6 +553,7 @@ name = "example-fullstack-api"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "bounce",
  "serde",
  "stellation-bridge",
  "thiserror",

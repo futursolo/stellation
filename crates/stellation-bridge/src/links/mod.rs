@@ -16,7 +16,7 @@ pub use phantom_link::PhantomLink;
 
 /// Common methods across all links.
 #[async_trait(?Send)]
-pub trait Link: Clone {
+pub trait Link: PartialEq + Clone {
     /// Creates a new Link with token.
     fn with_token<T>(&self, token: T) -> Self
     where

@@ -119,6 +119,14 @@ impl<CTX> Clone for ResolverRegistry<CTX> {
     }
 }
 
+impl<CTX> PartialEq for ResolverRegistry<CTX> {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
+impl<CTX> Eq for ResolverRegistry<CTX> {}
+
 impl<CTX> ResolverRegistry<CTX> {
     /// Creates a Builder for remote registry.
     pub fn builder() -> ResolverRegistryBuilder {

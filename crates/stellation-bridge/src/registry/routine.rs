@@ -67,6 +67,14 @@ impl fmt::Debug for RoutineRegistry {
     }
 }
 
+impl PartialEq for RoutineRegistry {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
+impl Eq for RoutineRegistry {}
+
 impl Clone for RoutineRegistry {
     fn clone(&self) -> Self {
         Self {

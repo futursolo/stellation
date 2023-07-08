@@ -42,12 +42,15 @@ impl<L> fmt::Debug for Bridge<L> {
     }
 }
 
-impl<L> PartialEq for Bridge<L> {
+impl<L> PartialEq for Bridge<L>
+where
+    L: Link,
+{
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.link == other.link
     }
 }
-impl<L> Eq for Bridge<L> {}
+impl<L> Eq for Bridge<L> where L: Link {}
 
 impl<L> Bridge<L>
 where
