@@ -1,5 +1,6 @@
-use {{crate_name}}_api::{create_resolver_registry, create_routine_registry, Bridge, Link};
 use stellation_backend_tower::TowerRequest;
+
+use crate::api::{create_resolver_registry, create_routine_registry, Bridge, Link};
 
 pub async fn create_backend_bridge(_req: TowerRequest<()>) -> Bridge {
     Bridge::new(
