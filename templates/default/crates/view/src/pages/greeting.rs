@@ -1,7 +1,8 @@
-use example_fullstack_api::{Bridge, GreetingMutation};
 use web_sys::HtmlInputElement;
 use yew::platform::spawn_local;
 use yew::prelude::*;
+
+use crate::api::{Bridge, GreetingMutation};
 
 #[function_component]
 pub fn Greeting() -> Html {

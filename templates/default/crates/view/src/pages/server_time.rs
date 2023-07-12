@@ -1,10 +1,11 @@
 use std::time::Duration;
 
-use example_fullstack_api::{Bridge, ServerTimeQuery};
 use time::macros::format_description;
 use yew::platform::spawn_local;
 use yew::platform::time::sleep;
 use yew::prelude::*;
+
+use crate::api::{Bridge, ServerTimeQuery};
 
 #[function_component]
 pub fn ServerTime() -> HtmlResult {
