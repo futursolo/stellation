@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
 
-use bridge::create_backend_bridge;
 use stellation_backend_cli::Cli;
 use stellation_backend_tower::TowerEndpoint;
 
@@ -9,6 +8,7 @@ mod app;
 mod bridge;
 
 use app::ServerApp;
+use bridge::create_backend_bridge;
 
 #[cfg(stellation_embedded_frontend)]
 #[derive(rust_embed::RustEmbed)]

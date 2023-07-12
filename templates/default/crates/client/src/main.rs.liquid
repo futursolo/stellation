@@ -6,17 +6,15 @@ use {{crate_name}}_view as view;
 
 mod app;
 use app::App;
-use api::create_bridge;
+use api::FrontendBridge;
 use tracing_subscriber::filter::LevelFilter;
 
 fn main() {
+    // Configures Logging
     stellation_frontend::trace::init_default(LevelFilter::INFO);
 
-    // Create bridge
-    let bridge = create_bridge();
-
-    // Start Application
+    // Starts Application
     stellation_frontend::Renderer::<App>::new()
-        .bridge(bridge)
+        .bridge_selector::<FrontendBridge, _>()
         .render();
 }
