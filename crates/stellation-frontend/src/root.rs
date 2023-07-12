@@ -3,7 +3,6 @@ use bounce::helmet::HelmetBridge;
 use bounce::BounceRoot;
 use stellation_bridge::links::Link;
 use stellation_bridge::state::BridgeState;
-use stellation_bridge::Bridge;
 use yew::prelude::*;
 use yew_router::BrowserRouter;
 
@@ -14,7 +13,7 @@ where
 {
     #[prop_or_default]
     pub children: Html,
-    pub bridge: Option<Bridge<L>>,
+    pub bridge_state: Option<BridgeState<L>>,
 }
 
 impl<L> PartialEq for StellationRootProps<L>
@@ -22,7 +21,7 @@ where
     L: Link,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.children == other.children && self.bridge == other.bridge
+        self.children == other.children && self.bridge_state == other.bridge_state
     }
 }
 
@@ -33,7 +32,7 @@ where
     fn clone(&self) -> Self {
         Self {
             children: self.children.clone(),
-            bridge: self.bridge.clone(),
+            bridge_state: self.bridge_state.clone(),
         }
     }
 }
@@ -43,19 +42,22 @@ pub(crate) fn StellationRoot<L>(props: &StellationRootProps<L>) -> Html
 where
     L: 'static + Link,
 {
-    let StellationRootProps { children, bridge } = props.clone();
+    let StellationRootProps {
+        children,
+        bridge_state,
+    } = props.clone();
 
     let get_init_states = use_callback(
-        move |_, bridge| {
+        move |_, bridge_state| {
             let mut states = AnyMap::new();
 
-            states.insert(BridgeState {
-                inner: bridge.clone(),
-            });
+            if let Some(m) = bridge_state.clone() {
+                states.insert(m);
+            }
 
             states
         },
-        bridge,
+        bridge_state,
     );
 
     html! {

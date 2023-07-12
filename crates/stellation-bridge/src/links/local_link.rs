@@ -62,13 +62,6 @@ impl<CTX> LocalLink<CTX> {
 
 #[async_trait(?Send)]
 impl<CTX> Link for LocalLink<CTX> {
-    fn with_token<T>(&self, _token: T) -> Self
-    where
-        T: AsRef<str>,
-    {
-        self.clone()
-    }
-
     async fn resolve_encoded(&self, input_buf: &[u8]) -> BridgeResult<Vec<u8>> {
         self.resolvers
             .resolve_encoded(&self.context, input_buf)

@@ -3,7 +3,7 @@
 
 mod app;
 use app::App;
-use example_fullstack_api::create_frontend_bridge;
+use example_fullstack_api::FrontendBridge;
 use tracing_subscriber::filter::LevelFilter;
 
 fn main() {
@@ -12,6 +12,6 @@ fn main() {
 
     // Starts Application
     stellation_frontend::Renderer::<App>::new()
-        .bridge(create_frontend_bridge())
+        .bridge_selector::<FrontendBridge, _>()
         .render();
 }

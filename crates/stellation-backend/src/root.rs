@@ -65,10 +65,9 @@ where
     let get_init_states = use_callback(
         move |_, bridge| {
             let mut states = AnyMap::new();
-
-            states.insert(BridgeState {
-                inner: bridge.clone(),
-            });
+            if let Some(m) = bridge.clone().map(BridgeState::from_bridge) {
+                states.insert(m);
+            }
 
             states
         },

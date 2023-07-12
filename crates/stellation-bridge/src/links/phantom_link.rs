@@ -17,13 +17,6 @@ impl PartialEq for PhantomLink {
 }
 
 impl Link for PhantomLink {
-    fn with_token<T>(&self, _token: T) -> Self
-    where
-        T: AsRef<str>,
-    {
-        todo!()
-    }
-
     fn resolve_encoded<'life0, 'life1, 'async_trait>(
         &'life0 self,
         _input_buf: &'life1 [u8],

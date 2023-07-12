@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -11,7 +10,7 @@ use yew::prelude::*;
 
 use crate::links::Link;
 use crate::routines::{BridgedMutation, MutationResult};
-use crate::state::BridgeState;
+use crate::state::BridgeSelector;
 
 struct MutationState<M, L>
 where
@@ -43,14 +42,8 @@ where
         states: &BounceStates,
         input: Rc<M::Input>,
     ) -> bounce::query::MutationResult<Self> {
-        let bridge = states.get_atom_value::<BridgeState<L>>();
-        let bridge = bridge.inner.as_ref().expect("bridge is not set?");
-        let token = bridge.read_token(states);
-
-        let link = match token {
-            Some(m) => Cow::Owned(bridge.link.with_token(m.as_ref())),
-            None => Cow::Borrowed(&bridge.link),
-        };
+        let bridge = states.get_selector_value::<BridgeSelector<L>>();
+        let link = bridge.link();
 
         Ok(Self {
             inner: link.resolve_mutation::<M>(&input).await,

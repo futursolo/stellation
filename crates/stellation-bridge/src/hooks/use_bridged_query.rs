@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -13,7 +12,7 @@ use yew::suspense::SuspensionResult;
 
 use crate::links::Link;
 use crate::routines::{BridgedQuery, QueryResult};
-use crate::state::BridgeState;
+use crate::state::BridgeSelector;
 
 #[derive(Debug)]
 struct QueryState<Q, L>
@@ -85,15 +84,8 @@ where
         states: &BounceStates,
         input: Rc<Self::Input>,
     ) -> bounce::query::QueryResult<Self> {
-        let bridge = states.get_atom_value::<BridgeState<L>>();
-
-        let bridge = bridge.inner.as_ref().expect("bridge is not set?");
-        let token = bridge.read_token(states);
-
-        let link = match token {
-            Some(m) => Cow::Owned(bridge.link.with_token(m.as_ref())),
-            None => Cow::Borrowed(&bridge.link),
-        };
+        let bridge = states.get_selector_value::<BridgeSelector<L>>();
+        let link = bridge.link();
 
         Ok(Self {
             inner: link.resolve_query::<Q>(&input).await,

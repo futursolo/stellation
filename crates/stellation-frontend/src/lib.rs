@@ -14,7 +14,9 @@
 
 use std::marker::PhantomData;
 
+use bounce::Selector;
 use stellation_bridge::links::{Link, PhantomLink};
+use stellation_bridge::state::BridgeState;
 use stellation_bridge::Bridge;
 use yew::prelude::*;
 
@@ -39,9 +41,10 @@ pub mod trace;
 pub struct Renderer<COMP, L = PhantomLink>
 where
     COMP: BaseComponent,
+    L: Link,
 {
     props: COMP::Properties,
-    bridge: Option<Bridge<L>>,
+    bridge_state: Option<BridgeState<L>>,
     _marker: PhantomData<COMP>,
 }
 
@@ -77,28 +80,39 @@ where
     pub fn with_props(props: COMP::Properties) -> Renderer<COMP, L> {
         Renderer {
             props,
-            bridge: None,
+            bridge_state: None,
             _marker: PhantomData,
         }
     }
 
     /// Connects a bridge to the application.
-    pub fn bridge<LINK>(self, bridge: Bridge<LINK>) -> Renderer<COMP, LINK> {
+    pub fn bridge_selector<S, LINK>(self) -> Renderer<COMP, LINK>
+    where
+        S: 'static + Selector + AsRef<Bridge<LINK>>,
+        LINK: 'static + Link,
+    {
         Renderer {
             props: self.props,
-            bridge: Some(bridge),
+            bridge_state: Some(BridgeState::from_bridge_selector::<S>()),
             _marker: PhantomData,
         }
     }
 
     fn into_yew_renderer(self) -> yew::Renderer<StellationRoot<L>> {
-        let Self { props, bridge, .. } = self;
+        let Self {
+            props,
+            bridge_state,
+            ..
+        } = self;
 
         let children = html! {
             <COMP ..props />
         };
 
-        let props = StellationRootProps { bridge, children };
+        let props = StellationRootProps {
+            bridge_state,
+            children,
+        };
 
         yew::Renderer::with_props(props)
     }

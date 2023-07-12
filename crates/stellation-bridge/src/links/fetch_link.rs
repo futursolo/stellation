@@ -34,7 +34,7 @@ pub struct FetchLink {
     /// The routine registry for all registered routines.
     routines: RoutineRegistry,
     /// The bearer token to send to the server.
-    #[builder(setter(skip), default)]
+    #[builder(setter(into, strip_option), default)]
     token: Option<String>,
 
     /// The link equity tracker.
@@ -64,17 +64,6 @@ impl FetchLink {
 
 #[async_trait(?Send)]
 impl Link for FetchLink {
-    fn with_token<T>(&self, token: T) -> Self
-    where
-        T: AsRef<str>,
-    {
-        let mut self_ = self.clone();
-
-        self_.token = Some(token.as_ref().to_string());
-
-        self_
-    }
-
     async fn resolve_encoded(&self, input_buf: &[u8]) -> BridgeResult<Vec<u8>> {
         future::ready(self.url.as_str())
             .map(Request::post)
