@@ -5,47 +5,51 @@ use std::ops::Deref;
 
 use bytes::Bytes;
 use futures::future::LocalBoxFuture;
-use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use http::status::StatusCode;
 use stellation_backend::utils::ThreadLocalLazy;
 use stellation_backend::{ServerAppProps, ServerRenderer};
-use stellation_bridge::{Bridge, BridgeError, BridgeMetadata};
+use stellation_bridge::links::{Link, PhantomLink};
+use stellation_bridge::{Bridge, BridgeError};
 use tokio::sync::oneshot as sync_oneshot;
 use warp::body::bytes;
-use warp::path::FullPath;
-use warp::reject::not_found;
 use warp::reply::Response;
 use warp::ws::{Message, Ws};
 use warp::{header, log, reply, Filter, Rejection, Reply};
 use yew::platform::{LocalHandle, Runtime};
 use yew::prelude::*;
 
+use crate::filters::{reject, warp_render_request, warp_request};
 use crate::frontend::Frontend;
-use crate::request::WarpRequest;
-use crate::{html, SERVER_ID};
+use crate::request::WarpRenderRequest;
+use crate::utils::spawn_pinned_or_local;
+use crate::{WarpRequest, SERVER_ID};
 
 type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> LocalBoxFuture<'static, OUT>>;
 type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 
-/// Creates a stellation endpoint that can be turned into a wrap filter.
+type AppendContext<CTX> = SendFn<WarpRenderRequest<()>, WarpRenderRequest<CTX>>;
+type CreateBridge<L> = SendFn<WarpRequest<()>, Bridge<L>>;
+
+type RenderIndex = SendFn<WarpRenderRequest<()>, String>;
+
+/// Creates a stellation endpoint that can be turned into a warp filter.
 ///
 /// This endpoint serves bridge requests and frontend requests.
-/// You can turn this type into a tower service by calling [`into_warp_filter()`].
-pub struct WarpEndpoint<COMP, CTX = (), BCTX = ()>
+/// You can turn this type into a tower service by calling
+/// [`into_warp_filter()`](Self::into_warp_filter).
+pub struct WarpEndpoint<COMP, CTX = (), L = PhantomLink>
 where
     COMP: BaseComponent,
 {
     frontend: Option<crate::frontend::Frontend>,
-    affix_context: SendFn<WarpRequest<()>, WarpRequest<CTX>>,
-
-    bridge: Option<Bridge>,
-    affix_bridge_context: SendFn<BridgeMetadata<()>, BridgeMetadata<BCTX>>,
-
+    append_context: AppendContext<CTX>,
+    create_bridge: Option<CreateBridge<L>>,
     auto_refresh: bool,
     _marker: PhantomData<COMP>,
 }
 
-impl<COMP, CTX, BCTX> fmt::Debug for WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX, L> fmt::Debug for WarpEndpoint<COMP, CTX, L>
 where
     COMP: BaseComponent,
 {
@@ -54,90 +58,60 @@ where
     }
 }
 
-impl<COMP, CTX, BCTX> Default for WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX> Default for WarpEndpoint<COMP, CTX>
 where
     COMP: BaseComponent,
     CTX: 'static + Default,
-    BCTX: 'static + Default,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<COMP, CTX, BCTX> WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX> WarpEndpoint<COMP, CTX>
 where
     COMP: BaseComponent,
     CTX: 'static,
-    BCTX: 'static,
 {
     /// Creates an endpoint.
     pub fn new() -> Self
     where
         CTX: Default,
-        BCTX: Default,
     {
         Self {
-            affix_context: SendFn::<WarpRequest<()>, WarpRequest<CTX>>::new(move || {
+            append_context: AppendContext::<CTX>::new(move || {
                 Box::new(|m| async move { m.with_context(CTX::default()) }.boxed())
             }),
-            affix_bridge_context: SendFn::<BridgeMetadata<()>, BridgeMetadata<BCTX>>::new(
-                move || Box::new(|m| async move { m.with_context(BCTX::default()) }.boxed()),
-            ),
-            bridge: None,
             frontend: None,
+            create_bridge: None,
             auto_refresh: false,
             _marker: PhantomData,
         }
     }
+}
 
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
+where
+    COMP: BaseComponent,
+    CTX: 'static,
+{
     /// Appends a context to current request.
-    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, BCTX>
+    pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, L>
     where
-        F: 'static + Clone + Send + Fn(WarpRequest<()>) -> Fut,
-        Fut: 'static + Future<Output = WarpRequest<C>>,
+        F: 'static + Clone + Send + Fn(WarpRenderRequest<()>) -> Fut,
+        Fut: 'static + Future<Output = WarpRenderRequest<C>>,
         C: 'static,
     {
         WarpEndpoint {
-            affix_context: SendFn::<WarpRequest<()>, WarpRequest<C>>::new(move || {
+            append_context: AppendContext::<C>::new(move || {
                 let append_context = append_context.clone();
                 Box::new(move |input| append_context(input).boxed_local())
             }),
-            affix_bridge_context: self.affix_bridge_context,
-            bridge: self.bridge,
             frontend: self.frontend,
+            create_bridge: self.create_bridge,
             auto_refresh: self.auto_refresh,
             _marker: PhantomData,
         }
-    }
-
-    /// Appends a bridge context to current request.
-    pub fn with_append_bridge_context<F, C, Fut>(
-        self,
-        append_bridge_context: F,
-    ) -> WarpEndpoint<COMP, CTX, C>
-    where
-        F: 'static + Clone + Send + Fn(BridgeMetadata<()>) -> Fut,
-        Fut: 'static + Future<Output = BridgeMetadata<C>>,
-        C: 'static,
-    {
-        WarpEndpoint {
-            affix_context: self.affix_context,
-            affix_bridge_context: SendFn::<BridgeMetadata<()>, BridgeMetadata<C>>::new(move || {
-                let append_bridge_context = append_bridge_context.clone();
-                Box::new(move |input| append_bridge_context(input).boxed_local())
-            }),
-            bridge: self.bridge,
-            frontend: self.frontend,
-            auto_refresh: self.auto_refresh,
-            _marker: PhantomData,
-        }
-    }
-
-    /// Serves a bridge on current endpoint.
-    pub fn with_bridge(mut self, bridge: Bridge) -> Self {
-        self.bridge = Some(bridge);
-        self
     }
 
     /// Enables auto refresh.
@@ -155,14 +129,73 @@ where
 
         self
     }
+
+    /// Appends a bridge to current request.
+    pub fn with_create_bridge<F, LINK, Fut>(self, create_bridge: F) -> WarpEndpoint<COMP, CTX, LINK>
+    where
+        F: 'static + Clone + Send + Fn(WarpRequest<()>) -> Fut,
+        Fut: 'static + Future<Output = Bridge<LINK>>,
+        LINK: 'static + Link,
+    {
+        WarpEndpoint {
+            append_context: self.append_context,
+            frontend: self.frontend,
+            create_bridge: Some(CreateBridge::new(move || {
+                let create_bridge = create_bridge.clone();
+                Box::new(move |input| create_bridge(input).boxed_local())
+            })),
+            auto_refresh: self.auto_refresh,
+            _marker: PhantomData,
+        }
+    }
 }
 
-impl<COMP, CTX, BCTX> WarpEndpoint<COMP, CTX, BCTX>
+impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
 where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRequest<CTX>>>,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRenderRequest<CTX>>>,
     CTX: 'static,
-    BCTX: 'static,
+    L: 'static + Link,
 {
+    fn create_render_index(&self) -> RenderIndex {
+        let append_context = self.append_context.clone();
+
+        match self.create_bridge.clone() {
+            Some(create_bridge) => RenderIndex::new(move || {
+                let append_context = append_context.clone();
+                let create_bridge = create_bridge.clone();
+
+                Box::new(move |req| {
+                    let append_context = append_context.clone();
+                    let create_bridge = create_bridge.clone();
+                    async move {
+                        let bridge = create_bridge(req.clone().into_inner()).await;
+                        let req = (append_context.deref())(req).await;
+
+                        ServerRenderer::<COMP, WarpRenderRequest<CTX>, CTX>::new(req)
+                            .bridge(bridge)
+                            .render()
+                            .await
+                    }
+                    .boxed_local()
+                })
+            }),
+            None => RenderIndex::new(move || {
+                let append_context = append_context.clone();
+                Box::new(move |req| {
+                    let append_context = append_context.clone();
+                    async move {
+                        let req = (append_context.deref())(req).await;
+
+                        ServerRenderer::<COMP, WarpRenderRequest<CTX>, CTX>::new(req)
+                            .render()
+                            .await
+                    }
+                    .boxed_local()
+                })
+            }),
+        }
+    }
+
     fn create_index_filter(
         &self,
     ) -> Option<
@@ -174,60 +207,24 @@ where
                 Future = impl Future<Output = Result<(Response,), Rejection>>,
             >,
     > {
+        let render_index = self.create_render_index();
         let index_html = self.frontend.as_ref()?.index_html();
-        let affix_context = self.affix_context.clone();
-        let bridge = self.bridge.clone().unwrap_or_default();
         let auto_refresh = self.auto_refresh;
-        let affix_bridge_context = self.affix_bridge_context.clone();
-
-        let create_render_inner = move |req, tx: sync_oneshot::Sender<String>| async move {
-            let req = (affix_context.deref())(req).await;
-            let bridge_metadata = (affix_bridge_context.deref())(BridgeMetadata::new()).await;
-
-            let s = ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
-                .bridge(bridge, bridge_metadata)
-                .render()
-                .await;
-
-            let _ = tx.send(s);
-        };
-
-        let render_html = move |req| async move {
-            let (tx, rx) = sync_oneshot::channel::<String>();
-
-            // We spawn into a local runtime early for higher efficiency.
-            match LocalHandle::try_current() {
-                Some(handle) => handle.spawn_local(create_render_inner(req, tx)),
-                // TODO: Allow Overriding Runtime with Endpoint.
-                None => Runtime::default().spawn_pinned(move || create_render_inner(req, tx)),
-            }
-
-            warp::reply::html(rx.await.expect("renderer panicked?"))
-        };
 
         let f = warp::get()
-            .and(warp::path::full())
-            .and(
-                warp::query::raw().or_else(|_| async move { Ok::<_, Rejection>((String::new(),)) }),
-            )
-            .then(move |path: FullPath, raw_queries| {
-                let render_html = render_html.clone();
-                let index_html = index_html.clone();
+            .and(warp_render_request(index_html, auto_refresh))
+            .then(move |req: WarpRenderRequest<()>| {
+                let render_index = render_index.clone();
 
                 async move {
-                    let mut template = index_html.read_content().await;
-                    if auto_refresh {
-                        template = html::add_refresh_script(&template).into();
-                    }
+                    let (tx, rx) = sync_oneshot::channel::<String>();
+                    spawn_pinned_or_local(move || async move {
+                        let s = render_index(req).await;
 
-                    let req = WarpRequest {
-                        path,
-                        raw_queries,
-                        template,
-                        context: (),
-                    };
+                        let _ = tx.send(s);
+                    });
 
-                    render_html(req).await.into_response()
+                    warp::reply::html(rx.await.expect("renderer panicked?")).into_response()
                 }
             });
 
@@ -235,6 +232,7 @@ where
     }
 
     fn create_refresh_filter(
+        &self,
     ) -> impl Clone + Send + Filter<Extract = (Response,), Error = Rejection> {
         warp::path::path("_refresh")
             .and(warp::ws())
@@ -297,38 +295,24 @@ where
     fn create_bridge_filter(
         &self,
     ) -> Option<impl Clone + Send + Filter<Extract = (Response,), Error = Rejection>> {
-        let bridge = self.bridge.clone()?;
+        let create_bridge = self.create_bridge.clone()?;
 
         let http_bridge_f = warp::post()
             .and(header::exact_ignore_case(
                 "content-type",
                 "application/x-bincode",
             ))
-            .and(header::optional("authorization"))
+            .and(warp_request())
             .and(bytes())
-            .then(move |token: Option<String>, input: Bytes| {
-                let bridge = bridge.clone();
+            .then(move |req: WarpRequest<()>, input: Bytes| {
+                let create_bridge = create_bridge.clone();
+
                 let (tx, rx) = sync_oneshot::channel();
 
                 let resolve_encoded = move || async move {
-                    let mut meta = BridgeMetadata::<()>::new();
+                    let bridge = create_bridge(req).await;
 
-                    if let Some(m) = token {
-                        if !m.starts_with("Bearer ") {
-                            let reply =
-                                reply::with_status("", StatusCode::BAD_REQUEST).into_response();
-
-                            let _ = tx.send(reply);
-                            return;
-                        }
-
-                        meta = meta.with_token(m.split_at(7).1);
-                    }
-
-                    let content = bridge
-                        .connect(meta)
-                        .and_then(|m| async move { m.resolve_encoded(&input).await })
-                        .await;
+                    let content = bridge.link().resolve_encoded(&input).await;
 
                     let reply = match content {
                         Ok(m) => reply::with_header(m, "content-type", "application/x-bincode")
@@ -347,11 +331,7 @@ where
                     let _ = tx.send(reply);
                 };
 
-                match LocalHandle::try_current() {
-                    Some(handle) => handle.spawn_local(resolve_encoded()),
-                    // TODO: Allow Overriding Runtime with Endpoint.
-                    None => Runtime::default().spawn_pinned(resolve_encoded),
-                }
+                spawn_pinned_or_local(resolve_encoded);
 
                 async move { rx.await.expect("failed to resolve the bridge request") }
             });
@@ -363,33 +343,34 @@ where
     pub fn into_warp_filter(
         self,
     ) -> impl Clone + Send + Filter<Extract = (impl Reply + Send,), Error = Rejection> {
-        let bridge_f = self.create_bridge_filter();
         let index_html_f = self.create_index_filter();
+        let auto_refresh_f = self.auto_refresh.then(|| self.create_refresh_filter());
+        let bridge_f = self.create_bridge_filter();
 
         let Self { frontend, .. } = self;
 
-        let mut routes = match index_html_f.clone() {
-            None => warp::path::end()
-                .and_then(|| async move { Err::<Response, Rejection>(not_found()) })
-                .boxed(),
-            Some(m) => warp::path::end().and(m).boxed(),
-        };
+        let frontend_f = frontend.map(|m| m.into_warp_filter());
 
-        if let Some(m) = bridge_f {
-            routes = routes.or(m).unify().boxed();
-        }
-
-        if let Some(m) = frontend {
-            routes = routes.or(m.into_warp_filter()).unify().boxed();
-        }
-
-        if self.auto_refresh {
-            routes = routes.or(Self::create_refresh_filter()).unify().boxed();
-        }
-
-        if let Some(m) = index_html_f {
-            routes = routes.or(m).unify().boxed();
-        }
+        let routes =
+        // Register bridge first, if available.
+        bridge_f
+            .map(|m| m.boxed())
+            .into_iter()
+            // Add auto refresh filter, if needed.
+            .chain(auto_refresh_f.map(|m| m.boxed()).into_iter())
+            // Render "/" as index.html.
+            .chain(
+                index_html_f
+                    .clone()
+                    .map(|m| warp::path::end().and(m).boxed())
+                    .into_iter(),
+            )
+            // Serve other resources, if available.
+            .chain(frontend_f.map(|m| m.boxed()).into_iter())
+            // Fallback to index.html.
+            .chain(index_html_f.map(|m| m.boxed()).into_iter())
+            // Chain everything together with or.
+            .fold(reject().boxed(), |last, item| last.or(item).unify().boxed());
 
         routes.with(log::custom(|info| {
             // We emit a custom span so it won't interfere with warp's default tracing event.

@@ -1,47 +1,71 @@
+use anymap2::AnyMap;
 use bounce::helmet::HelmetBridge;
-use bounce::{use_atom_setter, BounceRoot};
+use bounce::BounceRoot;
+use stellation_bridge::links::Link;
 use stellation_bridge::state::BridgeState;
-use stellation_bridge::Bridge;
 use yew::prelude::*;
 use yew_router::BrowserRouter;
 
-#[derive(Properties, PartialEq, Clone)]
-pub(crate) struct StellationRootProps {
+#[derive(Properties)]
+pub(crate) struct StellationRootProps<L>
+where
+    L: Link,
+{
     #[prop_or_default]
     pub children: Html,
-    pub bridge: Bridge,
+    pub bridge_state: Option<BridgeState<L>>,
 }
 
-#[function_component]
-pub(crate) fn Inner(props: &StellationRootProps) -> Html {
-    let StellationRootProps { children, bridge } = props.clone();
-    let set_bridge = use_atom_setter::<BridgeState>();
+impl<L> PartialEq for StellationRootProps<L>
+where
+    L: Link,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.children == other.children && self.bridge_state == other.bridge_state
+    }
+}
 
-    use_memo(
-        move |_| {
-            set_bridge(BridgeState { inner: bridge });
-        },
-        (),
-    );
-
-    html! {
-        <BrowserRouter>
-            <HelmetBridge />
-            {children}
-        </BrowserRouter>
+impl<L> Clone for StellationRootProps<L>
+where
+    L: Link,
+{
+    fn clone(&self) -> Self {
+        Self {
+            children: self.children.clone(),
+            bridge_state: self.bridge_state.clone(),
+        }
     }
 }
 
 #[function_component]
-pub(crate) fn StellationRoot<COMP>(props: &StellationRootProps) -> Html
+pub(crate) fn StellationRoot<L>(props: &StellationRootProps<L>) -> Html
 where
-    COMP: BaseComponent,
+    L: 'static + Link,
 {
-    let props = props.clone();
+    let StellationRootProps {
+        children,
+        bridge_state,
+    } = props.clone();
+
+    let get_init_states = use_callback(
+        move |_, bridge_state| {
+            let mut states = AnyMap::new();
+
+            if let Some(m) = bridge_state.clone() {
+                states.insert(m);
+            }
+
+            states
+        },
+        bridge_state,
+    );
 
     html! {
-        <BounceRoot>
-            <Inner ..props />
+        <BounceRoot {get_init_states}>
+            <HelmetBridge />
+            <BrowserRouter>
+                {children}
+            </BrowserRouter>
         </BounceRoot>
     }
 }

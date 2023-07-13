@@ -11,6 +11,7 @@
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
 mod endpoint;
+mod filters;
 mod frontend;
 mod html;
 mod request;
@@ -19,7 +20,7 @@ mod utils;
 pub use endpoint::WarpEndpoint;
 pub use frontend::Frontend;
 use once_cell::sync::Lazy;
-pub use request::WarpRequest;
+pub use request::{WarpRenderRequest, WarpRequest};
 
 // A server id that is different every time it starts.
 static SERVER_ID: Lazy<String> = Lazy::new(crate::utils::random_str);

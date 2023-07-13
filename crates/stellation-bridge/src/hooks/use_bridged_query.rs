@@ -1,4 +1,5 @@
 use std::fmt;
+use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -9,35 +10,42 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use yew::prelude::*;
 use yew::suspense::SuspensionResult;
 
-#[cfg(feature = "resolvable")]
-use crate::resolvers::QueryResolver as BridgedQuery;
-use crate::state::BridgeState;
-#[cfg(not(feature = "resolvable"))]
-use crate::types::BridgedQuery;
-use crate::types::QueryResult;
+use crate::links::Link;
+use crate::routines::{BridgedQuery, QueryResult};
+use crate::state::BridgeSelector;
 
-#[derive(Debug, PartialEq)]
-struct QueryState<Q>
+#[derive(Debug)]
+struct QueryState<Q, L>
 where
     Q: BridgedQuery,
 {
     inner: QueryResult<Q>,
+    _marker: PhantomData<L>,
 }
 
-impl<Q> Clone for QueryState<Q>
+impl<Q, L> Clone for QueryState<Q, L>
 where
     Q: BridgedQuery,
 {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            _marker: PhantomData,
         }
     }
 }
 
-impl<Q> Eq for QueryState<Q> where Q: BridgedQuery + Eq {}
+impl<Q, L> PartialEq for QueryState<Q, L>
+where
+    Q: BridgedQuery + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+impl<Q, L> Eq for QueryState<Q, L> where Q: BridgedQuery + Eq {}
 
-impl<Q> Serialize for QueryState<Q>
+impl<Q, L> Serialize for QueryState<Q, L>
 where
     Q: BridgedQuery,
 {
@@ -49,7 +57,7 @@ where
     }
 }
 
-impl<'de, Q> Deserialize<'de> for QueryState<Q>
+impl<'de, Q, L> Deserialize<'de> for QueryState<Q, L>
 where
     Q: BridgedQuery,
 {
@@ -59,13 +67,15 @@ where
     {
         Ok(Self {
             inner: std::result::Result::<Q, Q::Error>::deserialize(deserializer)?.map(Rc::new),
+            _marker: PhantomData,
         })
     }
 }
 #[async_trait(?Send)]
-impl<Q> bounce::query::Query for QueryState<Q>
+impl<Q, L> bounce::query::Query for QueryState<Q, L>
 where
     Q: 'static + BridgedQuery,
+    L: 'static + Link,
 {
     type Error = Q::Error;
     type Input = Q::Input;
@@ -74,31 +84,12 @@ where
         states: &BounceStates,
         input: Rc<Self::Input>,
     ) -> bounce::query::QueryResult<Self> {
-        let bridge = states.get_atom_value::<BridgeState>();
-
-        #[cfg(feature = "resolvable")]
-        let mut meta = states
-            .get_atom_value::<crate::state::BridgeMetadataState<Q::Context>>()
-            ._inner
-            .as_ref()
-            .map(|m| m.duplicate())
-            .expect("failed to read the metadata, did you register your query / bridge?");
-        #[cfg(not(feature = "resolvable"))]
-        let mut meta = crate::BridgeMetadata::<()>::new();
-
-        if let Some(token) = bridge.inner.read_token(states) {
-            meta = meta.with_token(token.as_ref());
-        }
-
-        let connected = bridge
-            .inner
-            .clone()
-            .connect(meta)
-            .await
-            .map_err(|m| Q::into_query_error(m))?;
+        let bridge = states.get_selector_value::<BridgeSelector<L>>();
+        let link = bridge.link();
 
         Ok(Self {
-            inner: connected.resolve_query::<Q>(&input).await,
+            inner: link.resolve_query::<Q>(&input).await,
+            _marker: PhantomData,
         }
         .into())
     }
@@ -107,16 +98,18 @@ where
 /// A handle returned by [`use_bridged_query`].
 ///
 /// This type dereferences to [`QueryResult<T>`].
-pub struct UseBridgedQueryHandle<T>
+pub struct UseBridgedQueryHandle<T, L>
 where
     T: BridgedQuery + 'static,
+    L: 'static + Link,
 {
-    inner: UseQueryHandle<QueryState<T>>,
+    inner: UseQueryHandle<QueryState<T, L>>,
 }
 
-impl<T> UseBridgedQueryHandle<T>
+impl<T, L> UseBridgedQueryHandle<T, L>
 where
     T: BridgedQuery + 'static,
+    L: 'static + Link,
 {
     /// Refreshes the query.
     ///
@@ -126,9 +119,10 @@ where
     }
 }
 
-impl<T> Clone for UseBridgedQueryHandle<T>
+impl<T, L> Clone for UseBridgedQueryHandle<T, L>
 where
     T: BridgedQuery + 'static,
+    L: 'static + Link,
 {
     fn clone(&self) -> Self {
         Self {
@@ -137,9 +131,10 @@ where
     }
 }
 
-impl<T> Deref for UseBridgedQueryHandle<T>
+impl<T, L> Deref for UseBridgedQueryHandle<T, L>
 where
     T: BridgedQuery + 'static,
+    L: 'static + Link,
 {
     type Target = QueryResult<T>;
 
@@ -151,9 +146,10 @@ where
     }
 }
 
-impl<T> fmt::Debug for UseBridgedQueryHandle<T>
+impl<T, L> fmt::Debug for UseBridgedQueryHandle<T, L>
 where
     T: BridgedQuery + fmt::Debug + 'static,
+    L: 'static + Link,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UseQueryHandle")
@@ -164,11 +160,12 @@ where
 
 /// Bridges a query.
 #[hook]
-pub fn use_bridged_query<Q>(input: Rc<Q::Input>) -> SuspensionResult<UseBridgedQueryHandle<Q>>
+pub fn use_bridged_query<Q, L>(input: Rc<Q::Input>) -> SuspensionResult<UseBridgedQueryHandle<Q, L>>
 where
     Q: 'static + BridgedQuery,
+    L: 'static + Link,
 {
-    let handle = use_prepared_query::<QueryState<Q>>(input)?;
+    let handle = use_prepared_query::<QueryState<Q, L>>(input)?;
 
     Ok(UseBridgedQueryHandle { inner: handle })
 }

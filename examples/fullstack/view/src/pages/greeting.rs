@@ -1,12 +1,11 @@
-use example_fullstack_api::GreetingMutation;
-use stellation_bridge::hooks::use_bridged_mutation;
+use example_fullstack_api::{Bridge, GreetingMutation};
 use web_sys::HtmlInputElement;
 use yew::platform::spawn_local;
 use yew::prelude::*;
 
 #[function_component]
 pub fn Greeting() -> Html {
-    let handle = use_bridged_mutation::<GreetingMutation>();
+    let handle = Bridge::use_mutation::<GreetingMutation>();
 
     let message = match handle.result() {
         None => "".to_string(),

@@ -1,5 +1,5 @@
 use std::fmt;
-use std::ops::Deref;
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 use async_trait::async_trait;
@@ -7,21 +7,19 @@ use bounce::query::{use_mutation, UseMutationHandle};
 use bounce::BounceStates;
 use yew::prelude::*;
 
-#[cfg(feature = "resolvable")]
-use crate::resolvers::MutationResolver as BridgedMutation;
-use crate::state::BridgeState;
-#[cfg(not(feature = "resolvable"))]
-use crate::types::BridgedMutation;
-use crate::types::MutationResult;
+use crate::links::Link;
+use crate::routines::{BridgedMutation, MutationResult};
+use crate::state::BridgeSelector;
 
-struct MutationState<M>
+struct MutationState<M, L>
 where
     M: BridgedMutation,
 {
     inner: MutationResult<M>,
+    _marker: PhantomData<L>,
 }
 
-impl<M> PartialEq for MutationState<M>
+impl<M, L> PartialEq for MutationState<M, L>
 where
     M: BridgedMutation,
 {
@@ -31,9 +29,10 @@ where
 }
 
 #[async_trait(?Send)]
-impl<M> bounce::query::Mutation for MutationState<M>
+impl<M, L> bounce::query::Mutation for MutationState<M, L>
 where
     M: 'static + BridgedMutation,
+    L: 'static + Link,
 {
     type Error = M::Error;
     type Input = M::Input;
@@ -42,31 +41,12 @@ where
         states: &BounceStates,
         input: Rc<M::Input>,
     ) -> bounce::query::MutationResult<Self> {
-        let bridge = states.get_atom_value::<BridgeState>();
-
-        #[cfg(feature = "resolvable")]
-        let mut meta = states
-            .get_atom_value::<crate::state::BridgeMetadataState<M::Context>>()
-            ._inner
-            .as_ref()
-            .map(|m| m.duplicate())
-            .expect("failed to read the metadata, did you register your query / bridge?");
-        #[cfg(not(feature = "resolvable"))]
-        let mut meta = crate::BridgeMetadata::<()>::new();
-
-        if let Some(token) = bridge.inner.read_token(states) {
-            meta = meta.with_token(token.as_ref());
-        }
-
-        let connected = bridge
-            .inner
-            .clone()
-            .connect(meta)
-            .await
-            .map_err(|m| M::into_mutation_error(m))?;
+        let bridge = states.get_selector_value::<BridgeSelector<L>>();
+        let link = bridge.link();
 
         Ok(Self {
-            inner: connected.resolve_mutation::<M>(&input).await,
+            inner: link.resolve_mutation::<M>(&input).await,
+            _marker: PhantomData,
         }
         .into())
     }
@@ -75,16 +55,18 @@ where
 /// A handle returned by [`use_bridged_mutation`].
 ///
 /// This can be used to access the result or start the mutation.
-pub struct UseBridgedMutationHandle<T>
+pub struct UseBridgedMutationHandle<T, L>
 where
     T: BridgedMutation + 'static,
+    L: 'static + Link,
 {
-    inner: UseMutationHandle<MutationState<T>>,
+    inner: UseMutationHandle<MutationState<T, L>>,
 }
 
-impl<T> UseBridgedMutationHandle<T>
+impl<T, L> UseBridgedMutationHandle<T, L>
 where
     T: BridgedMutation + 'static,
+    L: 'static + Link,
 {
     /// Runs a mutation with input.
     pub async fn run(&self, input: impl Into<Rc<T::Input>>) -> MutationResult<T> {
@@ -105,20 +87,22 @@ where
     }
 }
 
-impl<T> fmt::Debug for UseBridgedMutationHandle<T>
+impl<T, L> fmt::Debug for UseBridgedMutationHandle<T, L>
 where
     T: BridgedMutation + fmt::Debug + 'static,
+    L: 'static + Link,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UseBridgedMutationHandle")
-            .field("state", self.deref())
+            .field("state", &self.result())
             .finish()
     }
 }
 
-impl<T> Clone for UseBridgedMutationHandle<T>
+impl<T, L> Clone for UseBridgedMutationHandle<T, L>
 where
     T: BridgedMutation + 'static,
+    L: 'static + Link,
 {
     fn clone(&self) -> Self {
         Self {
@@ -129,11 +113,12 @@ where
 
 /// Bridges a mutation.
 #[hook]
-pub fn use_bridged_mutation<T>() -> UseBridgedMutationHandle<T>
+pub fn use_bridged_mutation<T, L>() -> UseBridgedMutationHandle<T, L>
 where
     T: 'static + BridgedMutation,
+    L: 'static + Link,
 {
-    let handle = use_mutation::<MutationState<T>>();
+    let handle = use_mutation::<MutationState<T, L>>();
 
     UseBridgedMutationHandle { inner: handle }
 }

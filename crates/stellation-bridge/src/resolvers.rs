@@ -2,12 +2,11 @@
 
 use async_trait::async_trait;
 
-use crate::types::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
-use crate::BridgeMetadata;
+use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
 
 /// The resolver of a bridge query.
 ///
-/// This type is required to be implemented when the `resolvable` feature is enabled.
+/// This type is required to be implemented for `LocalLink`.
 /// Please refer to the crate implementation for more information.
 #[async_trait(?Send)]
 pub trait QueryResolver: BridgedQuery {
@@ -17,15 +16,12 @@ pub trait QueryResolver: BridgedQuery {
     type Context: 'static;
 
     /// Resolves the current query.
-    async fn resolve(
-        meta: &BridgeMetadata<Self::Context>,
-        input: &Self::Input,
-    ) -> QueryResult<Self>;
+    async fn resolve(meta: &Self::Context, input: &Self::Input) -> QueryResult<Self>;
 }
 
 /// The resolver of a bridge mutation.
 ///
-/// This type is required to be implemented when the `resolvable` feature is enabled.
+/// This type is required to be implemented for `LocalLink`.
 /// Please refer to the crate implementation for more information.
 #[async_trait(?Send)]
 pub trait MutationResolver: BridgedMutation {
@@ -35,8 +31,5 @@ pub trait MutationResolver: BridgedMutation {
     type Context: 'static;
 
     /// Resolves the current mutation.
-    async fn resolve(
-        meta: &BridgeMetadata<Self::Context>,
-        input: &Self::Input,
-    ) -> MutationResult<Self>;
+    async fn resolve(meta: &Self::Context, input: &Self::Input) -> MutationResult<Self>;
 }

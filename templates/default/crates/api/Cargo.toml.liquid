@@ -10,20 +10,20 @@ publish = false
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1.59"
-thiserror = "1"
-{% if stellation_target == "release" %}
-# Stellation
-stellation-bridge = "{{ stellation_release_ver }}"
+bounce = "0.7"
+thiserror = "1"{% if stellation_target == "release" %}
+  # Stellation
+  stellation-bridge = "{{ stellation_release_ver }}"
 
 {% elsif stellation_target == "main" %}
-# Stellation
-stellation-bridge = { git = "https://github.com/futursolo/stellation" }
+  # Stellation
+  stellation-bridge = { git = "https://github.com/futursolo/stellation" }
 
 {% elsif stellation_target == "ci" %}
-# Stellation
-stellation-bridge = { path = "../../../../stellation/crates/stellation-bridge" }
+  # Stellation
+  stellation-bridge = { path = "../../../../stellation/crates/stellation-bridge" }
 
 {% endif %}
 
 [features]
-resolvable = ["stellation-bridge/resolvable"]
+resolvable = []

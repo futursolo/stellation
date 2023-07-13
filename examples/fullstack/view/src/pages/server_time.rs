@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-use example_fullstack_api::ServerTimeQuery;
-use stellation_bridge::hooks::use_bridged_query;
+use example_fullstack_api::{Bridge, ServerTimeQuery};
 use time::macros::format_description;
 use yew::platform::spawn_local;
 use yew::platform::time::sleep;
@@ -9,7 +8,7 @@ use yew::prelude::*;
 
 #[function_component]
 pub fn ServerTime() -> HtmlResult {
-    let server_time = use_bridged_query::<ServerTimeQuery>(().into())?;
+    let server_time = Bridge::use_query::<ServerTimeQuery>(().into())?;
     {
         let server_time = server_time.clone();
 

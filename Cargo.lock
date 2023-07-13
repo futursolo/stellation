@@ -553,6 +553,7 @@ name = "example-fullstack-api"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "bounce",
  "serde",
  "stellation-bridge",
  "thiserror",
@@ -2458,8 +2459,10 @@ dependencies = [
 name = "stellation-backend"
 version = "0.2.0"
 dependencies = [
+ "anymap2",
  "bounce",
  "futures",
+ "http",
  "lol_html",
  "serde",
  "serde_urlencoded",
@@ -2478,12 +2481,15 @@ dependencies = [
  "anyhow",
  "clap",
  "console",
+ "hyper",
  "stellation-backend",
  "stellation-backend-tower",
+ "stellation-bridge",
  "stellation-core",
+ "tower",
  "tracing",
  "tracing-subscriber",
- "typed-builder",
+ "typed-builder 0.15.1",
  "yew",
 ]
 
@@ -2538,6 +2544,7 @@ dependencies = [
  "js-sys",
  "serde",
  "thiserror",
+ "typed-builder 0.14.0",
  "yew",
 ]
 
@@ -2553,6 +2560,7 @@ dependencies = [
 name = "stellation-frontend"
 version = "0.2.0"
 dependencies = [
+ "anymap2",
  "bounce",
  "stellation-bridge",
  "tracing",
@@ -2934,6 +2942,17 @@ dependencies = [
  "thiserror",
  "url",
  "utf-8",
+]
+
+[[package]]
+name = "typed-builder"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64cba322cb9b7bc6ca048de49e83918223f35e7a86311267013afff257004870"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
