@@ -9,7 +9,7 @@ use stellation_bridge::Bridge;
 use tower::Service;
 use yew::BaseComponent;
 
-use crate::TowerRequest;
+use crate::{TowerRenderRequest, TowerRequest};
 
 /// Creates a stellation endpoint that can be turned into a tower service.
 ///
@@ -57,8 +57,8 @@ where
     /// Appends a context to current request.
     pub fn with_append_context<F, C, Fut>(self, append_context: F) -> TowerEndpoint<COMP, C, L>
     where
-        F: 'static + Clone + Send + Fn(TowerRequest<()>) -> Fut,
-        Fut: 'static + Future<Output = TowerRequest<C>>,
+        F: 'static + Clone + Send + Fn(TowerRenderRequest<()>) -> Fut,
+        Fut: 'static + Future<Output = TowerRenderRequest<C>>,
         C: 'static,
     {
         TowerEndpoint {
@@ -107,7 +107,7 @@ where
         Future = impl 'static + Send + Future<Output = Result<Response<Body>, Infallible>>,
     >
     where
-        COMP: BaseComponent<Properties = ServerAppProps<CTX, TowerRequest<CTX>>>,
+        COMP: BaseComponent<Properties = ServerAppProps<CTX, TowerRenderRequest<CTX>>>,
         CTX: 'static,
         L: 'static + Link,
     {

@@ -12,9 +12,16 @@
 
 mod endpoint;
 pub use endpoint::TowerEndpoint;
+/// A stellation request with information extracted with tower services, used for server-side
+/// rendering.
+///
+/// Currently, this is a type alias to
+/// [`WarpRenderRequest`](stellation_backend_warp::WarpRenderRequest).
+pub type TowerRenderRequest<CTX> = stellation_backend_warp::WarpRenderRequest<CTX>;
 /// A stellation request with information extracted with tower services.
 ///
-/// Currently, this is a type alias to [`WarpRequest`](stellation_backend_warp::WarpRequest).
+/// Currently, this is a type alias to
+/// [`WarpRequest`](stellation_backend_warp::WarpRequest).
 pub type TowerRequest<CTX> = stellation_backend_warp::WarpRequest<CTX>;
 #[doc(inline)]
 pub use stellation_backend_warp::Frontend;

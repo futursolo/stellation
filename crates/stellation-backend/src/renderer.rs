@@ -8,8 +8,9 @@ use stellation_bridge::links::{Link, PhantomLink};
 use stellation_bridge::Bridge;
 use yew::BaseComponent;
 
+use crate::request::RenderRequest;
 use crate::root::{StellationRoot, StellationRootProps};
-use crate::{html, Request, ServerAppProps};
+use crate::{html, ServerAppProps};
 
 /// The Stellation Backend Renderer.
 ///
@@ -44,7 +45,6 @@ where
 impl<COMP, REQ, CTX> ServerRenderer<COMP, REQ, CTX>
 where
     COMP: BaseComponent<Properties = ServerAppProps<CTX, REQ>>,
-    REQ: Request<Context = CTX>,
 {
     /// Creates a Renderer with specified request.
     pub fn new(request: REQ) -> ServerRenderer<COMP, REQ, CTX> {
@@ -79,7 +79,7 @@ where
         CTX: 'static,
         REQ: 'static,
         L: 'static + Link,
-        REQ: Request<Context = CTX>,
+        REQ: RenderRequest<Context = CTX>,
     {
         let Self {
             bridge, request, ..

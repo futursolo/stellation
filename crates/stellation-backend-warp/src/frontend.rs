@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{fmt, str};
 
-use once_cell::sync::Lazy;
 use rust_embed::{EmbeddedFile, RustEmbed};
 use stellation_backend::utils::ThreadLocalLazy;
 use tokio::fs;
@@ -123,28 +122,5 @@ impl IndexHtml {
 
             IndexHtml::Embedded(ref s) => s.clone(),
         }
-    }
-
-    /// Returns a fallback html when no index is provided.
-    pub fn fallback() -> IndexHtml {
-        static FALLBACK: Lazy<IndexHtml> = Lazy::new(|| {
-            IndexHtml::Embedded(
-                r#"
-                    <!doctype html>
-                    <html>
-                        <head>
-                            <meta charset="utf-8">
-                            <!--%STELLATION_HEAD%-->
-                        </head>
-                        <body>
-                            <!--%STELLATION_BODY%-->
-                        </body>
-                    </html>
-                "#
-                .into(),
-            )
-        });
-
-        FALLBACK.clone()
     }
 }

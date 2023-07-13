@@ -19,19 +19,19 @@ use warp::{header, log, reply, Filter, Rejection, Reply};
 use yew::platform::{LocalHandle, Runtime};
 use yew::prelude::*;
 
-use crate::filters::{reject, warp_request};
-use crate::frontend::{Frontend, IndexHtml};
-use crate::request::WarpRequest;
+use crate::filters::{reject, warp_render_request, warp_request};
+use crate::frontend::Frontend;
+use crate::request::WarpRenderRequest;
 use crate::utils::spawn_pinned_or_local;
-use crate::SERVER_ID;
+use crate::{WarpRequest, SERVER_ID};
 
 type BoxedSendFn<IN, OUT> = Box<dyn Send + Fn(IN) -> LocalBoxFuture<'static, OUT>>;
 type SendFn<IN, OUT> = ThreadLocalLazy<BoxedSendFn<IN, OUT>>;
 
-type AppendContext<CTX> = SendFn<WarpRequest<()>, WarpRequest<CTX>>;
+type AppendContext<CTX> = SendFn<WarpRenderRequest<()>, WarpRenderRequest<CTX>>;
 type CreateBridge<L> = SendFn<WarpRequest<()>, Bridge<L>>;
 
-type RenderIndex = SendFn<WarpRequest<()>, String>;
+type RenderIndex = SendFn<WarpRenderRequest<()>, String>;
 
 /// Creates a stellation endpoint that can be turned into a warp filter.
 ///
@@ -97,8 +97,8 @@ where
     /// Appends a context to current request.
     pub fn with_append_context<F, C, Fut>(self, append_context: F) -> WarpEndpoint<COMP, C, L>
     where
-        F: 'static + Clone + Send + Fn(WarpRequest<()>) -> Fut,
-        Fut: 'static + Future<Output = WarpRequest<C>>,
+        F: 'static + Clone + Send + Fn(WarpRenderRequest<()>) -> Fut,
+        Fut: 'static + Future<Output = WarpRenderRequest<C>>,
         C: 'static,
     {
         WarpEndpoint {
@@ -151,7 +151,7 @@ where
 
 impl<COMP, CTX, L> WarpEndpoint<COMP, CTX, L>
 where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRequest<CTX>>>,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX, WarpRenderRequest<CTX>>>,
     CTX: 'static,
     L: 'static + Link,
 {
@@ -167,10 +167,10 @@ where
                     let append_context = append_context.clone();
                     let create_bridge = create_bridge.clone();
                     async move {
-                        let bridge = create_bridge(req.clone()).await;
+                        let bridge = create_bridge(req.clone().into_inner()).await;
                         let req = (append_context.deref())(req).await;
 
-                        ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
+                        ServerRenderer::<COMP, WarpRenderRequest<CTX>, CTX>::new(req)
                             .bridge(bridge)
                             .render()
                             .await
@@ -185,7 +185,7 @@ where
                     async move {
                         let req = (append_context.deref())(req).await;
 
-                        ServerRenderer::<COMP, WarpRequest<CTX>, CTX>::new(req)
+                        ServerRenderer::<COMP, WarpRenderRequest<CTX>, CTX>::new(req)
                             .render()
                             .await
                     }
@@ -211,8 +211,8 @@ where
         let auto_refresh = self.auto_refresh;
 
         let f = warp::get()
-            .and(warp_request(index_html, auto_refresh))
-            .then(move |req: WarpRequest<()>| {
+            .and(warp_render_request(index_html, auto_refresh))
+            .then(move |req: WarpRenderRequest<()>| {
                 let render_index = render_index.clone();
 
                 async move {
@@ -296,19 +296,12 @@ where
     ) -> Option<impl Clone + Send + Filter<Extract = (Response,), Error = Rejection>> {
         let create_bridge = self.create_bridge.clone()?;
 
-        let index_html = self
-            .frontend
-            .as_ref()
-            .map(|m| m.index_html())
-            .unwrap_or_else(IndexHtml::fallback);
-        let auto_refresh = self.auto_refresh;
-
         let http_bridge_f = warp::post()
             .and(header::exact_ignore_case(
                 "content-type",
                 "application/x-bincode",
             ))
-            .and(warp_request(index_html, auto_refresh))
+            .and(warp_request())
             .and(bytes())
             .then(move |req: WarpRequest<()>, input: Bytes| {
                 let create_bridge = create_bridge.clone();

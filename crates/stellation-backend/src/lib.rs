@@ -19,7 +19,7 @@ pub mod utils;
 pub use error::{ServerAppError, ServerAppResult};
 pub use props::ServerAppProps;
 mod request;
-pub use request::Request;
+pub use request::{RenderRequest, Request};
 mod renderer;
 pub use renderer::ServerRenderer;
 mod html;

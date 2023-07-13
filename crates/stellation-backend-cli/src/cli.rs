@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use anyhow::{anyhow, Context};
 use clap::Parser;
 use stellation_backend::ServerAppProps;
-use stellation_backend_tower::{Frontend, Server, TowerEndpoint, TowerRequest};
+use stellation_backend_tower::{Frontend, Server, TowerEndpoint, TowerRenderRequest};
 use stellation_bridge::links::{Link, PhantomLink};
 use stellation_core::dev::StctlMetadata;
 use typed_builder::TypedBuilder;
@@ -32,7 +32,7 @@ where
 
 impl<COMP, CTX, L> Cli<COMP, CTX, L>
 where
-    COMP: BaseComponent<Properties = ServerAppProps<CTX, TowerRequest<CTX>>>,
+    COMP: BaseComponent<Properties = ServerAppProps<CTX, TowerRenderRequest<CTX>>>,
     CTX: 'static,
     L: 'static + Link,
 {
