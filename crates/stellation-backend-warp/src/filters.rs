@@ -54,6 +54,7 @@ pub(crate) fn warp_render_request(
             WarpRenderRequest {
                 inner: req,
                 template,
+                is_client_only: false,
             }
         }
     })

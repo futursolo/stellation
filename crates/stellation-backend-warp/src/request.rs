@@ -10,6 +10,7 @@ use warp::path::FullPath;
 pub struct WarpRenderRequest<CTX> {
     pub(crate) inner: WarpRequest<CTX>,
     pub(crate) template: Arc<str>,
+    pub(crate) is_client_only: bool,
 }
 
 impl<CTX> Clone for WarpRenderRequest<CTX> {
@@ -17,6 +18,7 @@ impl<CTX> Clone for WarpRenderRequest<CTX> {
         Self {
             inner: self.inner.clone(),
             template: self.template.clone(),
+            is_client_only: self.is_client_only,
         }
     }
 }
@@ -45,6 +47,10 @@ impl<CTX> RenderRequest for WarpRenderRequest<CTX> {
     fn template(&self) -> &str {
         self.template.as_ref()
     }
+
+    fn is_client_only(&self) -> bool {
+        self.is_client_only
+    }
 }
 
 impl<CTX> WarpRenderRequest<CTX> {
@@ -53,11 +59,19 @@ impl<CTX> WarpRenderRequest<CTX> {
         WarpRenderRequest {
             template: self.template,
             inner: self.inner.with_context(context),
+            is_client_only: self.is_client_only,
         }
     }
 
     pub(crate) fn into_inner(self) -> WarpRequest<CTX> {
         self.inner
+    }
+
+    /// Marks this request to be rendered at the client side.
+    pub fn client_only(mut self) -> Self {
+        self.is_client_only = true;
+
+        self
     }
 }
 
