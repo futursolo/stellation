@@ -33,4 +33,7 @@ pub trait Request {
 pub trait RenderRequest: Request {
     /// Returns the template of the html file.
     fn template(&self) -> &str;
+
+    /// Returns true if this request should be rendered at the client side.
+    fn is_client_only(&self) -> bool;
 }

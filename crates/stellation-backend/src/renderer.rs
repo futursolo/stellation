@@ -86,27 +86,32 @@ where
         } = self;
 
         let mut head_s = String::new();
+        let mut helmet_tags = Vec::new();
+        let mut body_s = String::new();
 
-        let (reader, writer) = render_static();
         let request: Rc<_> = request.into();
 
-        let props = ServerAppProps::from_request(request.clone());
+        if !request.is_client_only() {
+            let (reader, writer) = render_static();
 
-        let body_s = yew::LocalServerRenderer::<StellationRoot<COMP, CTX, REQ, L>>::with_props(
-            StellationRootProps {
-                server_app_props: props,
-                helmet_writer: writer,
-                bridge,
-            },
-        )
-        .render()
-        .await;
+            let props = ServerAppProps::from_request(request.clone());
 
-        let helmet_tags = reader.render().await;
-        let _ = write!(
-            &mut head_s,
-            r#"<meta name="stellation-mode" content="hydrate">"#
-        );
+            body_s = yew::LocalServerRenderer::<StellationRoot<COMP, CTX, REQ, L>>::with_props(
+                StellationRootProps {
+                    server_app_props: props,
+                    helmet_writer: writer,
+                    bridge,
+                },
+            )
+            .render()
+            .await;
+
+            helmet_tags.append(&mut reader.render().await);
+            let _ = write!(
+                &mut head_s,
+                r#"<meta name="stellation-mode" content="hydrate">"#
+            );
+        }
 
         html::format_html(request.template(), helmet_tags, head_s, body_s).await
     }
