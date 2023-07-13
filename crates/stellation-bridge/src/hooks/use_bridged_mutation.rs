@@ -1,6 +1,5 @@
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::Deref;
 use std::rc::Rc;
 
 use async_trait::async_trait;
@@ -95,7 +94,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UseBridgedMutationHandle")
-            .field("state", self.deref())
+            .field("state", &self.result())
             .finish()
     }
 }

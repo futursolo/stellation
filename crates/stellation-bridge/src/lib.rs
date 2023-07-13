@@ -5,8 +5,8 @@
 //!
 //! It supports the following routines:
 //!
-//! - [Query](types::BridgedQuery)
-//! - [Mutation](types::BridgedMutation)
+//! - [Query](routines::BridgedQuery)
+//! - [Mutation](routines::BridgedMutation)
 //!
 //! Bridge has 2 connection methods `local` and `remote`. When a `LocalLink` is used, routines will
 //! be connected with the local method and can process requests with resolvers. This can be used for

@@ -14,7 +14,8 @@ use crate::{TowerRenderRequest, TowerRequest};
 /// Creates a stellation endpoint that can be turned into a tower service.
 ///
 /// This endpoint serves bridge requests and frontend requests.
-/// You can turn this type into a tower service by calling [`into_tower_service()`].
+/// You can turn this type into a tower service by calling
+/// [`into_tower_service()`](Self::into_tower_service).
 #[derive(Debug)]
 pub struct TowerEndpoint<COMP, CTX = (), L = PhantomLink>
 where

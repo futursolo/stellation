@@ -36,7 +36,8 @@ type RenderIndex = SendFn<WarpRenderRequest<()>, String>;
 /// Creates a stellation endpoint that can be turned into a warp filter.
 ///
 /// This endpoint serves bridge requests and frontend requests.
-/// You can turn this type into a tower service by calling [`into_warp_filter()`].
+/// You can turn this type into a tower service by calling
+/// [`into_warp_filter()`](Self::into_warp_filter).
 pub struct WarpEndpoint<COMP, CTX = (), L = PhantomLink>
 where
     COMP: BaseComponent,
