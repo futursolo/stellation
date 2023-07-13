@@ -89,12 +89,13 @@ where
         let mut helmet_tags = Vec::new();
         let mut body_s = String::new();
 
-        let (reader, writer) = render_static();
         let request: Rc<_> = request.into();
 
-        let props = ServerAppProps::from_request(request.clone());
-
         if !request.is_client_only() {
+            let (reader, writer) = render_static();
+
+            let props = ServerAppProps::from_request(request.clone());
+
             body_s = yew::LocalServerRenderer::<StellationRoot<COMP, CTX, REQ, L>>::with_props(
                 StellationRootProps {
                     server_app_props: props,
