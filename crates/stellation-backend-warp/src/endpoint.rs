@@ -352,13 +352,13 @@ where
         let frontend_f = frontend.map(|m| m.into_warp_filter());
 
         let routes =
-        // Bridge goes first
+        // Register bridge first, if available.
         bridge_f
             .map(|m| m.boxed())
             .into_iter()
-            // Then auto refresh
+            // Add auto refresh filter, if needed.
             .chain(auto_refresh_f.map(|m| m.boxed()).into_iter())
-            // Make sure "/" is rendered as index.html
+            // Render "/" as index.html.
             .chain(
                 index_html_f
                     .clone()
@@ -367,8 +367,9 @@ where
             )
             // Serve other resources, if available.
             .chain(frontend_f.map(|m| m.boxed()).into_iter())
-            // Fallback to index.html
+            // Fallback to index.html.
             .chain(index_html_f.map(|m| m.boxed()).into_iter())
+            // Chain everything together with or.
             .fold(reject().boxed(), |last, item| last.or(item).unify().boxed());
 
         routes.with(log::custom(|info| {
