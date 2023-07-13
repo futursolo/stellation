@@ -67,5 +67,5 @@ pub(crate) fn reject() -> impl Clone
     Error = Rejection,
     Future = impl Future<Output = Result<(Response,), Rejection>>,
 > {
-    warp::path::end().and_then(|| async move { Err::<Response, Rejection>(not_found()) })
+    warp::any().and_then(|| async move { Err::<Response, Rejection>(not_found()) })
 }
