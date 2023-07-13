@@ -21,7 +21,9 @@ jobs:
           components: clippy
 
       - name: Configure sccache
-        uses: visvirial/sccache-action@v1.0.1
+        uses: futursolo/sccache-action@affix-token-on-demand
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install cargo-make
         uses: davidB/rust-cargo-make@v1
@@ -61,7 +63,9 @@ jobs:
           components: clippy
 
       - name: Configure sccache
-        uses: visvirial/sccache-action@v1.0.1
+        uses: futursolo/sccache-action@affix-token-on-demand
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cargo Generate
         uses: taiki-e/install-action@v2
@@ -125,7 +129,9 @@ jobs:
           python-version: 3.11
 
       - name: Configure sccache
-        uses: visvirial/sccache-action@v1.0.1
+        uses: futursolo/sccache-action@affix-token-on-demand
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install cargo-make
         uses: davidB/rust-cargo-make@v1
