@@ -22,4 +22,5 @@ mod request;
 pub use request::{RenderRequest, Request};
 mod renderer;
 pub use renderer::ServerRenderer;
+pub mod hooks;
 mod html;

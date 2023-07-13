@@ -10,6 +10,7 @@ publish = false
 stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
 yew = "0.20.0"
 gloo = "0.8"
+stylist = { version = "0.12.1", features = ["yew_integration", "hydration"] }
 
 # Logging
 tracing = "0.1"

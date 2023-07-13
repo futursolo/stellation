@@ -10,6 +10,7 @@ use yew::prelude::*;
 use yew_router::history::{AnyHistory, History, MemoryHistory};
 use yew_router::Router;
 
+use crate::hooks::HeadContents;
 use crate::props::ServerAppProps;
 use crate::Request;
 
@@ -21,6 +22,7 @@ where
     pub helmet_writer: StaticWriter,
     pub server_app_props: ServerAppProps<CTX, REQ>,
     pub bridge: Option<Bridge<L>>,
+    pub head_contents: HeadContents,
 }
 
 impl<CTX, REQ, L> PartialEq for StellationRootProps<CTX, REQ, L>
@@ -43,6 +45,7 @@ where
             helmet_writer: self.helmet_writer.clone(),
             server_app_props: self.server_app_props.clone(),
             bridge: self.bridge.clone(),
+            head_contents: self.head_contents.clone(),
         }
     }
 }
@@ -59,12 +62,14 @@ where
         helmet_writer,
         server_app_props,
         bridge,
+        head_contents,
         ..
     } = props.clone();
 
     let get_init_states = use_callback(
         move |_, bridge| {
             let mut states = AnyMap::new();
+            states.insert(head_contents.clone());
             if let Some(m) = bridge.clone().map(BridgeState::from_bridge) {
                 states.insert(m);
             }
