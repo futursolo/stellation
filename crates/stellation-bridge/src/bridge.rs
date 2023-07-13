@@ -1,7 +1,6 @@
 use std::fmt;
 use std::rc::Rc;
 
-use bounce::{BounceStates, Selector};
 use yew::prelude::*;
 use yew::suspense::SuspensionResult;
 
@@ -11,12 +10,9 @@ use crate::hooks::{
 use crate::links::Link;
 use crate::routines::{BridgedMutation, BridgedQuery};
 
-pub(super) type ReadToken = Rc<dyn Fn(&BounceStates) -> Rc<dyn AsRef<str>>>;
-
 /// The Bridge.
 pub struct Bridge<L> {
     pub(crate) link: L,
-    read_token: Option<ReadToken>,
 }
 
 impl<L> Clone for Bridge<L>
@@ -26,7 +22,6 @@ where
     fn clone(&self) -> Self {
         Self {
             link: self.link.clone(),
-            read_token: self.read_token.clone(),
         }
     }
 }
@@ -53,26 +48,7 @@ where
 {
     /// Creates a new Bridge.
     pub fn new(link: L) -> Self {
-        Self {
-            link,
-            read_token: None,
-        }
-    }
-
-    /// Selects the token from a bounce state.
-    pub fn with_token_selector<T>(mut self) -> Self
-    where
-        T: 'static + Selector + AsRef<str>,
-    {
-        let read_token = Rc::new(move |states: &BounceStates| {
-            let state = states.get_selector_value::<T>();
-
-            state as Rc<dyn AsRef<str>>
-        }) as ReadToken;
-
-        self.read_token = Some(read_token);
-
-        self
+        Self { link }
     }
 
     /// Returns the link used by current instance.

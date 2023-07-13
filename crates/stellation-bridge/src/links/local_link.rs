@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -48,15 +48,9 @@ impl<CTX> Clone for LocalLink<CTX> {
 
 impl<CTX> LocalLink<CTX> {
     fn next_id() -> usize {
-        thread_local! {
-            static ID: Cell<usize> = Cell::new(0);
-        }
+        static ID: AtomicUsize = AtomicUsize::new(0);
 
-        ID.with(|m| {
-            m.set(m.get() + 1);
-
-            m.get()
-        })
+        ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 }
 
