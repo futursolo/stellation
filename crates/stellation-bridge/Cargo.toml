@@ -24,7 +24,7 @@ js-sys = "0.3.64"
 thiserror = "1"
 bounce = { version = "0.7.0", features = ["query"] }
 yew = "0.20.0"
-typed-builder = "0.14.0"
+typed-builder = "0.15.1"
 
 [package.metadata.docs.rs]
 all-features = true
