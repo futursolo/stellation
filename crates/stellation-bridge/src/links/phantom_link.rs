@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 
+use async_trait::async_trait;
+
 use super::Link;
+use crate::routines::{BridgedMutation, BridgedQuery, MutationResult, QueryResult};
+use crate::BridgeResult;
 
 /// A Link that does nothing.
 ///
@@ -16,50 +20,23 @@ impl PartialEq for PhantomLink {
     }
 }
 
+#[async_trait(?Send)]
 impl Link for PhantomLink {
-    fn resolve_encoded<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        _input_buf: &'life1 [u8],
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = crate::BridgeResult<Vec<u8>>> + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        todo!()
+    async fn resolve_encoded(&self, _input_buf: &[u8]) -> BridgeResult<Vec<u8>> {
+        unimplemented!()
     }
 
-    fn resolve_mutation<'life0, 'life1, 'async_trait, T>(
-        &'life0 self,
-        _input: &'life1 T::Input,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = crate::routines::MutationResult<T>> + 'async_trait>,
-    >
+    async fn resolve_query<T>(&self, _input: &T::Input) -> QueryResult<T>
     where
-        T: 'static + crate::routines::BridgedMutation,
-        T: 'async_trait,
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
+        T: 'static + BridgedQuery,
     {
-        todo!()
+        unimplemented!()
     }
 
-    fn resolve_query<'life0, 'life1, 'async_trait, T>(
-        &'life0 self,
-        _input: &'life1 T::Input,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = crate::routines::QueryResult<T>> + 'async_trait>,
-    >
+    async fn resolve_mutation<T>(&self, _input: &T::Input) -> MutationResult<T>
     where
-        T: 'static + crate::routines::BridgedQuery,
-        T: 'async_trait,
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
+        T: 'static + BridgedMutation,
     {
-        todo!()
+        unimplemented!()
     }
 }
