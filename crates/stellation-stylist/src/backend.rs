@@ -18,7 +18,7 @@ use yew::prelude::*;
 /// This provider requires a [`FrontendManagerProvider`](crate::FrontendManagerProvider) to be
 /// placed in the client app or hydration will fail.
 ///
-/// //! You can check out the [example](https://github.com/futursolo/stellation/blob/main/examples/fullstack/server/src/app.rs) for how to use this provider.
+/// You can check out this [example](https://github.com/futursolo/stellation/blob/main/examples/fullstack/server/src/app.rs) for how to use this provider.
 #[function_component]
 pub fn BackendManagerProvider(props: &ChildrenProps) -> Html {
     let (reader, manager) = use_memo(
