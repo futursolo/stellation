@@ -7,7 +7,7 @@ use stylist::yew::ManagerProvider;
 use yew::html::ChildrenProps;
 use yew::prelude::*;
 
-/// A Stylist [`ManagerProvider`] that writes server-side passes styles to
+/// A Stylist [`ManagerProvider`] that writes server-side styles to
 /// [`ServerRenderer`](stellation_backend::ServerRenderer) automatically.
 ///
 /// # Panics
