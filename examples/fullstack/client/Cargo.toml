@@ -7,9 +7,12 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
 yew = "0.20.0"
 gloo = "0.8"
+
+# Stellation Components
+stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
+stellation-stylist = { version = "0.2.0", path = "../../../crates/stellation-stylist", features = ["frontend"] }
 
 # Logging
 tracing = "0.1"

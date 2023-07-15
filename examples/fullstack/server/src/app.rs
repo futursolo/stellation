@@ -1,5 +1,6 @@
 use example_fullstack_view::Main;
 use stellation_backend::{Request, ServerAppProps};
+use stellation_stylist::BackendManagerProvider;
 use yew::prelude::*;
 
 #[function_component]
@@ -8,6 +9,10 @@ where
     REQ: Request,
 {
     html! {
-        <Main />
+        <Suspense fallback={Html::default()}>
+            <BackendManagerProvider>
+                <Main />
+            </BackendManagerProvider>
+        </Suspense>
     }
 }

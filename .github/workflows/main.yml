@@ -182,6 +182,7 @@ jobs:
             stellation-backend-tower
             stellation-backend-cli
             stellation-frontend
+            stellation-stylist
             stctl
             stellation
           )

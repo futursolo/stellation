@@ -8,6 +8,7 @@ use stellation_bridge::links::{Link, PhantomLink};
 use stellation_bridge::Bridge;
 use yew::BaseComponent;
 
+use crate::hooks::HeadContents;
 use crate::request::RenderRequest;
 use crate::root::{StellationRoot, StellationRootProps};
 use crate::{html, ServerAppProps};
@@ -92,6 +93,8 @@ where
         let request: Rc<_> = request.into();
 
         if !request.is_client_only() {
+            let head_contents = HeadContents::new();
+
             let (reader, writer) = render_static();
 
             let props = ServerAppProps::from_request(request.clone());
@@ -101,6 +104,7 @@ where
                     server_app_props: props,
                     helmet_writer: writer,
                     bridge,
+                    head_contents: head_contents.clone(),
                 },
             )
             .render()
@@ -111,6 +115,8 @@ where
                 &mut head_s,
                 r#"<meta name="stellation-mode" content="hydrate">"#
             );
+
+            head_contents.render_into(&mut head_s).await;
         }
 
         html::format_html(request.template(), helmet_tags, head_s, body_s).await
