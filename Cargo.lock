@@ -574,7 +574,7 @@ dependencies = [
  "example-fullstack-view",
  "gloo",
  "stellation-frontend",
- "stylist",
+ "stellation-stylist",
  "tracing",
  "tracing-subscriber",
  "yew",
@@ -591,7 +591,7 @@ dependencies = [
  "stellation-backend",
  "stellation-backend-cli",
  "stellation-backend-tower",
- "stylist",
+ "stellation-stylist",
  "tokio",
  "tracing",
  "yew",
@@ -2621,6 +2621,15 @@ dependencies = [
  "web-sys",
  "yew",
  "yew-router",
+]
+
+[[package]]
+name = "stellation-stylist"
+version = "0.2.0"
+dependencies = [
+ "stellation-backend",
+ "stylist",
+ "yew",
 ]
 
 [[package]]
