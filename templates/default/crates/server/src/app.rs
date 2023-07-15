@@ -1,4 +1,5 @@
 use stellation_backend::{Request, ServerAppProps};
+use stellation_stylist::BackendManagerProvider;
 use yew::prelude::*;
 
 use crate::view::Main;
@@ -9,6 +10,10 @@ where
     REQ: Request,
 {
     html! {
-        <Main />
+        <Suspense fallback={Html::default()}>
+            <BackendManagerProvider>
+                <Main />
+            </BackendManagerProvider>
+        </Suspense>
     }
 }
