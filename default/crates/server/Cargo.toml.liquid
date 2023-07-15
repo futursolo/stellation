@@ -18,18 +18,21 @@ rust-embed = { version = "6.4.2", features = ["interpolate-folder-path"] }
 stellation-backend = { version = "{{stellation_release_ver}}" }
 stellation-backend-tower = { version = "{{stellation_release_ver}}" }
 stellation-backend-cli = { version = "{{stellation_release_ver}}" }
+stellation-stylist = { version = "{{stellation_release_ver}}", features = ["backend"] }
 
 {% elsif stellation_target == "main" %}
 # Stellation
 stellation-backend = { git = "https://github.com/futursolo/stellation" }
 stellation-backend-tower = { git = "https://github.com/futursolo/stellation" }
 stellation-backend-cli = { git = "https://github.com/futursolo/stellation" }
+stellation-stylist = { git = "https://github.com/futursolo/stellation", features = ["backend"] }
 
 {% elsif stellation_target == "ci" %}
 # Stellation
 stellation-backend = { path = "../../../../stellation/crates/stellation-backend" }
 stellation-backend-tower = { path = "../../../../stellation/crates/stellation-backend-tower" }
 stellation-backend-cli = { path = "../../../../stellation/crates/stellation-backend-cli" }
+stellation-stylist = { path = "../../../../stellation/crates/stellation-stylist", features = ["backend"] }
 
 {% endif %}
 # Example Workspace

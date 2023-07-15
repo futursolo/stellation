@@ -35,12 +35,12 @@ pub fn ServerTime() -> HtmlResult {
             .expect("failed to format time!"),
         Err(_) => {
             return Ok(html! {
-                <div class="time-content">{"Waiting for Server..."}</div>
+                <div>{"Waiting for Server..."}</div>
             })
         }
     };
 
     Ok(html! {
-        <div class="time-content">{"Server Time: "}{server_time}</div>
+        <div>{"Server Time: "}{server_time}</div>
     })
 }
