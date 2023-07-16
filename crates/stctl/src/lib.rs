@@ -71,6 +71,7 @@ impl Stctl {
                     Profile::new_debug()
                 }
             }
+            CliCommand::Clean => Profile::new_debug(),
         };
 
         let env_name = match cli.command {
@@ -220,6 +221,9 @@ impl Stctl {
                 let frontend_data_dir = self.frontend_data_dir().await?;
                 frontend_data_dir.join("serve-builds").join(random_str()?)
             }
+            CliCommand::Clean => {
+                bail!("clean command never access build dir!")
+            }
         };
 
         fs::create_dir_all(&frontend_build_dir)
@@ -238,6 +242,9 @@ impl Stctl {
             CliCommand::Serve { .. } => {
                 let frontend_data_dir = self.backend_data_dir().await?;
                 frontend_data_dir.join("serve-builds").join(random_str()?)
+            }
+            CliCommand::Clean => {
+                bail!("clean command never access build dir!")
             }
         };
 
@@ -631,6 +638,52 @@ impl Stctl {
         Ok(())
     }
 
+    async fn run_clean(&self) -> Result<()> {
+        use tokio::process::Command;
+
+        let workspace_dir = self.workspace_dir().await?;
+        let build_dir = self.build_dir().await?;
+        let data_dir = self.data_dir().await?;
+
+        let envs = self.env_file.load(&workspace_dir);
+
+        let start_time = SystemTime::now();
+
+        Command::new("cargo")
+            .arg("clean")
+            .current_dir(&workspace_dir)
+            .envs(envs)
+            .stdin(Stdio::null())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .kill_on_drop(true)
+            .spawn()?
+            .wait_with_output()
+            .await
+            .context("failed to clean cargo data")?;
+
+        let time_taken_in_f64 =
+            f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
+
+        fs::remove_dir_all(&build_dir)
+            .await
+            .context("failed to clean build dir")?;
+        fs::remove_dir_all(&data_dir)
+            .await
+            .context("failed to clean data dir")?;
+
+        eprintln!(
+            "{}",
+            style(format!(
+                "Build artifact and temporary files cleared in {time_taken_in_f64:.2}s!"
+            ))
+            .green()
+            .bold()
+        );
+
+        Ok(())
+    }
+
     async fn run(&self) -> Result<()> {
         match self.cli.command {
             CliCommand::Serve(ref m) => {
@@ -638,6 +691,9 @@ impl Stctl {
             }
             CliCommand::Build(ref m) => {
                 self.run_build(m).await?;
+            }
+            CliCommand::Clean => {
+                self.run_clean().await?;
             }
         }
 
