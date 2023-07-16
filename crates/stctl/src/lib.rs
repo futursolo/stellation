@@ -662,15 +662,15 @@ impl Stctl {
             .await
             .context("failed to clean cargo data")?;
 
-        let time_taken_in_f64 =
-            f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
-
         fs::remove_dir_all(&build_dir)
             .await
             .context("failed to clean build dir")?;
         fs::remove_dir_all(&data_dir)
             .await
             .context("failed to clean data dir")?;
+
+        let time_taken_in_f64 =
+            f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
 
         eprintln!(
             "{}",
