@@ -1,17 +1,11 @@
 #![deny(clippy::all)]
 #![deny(missing_debug_implementations)]
 
-mod types;
-pub use types::*;
-
 #[cfg(feature = "resolvable")]
 mod resolvers;
+mod routines;
 
-use stellation_bridge::Bridge;
-
-pub fn create_bridge() -> Bridge {
-    Bridge::builder()
-        .add_query::<ServerTimeQuery>()
-        .add_mutation::<GreetingMutation>()
-        .build()
-}
+#[cfg(feature = "resolvable")]
+pub use resolvers::*;
+#[cfg(not(feature = "resolvable"))]
+pub use routines::*;

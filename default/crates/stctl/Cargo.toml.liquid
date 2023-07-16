@@ -16,4 +16,7 @@ stctl = "{{stellation_release_ver}}"
 {% elsif stellation_target == "main" %}
 # Stellation
 stctl = { git = "https://github.com/futursolo/stellation" }
+{% elsif stellation_target == "ci" %}
+# Stellation
+stctl = { path = "../../../../stellation/crates/stctl" }
 {% endif %}

@@ -13,10 +13,17 @@ gloo = "0.8"
 {% if stellation_target == "release" %}
 # Stellation
 stellation-frontend = "{{stellation_release_ver}}"
+stellation-stylist = { version = "{{stellation_release_ver}}", features = ["frontend"] }
 
 {% elsif stellation_target == "main" %}
 # Stellation
 stellation-frontend = { git = "https://github.com/futursolo/stellation" }
+stellation-stylist = { git = "https://github.com/futursolo/stellation", features = ["frontend"] }
+
+{% elsif stellation_target == "ci" %}
+# Stellation
+stellation-frontend = { path = "../../../../stellation/crates/stellation-frontend" }
+stellation-stylist = { path = "../../../../stellation/crates/stellation-stylist", features = ["frontend"] }
 
 {% endif %}
 # Logging

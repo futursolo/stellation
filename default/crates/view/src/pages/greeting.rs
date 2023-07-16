@@ -1,13 +1,13 @@
-use stellation_bridge::hooks::use_bridged_mutation;
+use stylist::yew::styled_component;
 use web_sys::HtmlInputElement;
 use yew::platform::spawn_local;
 use yew::prelude::*;
 
-use crate::api::GreetingMutation;
+use crate::api::{Bridge, GreetingMutation};
 
-#[function_component]
+#[styled_component]
 pub fn Greeting() -> Html {
-    let handle = use_bridged_mutation::<GreetingMutation>();
+    let handle = Bridge::use_mutation::<GreetingMutation>();
 
     let message = match handle.result() {
         None => "".to_string(),
@@ -50,10 +50,52 @@ pub fn Greeting() -> Html {
     };
 
     html! {
-        <div class="greeting-container">
+        <div class={css!(r#"
+            padding-top: 2rem;
+            max-width: 300px;
+            width: calc(100% - 20px);
+        "#)}>
             <div class="greeting-info">
                 <input
-                    class="greeting-input"
+                    class={css!(r#"
+                        width: 100%;
+                        height: 40px;
+
+                        display: block;
+                        box-sizing: border-box;
+
+                        border-radius: 8px;
+
+                        background-color: rgb(230, 226, 245);
+                        color: rgb(0, 0, 0);
+
+                        border: 0;
+                        outline: 0;
+                        padding-left: 1rem;
+                        padding-right: 1rem;
+
+                        font-size: 1rem;
+
+                        &::-webkit-input-placeholder,
+                        &::-moz-placeholder,
+                        &:-moz-placeholder,
+                        &:-ms-input-placeholder {
+                            color: rgb(206, 206, 206);
+                        }
+
+                        @media (prefers-color-scheme: dark) {
+                            background-color: rgb(87, 86, 91);
+                            color: white;
+
+                            &::-webkit-input-placeholder,
+                            &::-moz-placeholder,
+                            &:-moz-placeholder,
+                            &:-ms-input-placeholder {
+                                color: rgb(181, 181, 181);
+                            }
+                        }
+
+                    "#)}
                     type="text"
                     placeholder="Your Name"
                     required={true}
@@ -62,9 +104,41 @@ pub fn Greeting() -> Html {
                     {oninput}
                     ref={input_ref}
                 />
-                <button class="greeting-button" {onclick}>{"Hello Stellation!"}</button>
+                <button
+                    class={css!(r#"
+                        width: 100%;
+                        height: 40px;
+
+                        margin: 0;
+                        padding: 0;
+                        margin-top: 1rem;
+
+                        display: block;
+
+                        border-radius: 8px;
+
+                        background-color: rgb(132, 112, 198);
+                        color: white;
+                        border: 0;
+
+                        cursor: pointer;
+
+                        font-size: 1rem;
+                        font-weight: bold;
+
+                        @media (prefers-color-scheme: dark) {
+                            background-color: rgb(95, 76, 159);
+                        }
+                    "#)}
+                    {onclick}
+                >{"Hello Stellation!"}</button>
             </div>
-            <div class="greeting-message">{message}</div>
+            <div class={css!(r#"
+                padding-top: 1rem;
+                height: 2rem;
+                box-sizing: border-box;
+                text-align: center;
+            "#)}>{message}</div>
         </div>
     }
 }
