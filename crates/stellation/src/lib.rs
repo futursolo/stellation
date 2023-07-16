@@ -15,3 +15,5 @@
 //!   frontend and backend.
 //! 4. [stctl]: Command line utility for building and serving development
 //! server.
+
+pub mod guides;
