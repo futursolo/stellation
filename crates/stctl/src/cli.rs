@@ -39,6 +39,7 @@ pub(crate) enum CliCommand {
 }
 
 #[derive(Parser, Debug)]
+#[command(author, version, about = "Command line tool for stellation.", long_about = None)]
 pub(crate) struct Cli {
     /// The path to the manifest file.
     ///
