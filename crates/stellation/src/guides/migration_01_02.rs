@@ -5,8 +5,8 @@
 //! `stellation-backend` has been separated into multiple crates:
 //!
 //! 1. `stellation-backend`: contains server renderer and other utilities to build backends.
-//! 2. `stellation-backend-warp`: contains server that can be converted into a warp filter.
-//! 3. `stellation-backend-tower`: contains server that can be converted into a tower service.
+//! 2. `stellation-backend-warp`: contains server that can be used as a warp filter.
+//! 3. `stellation-backend-tower`: contains server that can be used as a tower service.
 //! 4. `stellation-backend-cli`: contain out-of-the-box command line utility for backend
 //!    applications.
 //!
