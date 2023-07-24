@@ -10,7 +10,7 @@ publish = false
 stellation-bridge = { version = "0.2.0", path = "../../../crates/stellation-bridge" }
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable"] }
 serde = { version = "1", features = ["derive"] }
-async-trait = "0.1.71"
+async-trait = "0.1.72"
 thiserror = "1"
 bounce = "0.7"
 
