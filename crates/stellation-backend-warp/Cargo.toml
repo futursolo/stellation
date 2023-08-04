@@ -18,7 +18,7 @@ license = "MIT OR Apache-2.0"
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
 yew-router = "0.17"
-bounce = { version = "0.7", features = ["helmet", "ssr"] }
+bounce = { version = "0.8", features = ["helmet", "ssr"] }
 
 # Stellation Components
 stellation-backend = { version = "0.2.0", path = "../stellation-backend" }

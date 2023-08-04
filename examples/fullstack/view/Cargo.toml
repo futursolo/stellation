@@ -12,7 +12,7 @@ example-fullstack-api = { path = "../api" }
 stellation-bridge = { version = "0.2.0", path = "../../../crates/stellation-bridge" }
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable", "macros"] }
 tracing = "0.1.37"
-bounce = { version = "0.7.0", features = ["helmet"] }
+bounce = { version = "0.8.0", features = ["helmet"] }
 stylist = { version = "0.12.1", features = ["yew_integration"] }
 
 [dependencies.web-sys]
