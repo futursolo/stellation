@@ -30,7 +30,7 @@ stellation-core = { version = "0.2.0", path = "../stellation-core" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
-bounce = { version = "0.7", features = ["helmet", "ssr"] }
+bounce = { version = "0.8", features = ["helmet", "ssr"] }
 yew-router = "0.17"
 
 [package.metadata.docs.rs]

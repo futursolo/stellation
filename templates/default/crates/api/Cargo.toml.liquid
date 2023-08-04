@@ -10,7 +10,7 @@ publish = false
 time = { version = "0.3", features = ["wasm-bindgen", "serde-human-readable"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1.59"
-bounce = "0.7"
+bounce = "0.8"
 thiserror = "1"{% if stellation_target == "release" %}
   # Stellation
   stellation-bridge = "{{ stellation_release_ver }}"
