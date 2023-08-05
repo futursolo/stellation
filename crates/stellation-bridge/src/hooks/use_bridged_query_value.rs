@@ -12,7 +12,7 @@ use crate::links::Link;
 use crate::routines::{BridgedQuery, QueryResult};
 use crate::state::BridgeSelector;
 
-/// Bridged Query State
+/// Bridged Query Value State
 #[derive(Debug, PartialEq)]
 pub enum BridgedQueryValueState<T>
 where
