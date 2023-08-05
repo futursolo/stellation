@@ -1,14 +1,12 @@
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::Deref;
 use std::rc::Rc;
 
 use async_trait::async_trait;
-use bounce::query::{use_prepared_query, QueryState, UseQueryHandle};
+use bounce::query::{use_query_value, QueryValueState, UseQueryValueHandle};
 use bounce::BounceStates;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use yew::prelude::*;
-use yew::suspense::SuspensionResult;
 
 use crate::links::Link;
 use crate::routines::{BridgedQuery, QueryResult};
@@ -16,10 +14,12 @@ use crate::state::BridgeSelector;
 
 /// Bridged Query State
 #[derive(Debug, PartialEq)]
-pub enum BridgedQueryState<T>
+pub enum BridgedQueryValueState<T>
 where
     T: BridgedQuery + 'static,
 {
+    /// The query is loading.
+    Loading,
     /// The query has completed.
     Completed {
         /// Result of the completed query.
@@ -32,12 +32,13 @@ where
     },
 }
 
-impl<T> Clone for BridgedQueryState<T>
+impl<T> Clone for BridgedQueryValueState<T>
 where
     T: BridgedQuery + 'static,
 {
     fn clone(&self) -> Self {
         match self {
+            Self::Loading => Self::Loading,
             Self::Completed { result } => Self::Completed {
                 result: result.clone(),
             },
@@ -48,20 +49,20 @@ where
     }
 }
 
-impl<T> PartialEq<&BridgedQueryState<T>> for BridgedQueryState<T>
+impl<T> PartialEq<&BridgedQueryValueState<T>> for BridgedQueryValueState<T>
 where
     T: BridgedQuery + 'static,
 {
-    fn eq(&self, other: &&BridgedQueryState<T>) -> bool {
+    fn eq(&self, other: &&BridgedQueryValueState<T>) -> bool {
         self == *other
     }
 }
 
-impl<T> PartialEq<BridgedQueryState<T>> for &'_ BridgedQueryState<T>
+impl<T> PartialEq<BridgedQueryValueState<T>> for &'_ BridgedQueryValueState<T>
 where
     T: BridgedQuery + 'static,
 {
-    fn eq(&self, other: &BridgedQueryState<T>) -> bool {
+    fn eq(&self, other: &BridgedQueryValueState<T>) -> bool {
         *self == other
     }
 }
@@ -153,8 +154,8 @@ where
     T: BridgedQuery + 'static,
     L: 'static + Link,
 {
-    inner: UseQueryHandle<BridgedQueryInner<T, L>>,
-    state: Rc<BridgedQueryState<T>>,
+    inner: UseQueryValueHandle<BridgedQueryInner<T, L>>,
+    state: Rc<BridgedQueryValueState<T>>,
 }
 
 impl<T, L> UseBridgedQueryValueHandle<T, L>
@@ -163,8 +164,24 @@ where
     L: 'static + Link,
 {
     /// Returns the state of current query.
-    pub fn state(&self) -> &BridgedQueryState<T> {
+    pub fn state(&self) -> &BridgedQueryValueState<T> {
         self.state.as_ref()
+    }
+
+    /// Returns the result of current query (if any).
+    ///
+    /// - `None` indicates that the query is currently loading.
+    /// - `Some(Ok(m))` indicates that the query is successful and the content is stored in `m`.
+    /// - `Some(Err(e))` indicates that the query has failed and the error is stored in `e`.
+    pub fn result(&self) -> Option<&QueryResult<T>> {
+        match self.state() {
+            BridgedQueryValueState::Completed { result, .. }
+            | BridgedQueryValueState::Refreshing {
+                last_result: result,
+                ..
+            } => Some(result),
+            _ => None,
+        }
     }
 
     /// Refreshes the query.
@@ -188,23 +205,6 @@ where
     }
 }
 
-impl<T, L> Deref for UseBridgedQueryValueHandle<T, L>
-where
-    T: BridgedQuery + 'static,
-    L: 'static + Link,
-{
-    type Target = QueryResult<T>;
-
-    fn deref(&self) -> &Self::Target {
-        match self.state() {
-            BridgedQueryState::Completed { result }
-            | BridgedQueryState::Refreshing {
-                last_result: result,
-            } => result,
-        }
-    }
-}
-
 impl<T, L> fmt::Debug for UseBridgedQueryValueHandle<T, L>
 where
     T: BridgedQuery + fmt::Debug + 'static,
@@ -224,23 +224,22 @@ where
 /// This hook does not suspend the component and the data is not fetched during SSR.
 /// If this hook is used in SSR, this hook will remain as loading state.
 #[hook]
-pub fn use_bridged_query_value<Q, L>(
-    input: Rc<Q::Input>,
-) -> SuspensionResult<UseBridgedQueryValueHandle<Q, L>>
+pub fn use_bridged_query_value<Q, L>(input: Rc<Q::Input>) -> UseBridgedQueryValueHandle<Q, L>
 where
     Q: 'static + BridgedQuery,
     L: 'static + Link,
 {
-    let handle = use_prepared_query::<BridgedQueryInner<Q, L>>(input)?;
+    let handle = use_query_value::<BridgedQueryInner<Q, L>>(input);
     let state = use_memo(
         |state| match state {
-            QueryState::Completed { result } => BridgedQueryState::Completed {
+            QueryValueState::Loading => BridgedQueryValueState::Loading,
+            QueryValueState::Completed { result } => BridgedQueryValueState::Completed {
                 result: result
                     .as_ref()
                     .map_err(|e| e.clone())
                     .and_then(|m| m.inner.clone()),
             },
-            QueryState::Refreshing { last_result } => BridgedQueryState::Refreshing {
+            QueryValueState::Refreshing { last_result } => BridgedQueryValueState::Refreshing {
                 last_result: last_result
                     .as_ref()
                     .map_err(|e| e.clone())
@@ -250,8 +249,8 @@ where
         handle.state().clone(),
     );
 
-    Ok(UseBridgedQueryValueHandle {
+    UseBridgedQueryValueHandle {
         inner: handle,
         state,
-    })
+    }
 }
