@@ -15,7 +15,7 @@ use crate::routines::{BridgedQuery, QueryResult};
 use crate::state::BridgeSelector;
 
 #[derive(Debug)]
-struct QueryState<Q, L>
+struct BridgedQueryInner<Q, L>
 where
     Q: BridgedQuery,
 {
@@ -23,7 +23,7 @@ where
     _marker: PhantomData<L>,
 }
 
-impl<Q, L> Clone for QueryState<Q, L>
+impl<Q, L> Clone for BridgedQueryInner<Q, L>
 where
     Q: BridgedQuery,
 {
@@ -35,7 +35,7 @@ where
     }
 }
 
-impl<Q, L> PartialEq for QueryState<Q, L>
+impl<Q, L> PartialEq for BridgedQueryInner<Q, L>
 where
     Q: BridgedQuery + PartialEq,
 {
@@ -43,9 +43,9 @@ where
         self.inner == other.inner
     }
 }
-impl<Q, L> Eq for QueryState<Q, L> where Q: BridgedQuery + Eq {}
+impl<Q, L> Eq for BridgedQueryInner<Q, L> where Q: BridgedQuery + Eq {}
 
-impl<Q, L> Serialize for QueryState<Q, L>
+impl<Q, L> Serialize for BridgedQueryInner<Q, L>
 where
     Q: BridgedQuery,
 {
@@ -57,7 +57,7 @@ where
     }
 }
 
-impl<'de, Q, L> Deserialize<'de> for QueryState<Q, L>
+impl<'de, Q, L> Deserialize<'de> for BridgedQueryInner<Q, L>
 where
     Q: BridgedQuery,
 {
@@ -72,7 +72,7 @@ where
     }
 }
 #[async_trait(?Send)]
-impl<Q, L> bounce::query::Query for QueryState<Q, L>
+impl<Q, L> bounce::query::Query for BridgedQueryInner<Q, L>
 where
     Q: 'static + BridgedQuery,
     L: 'static + Link,
@@ -103,7 +103,7 @@ where
     T: BridgedQuery + 'static,
     L: 'static + Link,
 {
-    inner: UseQueryHandle<QueryState<T, L>>,
+    inner: UseQueryHandle<BridgedQueryInner<T, L>>,
 }
 
 impl<T, L> UseBridgedQueryHandle<T, L>
@@ -165,7 +165,7 @@ where
     Q: 'static + BridgedQuery,
     L: 'static + Link,
 {
-    let handle = use_prepared_query::<QueryState<Q, L>>(input)?;
+    let handle = use_prepared_query::<BridgedQueryInner<Q, L>>(input)?;
 
     Ok(UseBridgedQueryHandle { inner: handle })
 }

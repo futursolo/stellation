@@ -11,7 +11,7 @@ use crate::links::Link;
 use crate::routines::{BridgedMutation, MutationResult};
 use crate::state::BridgeSelector;
 
-struct MutationState<M, L>
+struct BridgedMutationInner<M, L>
 where
     M: BridgedMutation,
 {
@@ -19,7 +19,7 @@ where
     _marker: PhantomData<L>,
 }
 
-impl<M, L> PartialEq for MutationState<M, L>
+impl<M, L> PartialEq for BridgedMutationInner<M, L>
 where
     M: BridgedMutation,
 {
@@ -29,7 +29,7 @@ where
 }
 
 #[async_trait(?Send)]
-impl<M, L> bounce::query::Mutation for MutationState<M, L>
+impl<M, L> bounce::query::Mutation for BridgedMutationInner<M, L>
 where
     M: 'static + BridgedMutation,
     L: 'static + Link,
@@ -60,7 +60,7 @@ where
     T: BridgedMutation + 'static,
     L: 'static + Link,
 {
-    inner: UseMutationHandle<MutationState<T, L>>,
+    inner: UseMutationHandle<BridgedMutationInner<T, L>>,
 }
 
 impl<T, L> UseBridgedMutationHandle<T, L>
@@ -118,7 +118,7 @@ where
     T: 'static + BridgedMutation,
     L: 'static + Link,
 {
-    let handle = use_mutation::<MutationState<T, L>>();
+    let handle = use_mutation::<BridgedMutationInner<T, L>>();
 
     UseBridgedMutationHandle { inner: handle }
 }
