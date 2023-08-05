@@ -5,7 +5,8 @@ use yew::prelude::*;
 use yew::suspense::SuspensionResult;
 
 use crate::hooks::{
-    use_bridged_mutation, use_bridged_query, UseBridgedMutationHandle, UseBridgedQueryHandle,
+    use_bridged_mutation, use_bridged_query, use_bridged_query_value, UseBridgedMutationHandle,
+    UseBridgedQueryHandle, UseBridgedQueryValueHandle,
 };
 use crate::links::Link;
 use crate::routines::{BridgedMutation, BridgedQuery};
@@ -74,5 +75,21 @@ where
         L: 'static,
     {
         use_bridged_query(input)
+    }
+
+    /// Bridges a query as value.
+    ///
+    /// # Note
+    ///
+    /// This hook does not suspend the component and the data is not fetched during SSR.
+    /// If this hook is used in SSR, this hook will remain as loading state.
+    pub fn use_query_value<T>(
+        input: Rc<T::Input>,
+    ) -> impl Hook<Output = UseBridgedQueryValueHandle<T, L>>
+    where
+        T: 'static + BridgedQuery,
+        L: 'static,
+    {
+        use_bridged_query_value(input)
     }
 }
