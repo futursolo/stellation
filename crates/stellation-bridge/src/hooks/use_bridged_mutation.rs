@@ -144,9 +144,12 @@ where
     ///   `m`.
     /// - `Some(Err(e))` indicates that the last mutation has failed and the error is stored in `e`.
     pub fn result(&self) -> Option<&MutationResult<T>> {
-        match self.inner.result()? {
-            Ok(m) => Some(&m.inner),
-            Err(_) => panic!("this can never happen!"),
+        match self.state() {
+            BridgedMutationState::Idle | BridgedMutationState::Loading => None,
+            BridgedMutationState::Completed { result }
+            | BridgedMutationState::Refreshing {
+                last_result: result,
+            } => Some(result),
         }
     }
 }
