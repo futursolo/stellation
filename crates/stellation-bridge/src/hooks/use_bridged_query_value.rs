@@ -71,7 +71,7 @@ pub(super) struct BridgedQueryInner<Q, L>
 where
     Q: BridgedQuery,
 {
-    inner: QueryResult<Q>,
+    pub inner: QueryResult<Q>,
     _marker: PhantomData<L>,
 }
 
@@ -147,10 +147,8 @@ where
     }
 }
 
-/// A handle returned by [`use_bridged_query`].
-///
-/// This type dereferences to [`QueryResult<T>`].
-pub struct UseBridgedQueryHandle<T, L>
+/// A handle returned by [`use_bridged_query_value`].
+pub struct UseBridgedQueryValueHandle<T, L>
 where
     T: BridgedQuery + 'static,
     L: 'static + Link,
@@ -159,7 +157,7 @@ where
     state: Rc<BridgedQueryState<T>>,
 }
 
-impl<T, L> UseBridgedQueryHandle<T, L>
+impl<T, L> UseBridgedQueryValueHandle<T, L>
 where
     T: BridgedQuery + 'static,
     L: 'static + Link,
@@ -177,7 +175,7 @@ where
     }
 }
 
-impl<T, L> Clone for UseBridgedQueryHandle<T, L>
+impl<T, L> Clone for UseBridgedQueryValueHandle<T, L>
 where
     T: BridgedQuery + 'static,
     L: 'static + Link,
@@ -190,7 +188,7 @@ where
     }
 }
 
-impl<T, L> Deref for UseBridgedQueryHandle<T, L>
+impl<T, L> Deref for UseBridgedQueryValueHandle<T, L>
 where
     T: BridgedQuery + 'static,
     L: 'static + Link,
@@ -207,21 +205,28 @@ where
     }
 }
 
-impl<T, L> fmt::Debug for UseBridgedQueryHandle<T, L>
+impl<T, L> fmt::Debug for UseBridgedQueryValueHandle<T, L>
 where
     T: BridgedQuery + fmt::Debug + 'static,
     L: 'static + Link,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("UseQueryHandle")
+        f.debug_struct("UseBridgedQueryValueHandle")
             .field("state", self.state())
             .finish()
     }
 }
 
-/// Bridges a query.
+/// Bridges a query as value.
+///
+/// # Note
+///
+/// This hook does not suspend the component and the data is not fetched during SSR.
+/// If this hook is used in SSR, this hook will remain as loading state.
 #[hook]
-pub fn use_bridged_query<Q, L>(input: Rc<Q::Input>) -> SuspensionResult<UseBridgedQueryHandle<Q, L>>
+pub fn use_bridged_query_value<Q, L>(
+    input: Rc<Q::Input>,
+) -> SuspensionResult<UseBridgedQueryValueHandle<Q, L>>
 where
     Q: 'static + BridgedQuery,
     L: 'static + Link,
@@ -245,7 +250,7 @@ where
         handle.state().clone(),
     );
 
-    Ok(UseBridgedQueryHandle {
+    Ok(UseBridgedQueryValueHandle {
         inner: handle,
         state,
     })

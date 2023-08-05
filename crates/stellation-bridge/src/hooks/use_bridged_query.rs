@@ -1,18 +1,14 @@
 use std::fmt;
-use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use async_trait::async_trait;
 use bounce::query::{use_prepared_query, QueryState, UseQueryHandle};
-use bounce::BounceStates;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use yew::prelude::*;
 use yew::suspense::SuspensionResult;
 
+use super::use_bridged_query_value::BridgedQueryInner;
 use crate::links::Link;
 use crate::routines::{BridgedQuery, QueryResult};
-use crate::state::BridgeSelector;
 
 /// Bridged Query State
 #[derive(Debug, PartialEq)]
@@ -63,87 +59,6 @@ where
 {
     fn eq(&self, other: &BridgedQueryState<T>) -> bool {
         *self == other
-    }
-}
-
-#[derive(Debug)]
-pub(super) struct BridgedQueryInner<Q, L>
-where
-    Q: BridgedQuery,
-{
-    inner: QueryResult<Q>,
-    _marker: PhantomData<L>,
-}
-
-impl<Q, L> Clone for BridgedQueryInner<Q, L>
-where
-    Q: BridgedQuery,
-{
-    fn clone(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl<Q, L> PartialEq for BridgedQueryInner<Q, L>
-where
-    Q: BridgedQuery + PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.inner == other.inner
-    }
-}
-impl<Q, L> Eq for BridgedQueryInner<Q, L> where Q: BridgedQuery + Eq {}
-
-impl<Q, L> Serialize for BridgedQueryInner<Q, L>
-where
-    Q: BridgedQuery,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.inner.as_deref().serialize(serializer)
-    }
-}
-
-impl<'de, Q, L> Deserialize<'de> for BridgedQueryInner<Q, L>
-where
-    Q: BridgedQuery,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(Self {
-            inner: std::result::Result::<Q, Q::Error>::deserialize(deserializer)?.map(Rc::new),
-            _marker: PhantomData,
-        })
-    }
-}
-#[async_trait(?Send)]
-impl<Q, L> bounce::query::Query for BridgedQueryInner<Q, L>
-where
-    Q: 'static + BridgedQuery,
-    L: 'static + Link,
-{
-    type Error = Q::Error;
-    type Input = Q::Input;
-
-    async fn query(
-        states: &BounceStates,
-        input: Rc<Self::Input>,
-    ) -> bounce::query::QueryResult<Self> {
-        let bridge = states.get_selector_value::<BridgeSelector<L>>();
-        let link = bridge.link();
-
-        Ok(Self {
-            inner: link.resolve_query::<Q>(&input).await,
-            _marker: PhantomData,
-        }
-        .into())
     }
 }
 
@@ -213,7 +128,7 @@ where
     L: 'static + Link,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("UseQueryHandle")
+        f.debug_struct("UseBridgedQueryHandle")
             .field("state", self.state())
             .finish()
     }
