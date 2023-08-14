@@ -16,7 +16,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.72"
-clap = { version = "4.3.19", features = ["derive"] }
+clap = { version = "4.3.21", features = ["derive"] }
 serde = { version = "1.0.180", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["full"] }
 toml = "0.7.6"
