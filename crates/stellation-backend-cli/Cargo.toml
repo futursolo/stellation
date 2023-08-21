@@ -26,7 +26,7 @@ yew = { version = "0.20", features = ["ssr"] }
 
 # Other Deps
 anyhow = { version = "1" }
-clap = { version = "4.3.19", features = ["derive", "env"] }
+clap = { version = "4.3.23", features = ["derive", "env"] }
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 console = "0.15.7"
