@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-tokio = { version = "1.29.1", features = ["full"] }
+tokio = { version = "1.32.0", features = ["full"] }
 tracing = { version = "0.1.37" }
 yew = "0.20.0"
 
@@ -21,4 +21,4 @@ stellation-stylist = { version = "0.2.0", path = "../../../crates/stellation-sty
 # Example Workspace
 example-fullstack-view = { path = "../view" }
 example-fullstack-api = { path = "../api", features = ["resolvable"] }
-rust-embed = { version = "6.8.1", features = ["interpolate-folder-path"] }
+rust-embed = { version = "8.0.0", features = ["interpolate-folder-path"] }

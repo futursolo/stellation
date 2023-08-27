@@ -357,18 +357,18 @@ where
             .map(|m| m.boxed())
             .into_iter()
             // Add auto refresh filter, if needed.
-            .chain(auto_refresh_f.map(|m| m.boxed()).into_iter())
+            .chain(auto_refresh_f.map(|m| m.boxed()))
             // Render "/" as index.html.
             .chain(
                 index_html_f
                     .clone()
                     .map(|m| warp::path::end().and(m).boxed())
-                    .into_iter(),
+                   ,
             )
             // Serve other resources, if available.
-            .chain(frontend_f.map(|m| m.boxed()).into_iter())
+            .chain(frontend_f.map(|m| m.boxed()))
             // Fallback to index.html.
-            .chain(index_html_f.map(|m| m.boxed()).into_iter())
+            .chain(index_html_f.map(|m| m.boxed()))
             // Chain everything together with or.
             .fold(reject().boxed(), |last, item| last.or(item).unify().boxed());
 
