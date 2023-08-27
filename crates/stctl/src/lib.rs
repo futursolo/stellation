@@ -12,10 +12,12 @@
 #![cfg_attr(documenting, feature(doc_auto_cfg))]
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
+// mod builder;
 mod cli;
 mod env_file;
 mod indicators;
 mod manifest;
+mod paths;
 mod profile;
 mod utils;
 
@@ -35,6 +37,7 @@ use futures::stream::unfold;
 use futures::{pin_mut, FutureExt, Stream, StreamExt};
 use manifest::Manifest;
 use notify::{recommended_watcher, Event, RecursiveMode, Watcher};
+use paths::Paths;
 use profile::Profile;
 use stellation_core::dev::StctlMetadata;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
@@ -53,6 +56,7 @@ use crate::utils::random_str;
 #[derive(Debug)]
 struct Stctl {
     cli: Arc<Cli>,
+    paths: Arc<Paths>,
     manifest: Arc<Manifest>,
     profile: Profile,
     env_file: EnvFile,
@@ -85,26 +89,19 @@ impl Stctl {
         };
 
         let env_file = EnvFile::new(env_name);
+        let paths = Paths::new(&cli.manifest_path).await?;
 
         Ok(Self {
             cli: cli.into(),
+            paths: paths.into(),
             manifest,
             profile,
             env_file,
         })
     }
 
-    async fn workspace_dir(&self) -> Result<PathBuf> {
-        self.cli
-            .manifest_path
-            .canonicalize()?
-            .parent()
-            .context("failed to find workspace directory")
-            .map(|m| m.to_owned())
-    }
-
     async fn watch_changes(&self) -> Result<impl Stream<Item = SystemTime>> {
-        let workspace_dir = self.workspace_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
         let (tx, rx) = unbounded_channel::<PathBuf>();
 
         let mut watcher = recommended_watcher(move |e: Result<Event, _>| {
@@ -119,7 +116,7 @@ impl Stctl {
         .context("failed to watch workspace changes")?;
 
         watcher
-            .watch(&workspace_dir, RecursiveMode::Recursive)
+            .watch(workspace_dir, RecursiveMode::Recursive)
             .context("failed to watch workspace")?;
 
         let stream = UnboundedReceiverStream::new(rx)
@@ -165,60 +162,14 @@ impl Stctl {
         ))
     }
 
-    /// Creates and returns the path of the data directory.
-    ///
-    /// This is `build` directory in the same parent directory as `stellation.toml`.
-    async fn build_dir(&self) -> Result<PathBuf> {
-        let data_dir = self.workspace_dir().await?.join("build");
-
-        fs::create_dir_all(&data_dir)
-            .await
-            .context("failed to create build directory")?;
-
-        Ok(data_dir)
-    }
-
-    /// Creates and returns the path of the data directory.
-    ///
-    /// This is `.stellation` directory in the same parent directory as `stellation.toml`.
-    async fn data_dir(&self) -> Result<PathBuf> {
-        let data_dir = self.workspace_dir().await?.join(".stellation");
-
-        fs::create_dir_all(&data_dir)
-            .await
-            .context("failed to create data directory")?;
-
-        Ok(data_dir)
-    }
-
-    async fn frontend_data_dir(&self) -> Result<PathBuf> {
-        let frontend_data_dir = self.data_dir().await?.join("frontend");
-
-        fs::create_dir_all(&frontend_data_dir)
-            .await
-            .context("failed to create frontend data directory")?;
-
-        Ok(frontend_data_dir)
-    }
-
-    async fn backend_data_dir(&self) -> Result<PathBuf> {
-        let backend_data_dir = self.data_dir().await?.join("backend");
-
-        fs::create_dir_all(&backend_data_dir)
-            .await
-            .context("failed to create backend data directory")?;
-
-        Ok(backend_data_dir)
-    }
-
     async fn frontend_build_dir(&self) -> Result<PathBuf> {
         let frontend_build_dir = match self.cli.command {
             CliCommand::Build { .. } => {
-                let build_dir = self.build_dir().await?;
+                let build_dir = self.paths.build_dir().await?;
                 build_dir.join("frontend")
             }
             CliCommand::Serve { .. } => {
-                let frontend_data_dir = self.frontend_data_dir().await?;
+                let frontend_data_dir = self.paths.frontend_data_dir().await?;
                 frontend_data_dir.join("serve-builds").join(random_str()?)
             }
             CliCommand::Clean => {
@@ -236,11 +187,11 @@ impl Stctl {
     async fn backend_build_dir(&self) -> Result<PathBuf> {
         let frontend_build_dir = match self.cli.command {
             CliCommand::Build { .. } => {
-                let build_dir = self.build_dir().await?;
+                let build_dir = self.paths.build_dir().await?;
                 build_dir.join("backend")
             }
             CliCommand::Serve { .. } => {
-                let frontend_data_dir = self.backend_data_dir().await?;
+                let frontend_data_dir = self.paths.backend_data_dir().await?;
                 frontend_data_dir.join("serve-builds").join(random_str()?)
             }
             CliCommand::Clean => {
@@ -266,7 +217,7 @@ impl Stctl {
             .with_context(|| format!("failed to create {}", target_path.display()))?;
 
         let inner = async move {
-            tokio::pin!(source);
+            let mut source = std::pin::pin!(source);
 
             loop {
                 let mut buf = [0_u8; 8192];
@@ -296,9 +247,9 @@ impl Stctl {
     async fn build_frontend(&self) -> Result<PathBuf> {
         use tokio::process::Command;
 
-        let frontend_data_dir = self.frontend_data_dir().await?;
+        let frontend_data_dir = self.paths.frontend_data_dir().await?;
         let frontend_build_dir = self.frontend_build_dir().await?;
-        let workspace_dir = self.workspace_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
 
         let create_proc = || {
             let mut proc = Command::new("trunk");
@@ -306,7 +257,7 @@ impl Stctl {
                 .arg("--dist")
                 .arg(&frontend_build_dir)
                 .arg(workspace_dir.join("index.html"))
-                .current_dir(&workspace_dir)
+                .current_dir(workspace_dir)
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
@@ -315,7 +266,7 @@ impl Stctl {
                 proc.arg(m);
             }
 
-            let envs = self.env_file.load(&workspace_dir);
+            let envs = self.env_file.load(workspace_dir);
             proc.envs(envs);
 
             if matches!(self.cli.command, CliCommand::Build { .. }) {
@@ -372,8 +323,8 @@ impl Stctl {
 
         let frontend_build_dir = frontend_build_dir.as_ref();
 
-        let backend_data_dir = self.backend_data_dir().await?;
-        let workspace_dir = self.workspace_dir().await?;
+        let backend_data_dir = self.paths.backend_data_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
         let backend_build_dir = self.backend_build_dir().await?;
 
         let create_proc = || {
@@ -381,7 +332,7 @@ impl Stctl {
             proc.arg("build")
                 .arg("--bin")
                 .arg(&self.manifest.dev_server.bin_name)
-                .current_dir(&workspace_dir)
+                .current_dir(workspace_dir)
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -391,7 +342,7 @@ impl Stctl {
                 proc.arg(m);
             }
 
-            let envs = self.env_file.load(&workspace_dir);
+            let envs = self.env_file.load(workspace_dir);
             proc.envs(envs);
 
             if matches!(self.cli.command, CliCommand::Build { .. }) {
@@ -449,7 +400,7 @@ impl Stctl {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .current_dir(&workspace_dir)
+            .current_dir(workspace_dir)
             .spawn()?
             .wait_with_output()
             .await
@@ -495,7 +446,7 @@ impl Stctl {
 
         let bar = ServeProgress::new();
 
-        let workspace_dir = self.workspace_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
         bar.step_build_frontend();
         let frontend_build_dir = self.build_frontend().await?;
 
@@ -509,10 +460,10 @@ impl Stctl {
 
         bar.step_starting();
 
-        let envs = self.env_file.load(&workspace_dir);
+        let envs = self.env_file.load(workspace_dir);
 
         let server_proc = Command::new(&backend_build_path)
-            .current_dir(&workspace_dir)
+            .current_dir(workspace_dir)
             .envs(envs)
             .env(StctlMetadata::ENV_NAME, meta.to_json()?)
             .stdin(Stdio::null())
@@ -621,7 +572,7 @@ impl Stctl {
 
         let start_time = SystemTime::now();
 
-        let build_dir = self.build_dir().await?;
+        let build_dir = self.paths.build_dir().await?;
         let frontend_build_dir = self.build_frontend().await?;
         self.build_backend(&frontend_build_dir).await?;
 
@@ -641,17 +592,17 @@ impl Stctl {
     async fn run_clean(&self) -> Result<()> {
         use tokio::process::Command;
 
-        let workspace_dir = self.workspace_dir().await?;
-        let build_dir = self.build_dir().await?;
-        let data_dir = self.data_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
+        let build_dir = self.paths.build_dir().await?;
+        let data_dir = self.paths.data_dir().await?;
 
-        let envs = self.env_file.load(&workspace_dir);
+        let envs = self.env_file.load(workspace_dir);
 
         let start_time = SystemTime::now();
 
         Command::new("cargo")
             .arg("clean")
-            .current_dir(&workspace_dir)
+            .current_dir(workspace_dir)
             .envs(envs)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
