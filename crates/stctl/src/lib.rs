@@ -54,6 +54,13 @@ use crate::builder::Builder;
 use crate::indicators::ServeProgress;
 
 #[derive(Debug)]
+struct ServeArtifact {
+    child: Child,
+    frontend_artifact_dir: PathBuf,
+    backend_artifact_dir: PathBuf,
+}
+
+#[derive(Debug)]
 struct Stctl {
     cli: Arc<Cli>,
     paths: Arc<Paths>,
@@ -169,7 +176,7 @@ impl Stctl {
         Ok(())
     }
 
-    async fn serve_once(&self) -> Result<Child> {
+    async fn serve_once(&self) -> Result<ServeArtifact> {
         use tokio::process::Command;
 
         let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
@@ -183,6 +190,7 @@ impl Stctl {
         let frontend_build_dir = builder.build_frontend().await?;
 
         bar.step_build_backend();
+        let backend_build_dir = builder.backend_build_dir().await?;
         let backend_build_path = builder.build_backend().await?;
 
         let meta = StctlMetadata {
@@ -218,7 +226,11 @@ impl Stctl {
 
         bar.hide();
 
-        Ok(server_proc)
+        Ok(ServeArtifact {
+            child: server_proc,
+            frontend_artifact_dir: frontend_build_dir.to_owned(),
+            backend_artifact_dir: backend_build_dir.to_owned(),
+        })
     }
 
     async fn run_serve(&self, cmd_args: &ServeCommand) -> Result<()> {
@@ -231,8 +243,8 @@ impl Stctl {
             let start_time = SystemTime::now();
             let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
 
-            let server_proc = match self.serve_once().await {
-                Ok(server_proc) => {
+            let artifact = match self.serve_once().await {
+                Ok(artifact) => {
                     let time_taken_in_f64 =
                         f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
 
@@ -259,7 +271,7 @@ impl Stctl {
                         style("cargo make build").cyan().bold()
                     );
 
-                    Some(server_proc)
+                    Some(artifact)
                 }
                 Err(e) => {
                     tracing::error!("failed to build development server: {:?}", e);
@@ -284,8 +296,20 @@ impl Stctl {
                 }
             }
 
-            if let Some(mut m) = server_proc {
-                m.kill().await.context("failed to stop server")?;
+            if let Some(m) = artifact {
+                let ServeArtifact {
+                    mut child,
+                    frontend_artifact_dir,
+                    backend_artifact_dir,
+                } = m;
+
+                child.kill().await.context("failed to stop server")?;
+                fs::remove_dir_all(frontend_artifact_dir)
+                    .await
+                    .context("failed to remove stale frontend artifact")?;
+                fs::remove_dir_all(backend_artifact_dir)
+                    .await
+                    .context("failed to remove stale backend artifact")?;
             }
         }
 
