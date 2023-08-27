@@ -70,13 +70,13 @@ impl Paths {
     pub async fn build_dir(&self) -> Result<&Path> {
         self.build_dir
             .get_or_try_init(|| async {
-                let data_dir = self.workspace_dir().await?.join("build");
+                let dir = self.workspace_dir().await?.join("build");
 
-                fs::create_dir_all(&data_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create build directory")?;
 
-                Ok(data_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -88,13 +88,13 @@ impl Paths {
     pub async fn data_dir(&self) -> Result<&Path> {
         self.data_dir
             .get_or_try_init(|| async {
-                let data_dir = self.workspace_dir().await?.join(".stellation");
+                let dir = self.workspace_dir().await?.join(".stellation");
 
-                fs::create_dir_all(&data_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create data directory")?;
 
-                Ok(data_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -107,13 +107,13 @@ impl Paths {
     pub async fn frontend_data_dir(&self) -> Result<&Path> {
         self.frontend_data_dir
             .get_or_try_init(|| async {
-                let frontend_data_dir = self.data_dir().await?.join("frontend");
+                let dir = self.data_dir().await?.join("frontend");
 
-                fs::create_dir_all(&frontend_data_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create frontend data directory")?;
 
-                Ok(frontend_data_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -126,13 +126,13 @@ impl Paths {
     pub async fn backend_data_dir(&self) -> Result<&Path> {
         self.backend_data_dir
             .get_or_try_init(|| async {
-                let backend_data_dir = self.data_dir().await?.join("backend");
+                let dir = self.data_dir().await?.join("backend");
 
-                fs::create_dir_all(&backend_data_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create backend data directory")?;
 
-                Ok(backend_data_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -145,13 +145,13 @@ impl Paths {
     pub async fn frontend_builds_dir(&self) -> Result<&Path> {
         self.frontend_builds_dir
             .get_or_try_init(|| async {
-                let frontend_builds_dir = self.frontend_data_dir().await?.join("builds");
+                let dir = self.frontend_data_dir().await?.join("builds");
 
-                fs::create_dir_all(&frontend_builds_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create builds directory for frontend build.")?;
 
-                Ok(frontend_builds_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -164,13 +164,13 @@ impl Paths {
     pub async fn backend_builds_dir(&self) -> Result<&Path> {
         self.backend_builds_dir
             .get_or_try_init(|| async {
-                let backend_builds_dir = self.backend_data_dir().await?.join("builds");
+                let dir = self.backend_data_dir().await?.join("builds");
 
-                fs::create_dir_all(&backend_builds_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create builds directory for backend build.")?;
 
-                Ok(backend_builds_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -183,13 +183,13 @@ impl Paths {
     pub async fn frontend_logs_dir(&self) -> Result<&Path> {
         self.frontend_logs_dir
             .get_or_try_init(|| async {
-                let frontend_logs_dir = self.frontend_data_dir().await?.join("logs");
+                let dir = self.frontend_data_dir().await?.join("logs");
 
-                fs::create_dir_all(&frontend_logs_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create logs directory for frontend build.")?;
 
-                Ok(frontend_logs_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
@@ -202,13 +202,13 @@ impl Paths {
     pub async fn backend_logs_dir(&self) -> Result<&Path> {
         self.backend_logs_dir
             .get_or_try_init(|| async {
-                let backend_logs_dir = self.backend_data_dir().await?.join("logs");
+                let dir = self.backend_data_dir().await?.join("logs");
 
-                fs::create_dir_all(&backend_logs_dir)
+                fs::create_dir_all(&dir)
                     .await
                     .context("failed to create logs directory for backend build.")?;
 
-                Ok(backend_logs_dir)
+                Ok(dir)
             })
             .await
             .map(|m| m.as_ref())
