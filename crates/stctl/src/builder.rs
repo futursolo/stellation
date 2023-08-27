@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::pin::pin;
 use std::process::Stdio;
 use std::sync::Arc;
 
@@ -97,7 +98,7 @@ impl Builder {
             .with_context(|| format!("failed to create {}", target_path.display()))?;
 
         let inner = async move {
-            let mut source = std::pin::pin!(source);
+            let mut source = pin!(source);
 
             loop {
                 let mut buf = [0_u8; 8192];

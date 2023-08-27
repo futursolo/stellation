@@ -22,6 +22,7 @@ mod profile;
 mod utils;
 
 use std::path::PathBuf;
+use std::pin::pin;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -33,7 +34,7 @@ use console::{style, Term};
 use env_file::EnvFile;
 use futures::future::ready;
 use futures::stream::unfold;
-use futures::{pin_mut, FutureExt, Stream, StreamExt};
+use futures::{FutureExt, Stream, StreamExt};
 use manifest::Manifest;
 use notify::{recommended_watcher, Event, RecursiveMode, Watcher};
 use paths::Paths;
@@ -141,14 +142,12 @@ impl Stctl {
                 // We wait until first item is available.
                 stream.next().await?;
 
-                let sleep_fur = sleep(Duration::from_millis(100)).fuse();
-                pin_mut!(sleep_fur);
+                let mut sleep_fur = pin!(sleep(Duration::from_millis(100)).fuse());
 
                 // This makes sure we filter all items between first item and sleep completes,
                 // whilst still returns at least 1 item at the end of the period.
                 loop {
-                    let next_path_fur = stream.next().fuse();
-                    pin_mut!(next_path_fur);
+                    let mut next_path_fur = pin!(stream.next().fuse());
 
                     futures::select! {
                         _ = sleep_fur => break,
@@ -224,7 +223,7 @@ impl Stctl {
 
     async fn run_serve(&self, cmd_args: &ServeCommand) -> Result<()> {
         let changes = self.watch_changes().await?;
-        pin_mut!(changes);
+        let mut changes = pin!(changes);
 
         let mut first_run = true;
 
