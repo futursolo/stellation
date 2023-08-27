@@ -12,7 +12,7 @@
 #![cfg_attr(documenting, feature(doc_auto_cfg))]
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
-// mod builder;
+mod builder;
 mod cli;
 mod env_file;
 mod indicators;
@@ -50,6 +50,7 @@ use tracing::Level;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
+use crate::builder::Builder;
 use crate::indicators::ServeProgress;
 use crate::utils::random_str;
 
@@ -444,18 +445,20 @@ impl Stctl {
 
         let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
 
+        let builder = Builder::new(self).await?.watch_build(true);
+
         let bar = ServeProgress::new();
 
         let workspace_dir = self.paths.workspace_dir().await?;
         bar.step_build_frontend();
-        let frontend_build_dir = self.build_frontend().await?;
+        let frontend_build_dir = builder.build_frontend().await?;
 
         bar.step_build_backend();
-        let backend_build_path = self.build_backend(&frontend_build_dir).await?;
+        let backend_build_path = builder.build_backend().await?;
 
         let meta = StctlMetadata {
             listen_addr: self.manifest.dev_server.listen.to_string(),
-            frontend_dev_build_dir: frontend_build_dir.clone(),
+            frontend_dev_build_dir: frontend_build_dir.to_owned(),
         };
 
         bar.step_starting();
