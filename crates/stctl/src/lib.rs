@@ -12,47 +12,58 @@
 #![cfg_attr(documenting, feature(doc_auto_cfg))]
 #![cfg_attr(any(releasing, not(debug_assertions)), deny(dead_code, unused_imports))]
 
+mod builder;
 mod cli;
 mod env_file;
 mod indicators;
 mod manifest;
+mod paths;
 mod profile;
 mod utils;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::pin::pin;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use anyhow::{bail, Context, Result};
-use cargo_metadata::Metadata;
+use anyhow::{Context, Result};
 use clap::Parser;
 use cli::{BuildCommand, Cli, CliCommand, ServeCommand};
 use console::{style, Term};
 use env_file::EnvFile;
 use futures::future::ready;
 use futures::stream::unfold;
-use futures::{pin_mut, FutureExt, Stream, StreamExt};
+use futures::{FutureExt, Stream, StreamExt};
 use manifest::Manifest;
 use notify::{recommended_watcher, Event, RecursiveMode, Watcher};
+use paths::Paths;
 use profile::Profile;
 use stellation_core::dev::StctlMetadata;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
+use tokio::fs;
 use tokio::process::Child;
 use tokio::sync::mpsc::unbounded_channel;
+use tokio::task::spawn_blocking;
 use tokio::time::sleep;
-use tokio::{fs, spawn};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::Level;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
+use crate::builder::Builder;
 use crate::indicators::ServeProgress;
-use crate::utils::random_str;
+
+#[derive(Debug)]
+struct ServeArtifact {
+    child: Child,
+    frontend_artifact_dir: PathBuf,
+    backend_artifact_dir: PathBuf,
+}
 
 #[derive(Debug)]
 struct Stctl {
     cli: Arc<Cli>,
+    paths: Arc<Paths>,
     manifest: Arc<Manifest>,
     profile: Profile,
     env_file: EnvFile,
@@ -85,26 +96,19 @@ impl Stctl {
         };
 
         let env_file = EnvFile::new(env_name);
+        let paths = Paths::new(&cli.manifest_path).await?;
 
         Ok(Self {
             cli: cli.into(),
+            paths: paths.into(),
             manifest,
             profile,
             env_file,
         })
     }
 
-    async fn workspace_dir(&self) -> Result<PathBuf> {
-        self.cli
-            .manifest_path
-            .canonicalize()?
-            .parent()
-            .context("failed to find workspace directory")
-            .map(|m| m.to_owned())
-    }
-
     async fn watch_changes(&self) -> Result<impl Stream<Item = SystemTime>> {
-        let workspace_dir = self.workspace_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
         let (tx, rx) = unbounded_channel::<PathBuf>();
 
         let mut watcher = recommended_watcher(move |e: Result<Event, _>| {
@@ -119,7 +123,7 @@ impl Stctl {
         .context("failed to watch workspace changes")?;
 
         watcher
-            .watch(&workspace_dir, RecursiveMode::Recursive)
+            .watch(workspace_dir, RecursiveMode::Recursive)
             .context("failed to watch workspace")?;
 
         let stream = UnboundedReceiverStream::new(rx)
@@ -145,14 +149,12 @@ impl Stctl {
                 // We wait until first item is available.
                 stream.next().await?;
 
-                let sleep_fur = sleep(Duration::from_millis(100)).fuse();
-                pin_mut!(sleep_fur);
+                let mut sleep_fur = pin!(sleep(Duration::from_millis(100)).fuse());
 
                 // This makes sure we filter all items between first item and sleep completes,
                 // whilst still returns at least 1 item at the end of the period.
                 loop {
-                    let next_path_fur = stream.next().fuse();
-                    pin_mut!(next_path_fur);
+                    let mut next_path_fur = pin!(stream.next().fuse());
 
                     futures::select! {
                         _ = sleep_fur => break,
@@ -165,320 +167,6 @@ impl Stctl {
         ))
     }
 
-    /// Creates and returns the path of the data directory.
-    ///
-    /// This is `build` directory in the same parent directory as `stellation.toml`.
-    async fn build_dir(&self) -> Result<PathBuf> {
-        let data_dir = self.workspace_dir().await?.join("build");
-
-        fs::create_dir_all(&data_dir)
-            .await
-            .context("failed to create build directory")?;
-
-        Ok(data_dir)
-    }
-
-    /// Creates and returns the path of the data directory.
-    ///
-    /// This is `.stellation` directory in the same parent directory as `stellation.toml`.
-    async fn data_dir(&self) -> Result<PathBuf> {
-        let data_dir = self.workspace_dir().await?.join(".stellation");
-
-        fs::create_dir_all(&data_dir)
-            .await
-            .context("failed to create data directory")?;
-
-        Ok(data_dir)
-    }
-
-    async fn frontend_data_dir(&self) -> Result<PathBuf> {
-        let frontend_data_dir = self.data_dir().await?.join("frontend");
-
-        fs::create_dir_all(&frontend_data_dir)
-            .await
-            .context("failed to create frontend data directory")?;
-
-        Ok(frontend_data_dir)
-    }
-
-    async fn backend_data_dir(&self) -> Result<PathBuf> {
-        let backend_data_dir = self.data_dir().await?.join("backend");
-
-        fs::create_dir_all(&backend_data_dir)
-            .await
-            .context("failed to create backend data directory")?;
-
-        Ok(backend_data_dir)
-    }
-
-    async fn frontend_build_dir(&self) -> Result<PathBuf> {
-        let frontend_build_dir = match self.cli.command {
-            CliCommand::Build { .. } => {
-                let build_dir = self.build_dir().await?;
-                build_dir.join("frontend")
-            }
-            CliCommand::Serve { .. } => {
-                let frontend_data_dir = self.frontend_data_dir().await?;
-                frontend_data_dir.join("serve-builds").join(random_str()?)
-            }
-            CliCommand::Clean => {
-                bail!("clean command never access build dir!")
-            }
-        };
-
-        fs::create_dir_all(&frontend_build_dir)
-            .await
-            .context("failed to create build directory for frontend build.")?;
-
-        Ok(frontend_build_dir)
-    }
-
-    async fn backend_build_dir(&self) -> Result<PathBuf> {
-        let frontend_build_dir = match self.cli.command {
-            CliCommand::Build { .. } => {
-                let build_dir = self.build_dir().await?;
-                build_dir.join("backend")
-            }
-            CliCommand::Serve { .. } => {
-                let frontend_data_dir = self.backend_data_dir().await?;
-                frontend_data_dir.join("serve-builds").join(random_str()?)
-            }
-            CliCommand::Clean => {
-                bail!("clean command never access build dir!")
-            }
-        };
-
-        fs::create_dir_all(&frontend_build_dir)
-            .await
-            .context("failed to create build directory for backend build.")?;
-
-        Ok(frontend_build_dir)
-    }
-
-    async fn transfer_to_file<R, P>(source: R, target: P) -> Result<()>
-    where
-        R: 'static + AsyncRead + Send,
-        P: Into<PathBuf>,
-    {
-        let target_path = target.into();
-        let mut target = fs::File::create(&target_path)
-            .await
-            .with_context(|| format!("failed to create {}", target_path.display()))?;
-
-        let inner = async move {
-            tokio::pin!(source);
-
-            loop {
-                let mut buf = [0_u8; 8192];
-                let buf_len = source.read(&mut buf[..]).await?;
-
-                if buf_len == 0 {
-                    break;
-                }
-                target.write_all(&buf[..buf_len]).await?;
-            }
-
-            Ok::<(), anyhow::Error>(())
-        };
-
-        spawn(async move {
-            if let Err(e) = inner
-                .await
-                .with_context(|| format!("failed to transfer logs to: {}", target_path.display()))
-            {
-                tracing::error!("{:#?}", e);
-            }
-        });
-
-        Ok(())
-    }
-
-    async fn build_frontend(&self) -> Result<PathBuf> {
-        use tokio::process::Command;
-
-        let frontend_data_dir = self.frontend_data_dir().await?;
-        let frontend_build_dir = self.frontend_build_dir().await?;
-        let workspace_dir = self.workspace_dir().await?;
-
-        let create_proc = || {
-            let mut proc = Command::new("trunk");
-            proc.arg("build")
-                .arg("--dist")
-                .arg(&frontend_build_dir)
-                .arg(workspace_dir.join("index.html"))
-                .current_dir(&workspace_dir)
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
-
-            if let Some(m) = self.profile.to_profile_argument() {
-                proc.arg(m);
-            }
-
-            let envs = self.env_file.load(&workspace_dir);
-            proc.envs(envs);
-
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-            }
-            proc
-        };
-
-        let mut child = create_proc().spawn()?;
-
-        if let Some(m) = child.stdout.take() {
-            Self::transfer_to_file(
-                m,
-                frontend_data_dir.join(format!("log-stdout-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        if let Some(m) = child.stderr.take() {
-            Self::transfer_to_file(
-                m,
-                frontend_data_dir.join(format!("log-stderr-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        let status = child.wait().await?;
-
-        // We try again with logs printed to console.
-        if !status.success() {
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                bail!("trunk failed with status {}", status);
-            }
-
-            let mut proc = create_proc();
-            proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-            let mut child = proc.spawn()?;
-            let status = child.wait().await?;
-
-            if !status.success() {
-                bail!("trunk failed with status {}", status);
-            }
-        }
-
-        Ok(frontend_build_dir)
-    }
-
-    async fn build_backend<P>(&self, frontend_build_dir: P) -> Result<PathBuf>
-    where
-        P: AsRef<Path>,
-    {
-        use tokio::process::Command;
-
-        let frontend_build_dir = frontend_build_dir.as_ref();
-
-        let backend_data_dir = self.backend_data_dir().await?;
-        let workspace_dir = self.workspace_dir().await?;
-        let backend_build_dir = self.backend_build_dir().await?;
-
-        let create_proc = || {
-            let mut proc = Command::new("cargo");
-            proc.arg("build")
-                .arg("--bin")
-                .arg(&self.manifest.dev_server.bin_name)
-                .current_dir(&workspace_dir)
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .kill_on_drop(true);
-
-            if let Some(m) = self.profile.to_profile_argument() {
-                proc.arg(m);
-            }
-
-            let envs = self.env_file.load(&workspace_dir);
-            proc.envs(envs);
-
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                proc.stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit())
-                    .env("RUSTFLAGS", "--cfg stellation_embedded_frontend");
-            }
-
-            proc.env("STELLATION_FRONTEND_BUILD_DIR", frontend_build_dir);
-
-            proc
-        };
-
-        let mut child = create_proc().spawn()?;
-
-        if let Some(m) = child.stdout.take() {
-            Self::transfer_to_file(
-                m,
-                backend_data_dir.join(format!("log-stdout-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        if let Some(m) = child.stderr.take() {
-            Self::transfer_to_file(
-                m,
-                backend_data_dir.join(format!("log-stderr-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        let status = child.wait().await?;
-
-        // We try again with logs printed to console.
-        if !status.success() {
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                bail!("trunk failed with status {}", status);
-            }
-
-            let mut proc = create_proc();
-            proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-            let mut child = proc.spawn()?;
-            let status = child.wait().await?;
-
-            if !status.success() {
-                bail!("trunk failed with status {}", status);
-            }
-        }
-
-        // Copy artifact from target directory.
-        let pkg_meta_output = Command::new("cargo")
-            .arg("metadata")
-            .arg("--format-version=1")
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .current_dir(&workspace_dir)
-            .spawn()?
-            .wait_with_output()
-            .await
-            .context("failed to read package metadata")?;
-
-        if !pkg_meta_output.status.success() {
-            bail!(
-                "cargo metadata failed with status {}",
-                pkg_meta_output.status
-            );
-        }
-
-        let meta: Metadata = serde_json::from_slice(&pkg_meta_output.stdout)
-            .context("failed to parse package metadata")?;
-
-        let bin_path = meta
-            .target_directory
-            .join_os(self.profile.name())
-            .join(&self.manifest.dev_server.bin_name);
-
-        let backend_bin_path = backend_build_dir.join(&self.manifest.dev_server.bin_name);
-
-        fs::copy(bin_path, &backend_bin_path)
-            .await
-            .context("failed to copy binary")?;
-
-        Ok(backend_bin_path)
-    }
-
     async fn open_browser(&self, http_listen_addr: &str) -> Result<()> {
         if let Err(e) = webbrowser::open(http_listen_addr) {
             tracing::warn!("stctl was unable to open the browser");
@@ -488,31 +176,34 @@ impl Stctl {
         Ok(())
     }
 
-    async fn serve_once(&self) -> Result<Child> {
+    async fn serve_once(&self) -> Result<ServeArtifact> {
         use tokio::process::Command;
 
         let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
 
+        let builder = Builder::new(self).await?.watch_build(true);
+
         let bar = ServeProgress::new();
 
-        let workspace_dir = self.workspace_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
         bar.step_build_frontend();
-        let frontend_build_dir = self.build_frontend().await?;
+        let frontend_build_dir = builder.build_frontend().await?;
 
         bar.step_build_backend();
-        let backend_build_path = self.build_backend(&frontend_build_dir).await?;
+        let backend_build_dir = builder.backend_build_dir().await?;
+        let backend_build_path = builder.build_backend().await?;
 
         let meta = StctlMetadata {
             listen_addr: self.manifest.dev_server.listen.to_string(),
-            frontend_dev_build_dir: frontend_build_dir.clone(),
+            frontend_dev_build_dir: frontend_build_dir.to_owned(),
         };
 
         bar.step_starting();
 
-        let envs = self.env_file.load(&workspace_dir);
+        let envs = self.env_file.load(workspace_dir);
 
         let server_proc = Command::new(&backend_build_path)
-            .current_dir(&workspace_dir)
+            .current_dir(workspace_dir)
             .envs(envs)
             .env(StctlMetadata::ENV_NAME, meta.to_json()?)
             .stdin(Stdio::null())
@@ -535,12 +226,16 @@ impl Stctl {
 
         bar.hide();
 
-        Ok(server_proc)
+        Ok(ServeArtifact {
+            child: server_proc,
+            frontend_artifact_dir: frontend_build_dir.to_owned(),
+            backend_artifact_dir: backend_build_dir.to_owned(),
+        })
     }
 
     async fn run_serve(&self, cmd_args: &ServeCommand) -> Result<()> {
         let changes = self.watch_changes().await?;
-        pin_mut!(changes);
+        let mut changes = pin!(changes);
 
         let mut first_run = true;
 
@@ -548,8 +243,8 @@ impl Stctl {
             let start_time = SystemTime::now();
             let http_listen_addr = format!("http://{}/", self.manifest.dev_server.listen);
 
-            let server_proc = match self.serve_once().await {
-                Ok(server_proc) => {
+            let artifact = match self.serve_once().await {
+                Ok(artifact) => {
                     let time_taken_in_f64 =
                         f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
 
@@ -576,7 +271,7 @@ impl Stctl {
                         style("cargo make build").cyan().bold()
                     );
 
-                    Some(server_proc)
+                    Some(artifact)
                 }
                 Err(e) => {
                     tracing::error!("failed to build development server: {:?}", e);
@@ -601,8 +296,20 @@ impl Stctl {
                 }
             }
 
-            if let Some(mut m) = server_proc {
-                m.kill().await.context("failed to stop server")?;
+            if let Some(m) = artifact {
+                let ServeArtifact {
+                    mut child,
+                    frontend_artifact_dir,
+                    backend_artifact_dir,
+                } = m;
+
+                child.kill().await.context("failed to stop server")?;
+                fs::remove_dir_all(frontend_artifact_dir)
+                    .await
+                    .context("failed to remove stale frontend artifact")?;
+                fs::remove_dir_all(backend_artifact_dir)
+                    .await
+                    .context("failed to remove stale backend artifact")?;
             }
         }
 
@@ -621,9 +328,72 @@ impl Stctl {
 
         let start_time = SystemTime::now();
 
-        let build_dir = self.build_dir().await?;
-        let frontend_build_dir = self.build_frontend().await?;
-        self.build_backend(&frontend_build_dir).await?;
+        let build_dir = self.paths.build_dir().await?;
+
+        let builder = Builder::new(self).await?;
+
+        let frontend_artifact_dir = builder.build_frontend().await?;
+        let backend_artifact_dir = builder.backend_build_dir().await?;
+        let backend_artifact_path = builder.build_backend().await?;
+
+        let backend_build_dir = build_dir.join("backend");
+        let frontend_build_dir = build_dir.join("frontend");
+
+        if backend_build_dir.exists() {
+            fs::remove_dir_all(&backend_build_dir)
+                .await
+                .context("failed to clean past backend builds.")?;
+        }
+
+        fs::create_dir_all(&backend_build_dir)
+            .await
+            .context("failed to create backend build directory.")?;
+
+        if frontend_build_dir.exists() {
+            fs::remove_dir_all(&frontend_build_dir)
+                .await
+                .context("failed to clean past frontend builds.")?;
+        }
+
+        fs::create_dir_all(&frontend_build_dir)
+            .await
+            .context("failed to create frontend build directory.")?;
+
+        fs::copy(
+            &backend_artifact_path,
+            backend_build_dir.join(
+                backend_artifact_path
+                    .file_name()
+                    .context("failed to find backend binary name")?,
+            ),
+        )
+        .await
+        .context("failed to copy backend")?;
+
+        {
+            let frontend_artifact_dir = frontend_artifact_dir.to_owned();
+            let frontend_build_dir = frontend_build_dir.to_owned();
+
+            spawn_blocking(move || {
+                use fs_extra::dir::{copy, CopyOptions};
+
+                copy(
+                    frontend_artifact_dir,
+                    frontend_build_dir,
+                    &CopyOptions::new(),
+                )
+            })
+        }
+        .await
+        .context("failed to copy frontend")?
+        .context("failed to copy frontend")?;
+
+        fs::remove_dir_all(backend_artifact_dir)
+            .await
+            .context("failed to remove backend temporary artifacts.")?;
+        fs::remove_dir_all(frontend_artifact_dir)
+            .await
+            .context("failed to remove frontend temporary artifacts.")?;
 
         let time_taken_in_f64 =
             f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
@@ -641,17 +411,17 @@ impl Stctl {
     async fn run_clean(&self) -> Result<()> {
         use tokio::process::Command;
 
-        let workspace_dir = self.workspace_dir().await?;
-        let build_dir = self.build_dir().await?;
-        let data_dir = self.data_dir().await?;
+        let workspace_dir = self.paths.workspace_dir().await?;
+        let build_dir = self.paths.build_dir().await?;
+        let data_dir = self.paths.data_dir().await?;
 
-        let envs = self.env_file.load(&workspace_dir);
+        let envs = self.env_file.load(workspace_dir);
 
         let start_time = SystemTime::now();
 
         Command::new("cargo")
             .arg("clean")
-            .current_dir(&workspace_dir)
+            .current_dir(workspace_dir)
             .envs(envs)
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct EnvFile {
     name: String,
 }
