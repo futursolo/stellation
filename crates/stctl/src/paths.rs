@@ -49,6 +49,13 @@ impl Paths {
     /// Returns the workspace directory.
     ///
     /// This is the parent directory of `stellation.toml`.
+    ///
+    /// # Note
+    ///
+    /// This can be different than the cargo workspace directory.
+    ///
+    /// This determines the `.stellation` data directory and `build` final artifact directory.
+    /// This is subject to change in future releases.
     pub async fn workspace_dir(&self) -> Result<&Path> {
         Ok(&self.workspace_dir)
     }
