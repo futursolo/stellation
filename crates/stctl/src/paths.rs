@@ -53,9 +53,13 @@ impl Paths {
         Ok(&self.workspace_dir)
     }
 
-    /// Creates and returns the path of the data directory.
+    /// Creates and returns the path of the build directory.
     ///
     /// This is the `build` directory in the same parent directory as `stellation.toml`.
+    ///
+    /// # Note
+    ///
+    /// This should not be confused with the `builds` directory.
     pub async fn build_dir(&self) -> Result<&Path> {
         self.build_dir
             .get_or_try_init(|| async {
@@ -165,7 +169,7 @@ impl Paths {
             .map(|m| m.as_ref())
     }
 
-    /// Creates and returns the path of the frontend builds directory.
+    /// Creates and returns the path of the frontend logs directory.
     ///
     /// This is the `.stellation/frontend/logs` directory in the same parent directory as
     /// `stellation.toml`.
