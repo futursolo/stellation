@@ -161,7 +161,7 @@ impl Builder {
         if let Some(m) = child.stdout.take() {
             Self::transfer_to_file(
                 m,
-                frontend_logs_dir.join(format!("log-stdout-{}", random_str()?)),
+                frontend_logs_dir.join(format!("log-stdout-{}", self.build_id)),
             )
             .await?;
         }
@@ -169,7 +169,7 @@ impl Builder {
         if let Some(m) = child.stderr.take() {
             Self::transfer_to_file(
                 m,
-                frontend_logs_dir.join(format!("log-stderr-{}", random_str()?)),
+                frontend_logs_dir.join(format!("log-stderr-{}", self.build_id)),
             )
             .await?;
         }
@@ -238,7 +238,7 @@ impl Builder {
         if let Some(m) = child.stdout.take() {
             Self::transfer_to_file(
                 m,
-                backend_logs_dir.join(format!("log-stdout-{}", random_str()?)),
+                backend_logs_dir.join(format!("log-stdout-{}", self.build_id)),
             )
             .await?;
         }
@@ -246,7 +246,7 @@ impl Builder {
         if let Some(m) = child.stderr.take() {
             Self::transfer_to_file(
                 m,
-                backend_logs_dir.join(format!("log-stderr-{}", random_str()?)),
+                backend_logs_dir.join(format!("log-stderr-{}", self.build_id)),
             )
             .await?;
         }
