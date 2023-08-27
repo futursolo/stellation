@@ -25,6 +25,10 @@ pub(crate) struct BuildCommand {
     /// The name of the env profile. [Default: the same name as the build profile]
     #[arg(long)]
     pub env: Option<String>,
+    /// The build target for backend binary. [Default: the native target of the building
+    /// environment]
+    #[arg(long)]
+    pub backend_target: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
