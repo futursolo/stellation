@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 yew = "0.20.0"
-gloo = "0.9"
+gloo = "0.10"
 
 # Stellation Components
 stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
