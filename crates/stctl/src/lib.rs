@@ -316,7 +316,7 @@ impl Stctl {
         Ok(())
     }
 
-    async fn run_build(&self, _cmd_args: &BuildCommand) -> Result<()> {
+    async fn run_build(&self, cmd_args: &BuildCommand) -> Result<()> {
         let target_name = self.profile.name();
 
         eprintln!(
@@ -330,7 +330,9 @@ impl Stctl {
 
         let build_dir = self.paths.build_dir().await?;
 
-        let builder = Builder::new(self).await?;
+        let builder = Builder::new(self)
+            .await?
+            .backend_target(cmd_args.backend_target.clone());
 
         let frontend_artifact_dir = builder.build_frontend().await?;
         let backend_artifact_dir = builder.backend_build_dir().await?;

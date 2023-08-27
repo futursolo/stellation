@@ -28,6 +28,8 @@ pub(crate) struct Builder {
 
     frontend_build_dir: OnceCell<PathBuf>,
     backend_build_dir: OnceCell<PathBuf>,
+
+    backend_target: Option<String>,
 }
 
 impl Builder {
@@ -44,12 +46,21 @@ impl Builder {
 
             frontend_build_dir: OnceCell::new(),
             backend_build_dir: OnceCell::new(),
+
+            backend_target: None,
         })
     }
 
     /// Sets to true for watch build.
     pub fn watch_build(mut self, is_watch_build: bool) -> Self {
         self.is_watch_build = is_watch_build;
+
+        self
+    }
+
+    /// Sets the backend target.
+    pub fn backend_target(mut self, backend_target: Option<String>) -> Self {
+        self.backend_target = backend_target;
 
         self
     }
@@ -219,6 +230,10 @@ impl Builder {
                 proc.arg(m);
             }
 
+            if let Some(ref m) = self.backend_target {
+                proc.arg(format!("--target={}", m));
+            }
+
             let envs = self.env_file.load(workspace_dir);
             proc.envs(envs);
 
@@ -293,9 +308,14 @@ impl Builder {
         let meta: Metadata = serde_json::from_slice(&pkg_meta_output.stdout)
             .context("failed to parse package metadata")?;
 
-        let bin_path = meta
-            .target_directory
-            .join_os(self.profile.name())
+        let mut bin_path = meta.target_directory.into_std_path_buf();
+
+        if let Some(ref m) = self.backend_target {
+            bin_path = bin_path.join(m);
+        }
+
+        bin_path = bin_path
+            .join(self.profile.name())
             .join(&self.manifest.dev_server.bin_name);
 
         let backend_bin_path = backend_build_dir.join(&self.manifest.dev_server.bin_name);
