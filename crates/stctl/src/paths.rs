@@ -54,8 +54,8 @@ impl Paths {
     ///
     /// This can be different than the cargo workspace directory.
     ///
-    /// This determines the `.stellation` data directory and `build` final artifact directory.
-    /// This is subject to change in future releases.
+    /// This determines the location of `.stellation` data directory and `build` final artifact
+    /// directory. This is subject to change in future releases.
     pub async fn workspace_dir(&self) -> Result<&Path> {
         Ok(&self.workspace_dir)
     }
