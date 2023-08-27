@@ -21,13 +21,12 @@ mod paths;
 mod profile;
 mod utils;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use anyhow::{bail, Context, Result};
-use cargo_metadata::Metadata;
+use anyhow::{Context, Result};
 use clap::Parser;
 use cli::{BuildCommand, Cli, CliCommand, ServeCommand};
 use console::{style, Term};
@@ -40,11 +39,11 @@ use notify::{recommended_watcher, Event, RecursiveMode, Watcher};
 use paths::Paths;
 use profile::Profile;
 use stellation_core::dev::StctlMetadata;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
+use tokio::fs;
 use tokio::process::Child;
 use tokio::sync::mpsc::unbounded_channel;
+use tokio::task::spawn_blocking;
 use tokio::time::sleep;
-use tokio::{fs, spawn};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::Level;
 use tracing_subscriber::prelude::*;
@@ -52,7 +51,6 @@ use tracing_subscriber::EnvFilter;
 
 use crate::builder::Builder;
 use crate::indicators::ServeProgress;
-use crate::utils::random_str;
 
 #[derive(Debug)]
 struct Stctl {
@@ -161,274 +159,6 @@ impl Stctl {
                 Some((SystemTime::now(), (stream, watcher)))
             },
         ))
-    }
-
-    async fn frontend_build_dir(&self) -> Result<PathBuf> {
-        let frontend_build_dir = match self.cli.command {
-            CliCommand::Build { .. } => {
-                let build_dir = self.paths.build_dir().await?;
-                build_dir.join("frontend")
-            }
-            CliCommand::Serve { .. } => {
-                let frontend_data_dir = self.paths.frontend_data_dir().await?;
-                frontend_data_dir.join("serve-builds").join(random_str()?)
-            }
-            CliCommand::Clean => {
-                bail!("clean command never access build dir!")
-            }
-        };
-
-        fs::create_dir_all(&frontend_build_dir)
-            .await
-            .context("failed to create build directory for frontend build.")?;
-
-        Ok(frontend_build_dir)
-    }
-
-    async fn backend_build_dir(&self) -> Result<PathBuf> {
-        let frontend_build_dir = match self.cli.command {
-            CliCommand::Build { .. } => {
-                let build_dir = self.paths.build_dir().await?;
-                build_dir.join("backend")
-            }
-            CliCommand::Serve { .. } => {
-                let frontend_data_dir = self.paths.backend_data_dir().await?;
-                frontend_data_dir.join("serve-builds").join(random_str()?)
-            }
-            CliCommand::Clean => {
-                bail!("clean command never access build dir!")
-            }
-        };
-
-        fs::create_dir_all(&frontend_build_dir)
-            .await
-            .context("failed to create build directory for backend build.")?;
-
-        Ok(frontend_build_dir)
-    }
-
-    async fn transfer_to_file<R, P>(source: R, target: P) -> Result<()>
-    where
-        R: 'static + AsyncRead + Send,
-        P: Into<PathBuf>,
-    {
-        let target_path = target.into();
-        let mut target = fs::File::create(&target_path)
-            .await
-            .with_context(|| format!("failed to create {}", target_path.display()))?;
-
-        let inner = async move {
-            let mut source = std::pin::pin!(source);
-
-            loop {
-                let mut buf = [0_u8; 8192];
-                let buf_len = source.read(&mut buf[..]).await?;
-
-                if buf_len == 0 {
-                    break;
-                }
-                target.write_all(&buf[..buf_len]).await?;
-            }
-
-            Ok::<(), anyhow::Error>(())
-        };
-
-        spawn(async move {
-            if let Err(e) = inner
-                .await
-                .with_context(|| format!("failed to transfer logs to: {}", target_path.display()))
-            {
-                tracing::error!("{:#?}", e);
-            }
-        });
-
-        Ok(())
-    }
-
-    async fn build_frontend(&self) -> Result<PathBuf> {
-        use tokio::process::Command;
-
-        let frontend_data_dir = self.paths.frontend_data_dir().await?;
-        let frontend_build_dir = self.frontend_build_dir().await?;
-        let workspace_dir = self.paths.workspace_dir().await?;
-
-        let create_proc = || {
-            let mut proc = Command::new("trunk");
-            proc.arg("build")
-                .arg("--dist")
-                .arg(&frontend_build_dir)
-                .arg(workspace_dir.join("index.html"))
-                .current_dir(workspace_dir)
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
-
-            if let Some(m) = self.profile.to_profile_argument() {
-                proc.arg(m);
-            }
-
-            let envs = self.env_file.load(workspace_dir);
-            proc.envs(envs);
-
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-            }
-            proc
-        };
-
-        let mut child = create_proc().spawn()?;
-
-        if let Some(m) = child.stdout.take() {
-            Self::transfer_to_file(
-                m,
-                frontend_data_dir.join(format!("log-stdout-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        if let Some(m) = child.stderr.take() {
-            Self::transfer_to_file(
-                m,
-                frontend_data_dir.join(format!("log-stderr-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        let status = child.wait().await?;
-
-        // We try again with logs printed to console.
-        if !status.success() {
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                bail!("trunk failed with status {}", status);
-            }
-
-            let mut proc = create_proc();
-            proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-            let mut child = proc.spawn()?;
-            let status = child.wait().await?;
-
-            if !status.success() {
-                bail!("trunk failed with status {}", status);
-            }
-        }
-
-        Ok(frontend_build_dir)
-    }
-
-    async fn build_backend<P>(&self, frontend_build_dir: P) -> Result<PathBuf>
-    where
-        P: AsRef<Path>,
-    {
-        use tokio::process::Command;
-
-        let frontend_build_dir = frontend_build_dir.as_ref();
-
-        let backend_data_dir = self.paths.backend_data_dir().await?;
-        let workspace_dir = self.paths.workspace_dir().await?;
-        let backend_build_dir = self.backend_build_dir().await?;
-
-        let create_proc = || {
-            let mut proc = Command::new("cargo");
-            proc.arg("build")
-                .arg("--bin")
-                .arg(&self.manifest.dev_server.bin_name)
-                .current_dir(workspace_dir)
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .kill_on_drop(true);
-
-            if let Some(m) = self.profile.to_profile_argument() {
-                proc.arg(m);
-            }
-
-            let envs = self.env_file.load(workspace_dir);
-            proc.envs(envs);
-
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                proc.stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit())
-                    .env("RUSTFLAGS", "--cfg stellation_embedded_frontend");
-            }
-
-            proc.env("STELLATION_FRONTEND_BUILD_DIR", frontend_build_dir);
-
-            proc
-        };
-
-        let mut child = create_proc().spawn()?;
-
-        if let Some(m) = child.stdout.take() {
-            Self::transfer_to_file(
-                m,
-                backend_data_dir.join(format!("log-stdout-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        if let Some(m) = child.stderr.take() {
-            Self::transfer_to_file(
-                m,
-                backend_data_dir.join(format!("log-stderr-{}", random_str()?)),
-            )
-            .await?;
-        }
-
-        let status = child.wait().await?;
-
-        // We try again with logs printed to console.
-        if !status.success() {
-            if matches!(self.cli.command, CliCommand::Build { .. }) {
-                bail!("trunk failed with status {}", status);
-            }
-
-            let mut proc = create_proc();
-            proc.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-            let mut child = proc.spawn()?;
-            let status = child.wait().await?;
-
-            if !status.success() {
-                bail!("trunk failed with status {}", status);
-            }
-        }
-
-        // Copy artifact from target directory.
-        let pkg_meta_output = Command::new("cargo")
-            .arg("metadata")
-            .arg("--format-version=1")
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .current_dir(workspace_dir)
-            .spawn()?
-            .wait_with_output()
-            .await
-            .context("failed to read package metadata")?;
-
-        if !pkg_meta_output.status.success() {
-            bail!(
-                "cargo metadata failed with status {}",
-                pkg_meta_output.status
-            );
-        }
-
-        let meta: Metadata = serde_json::from_slice(&pkg_meta_output.stdout)
-            .context("failed to parse package metadata")?;
-
-        let bin_path = meta
-            .target_directory
-            .join_os(self.profile.name())
-            .join(&self.manifest.dev_server.bin_name);
-
-        let backend_bin_path = backend_build_dir.join(&self.manifest.dev_server.bin_name);
-
-        fs::copy(bin_path, &backend_bin_path)
-            .await
-            .context("failed to copy binary")?;
-
-        Ok(backend_bin_path)
     }
 
     async fn open_browser(&self, http_listen_addr: &str) -> Result<()> {
@@ -576,8 +306,71 @@ impl Stctl {
         let start_time = SystemTime::now();
 
         let build_dir = self.paths.build_dir().await?;
-        let frontend_build_dir = self.build_frontend().await?;
-        self.build_backend(&frontend_build_dir).await?;
+
+        let builder = Builder::new(self).await?;
+
+        let frontend_artifact_dir = builder.build_frontend().await?;
+        let backend_artifact_dir = builder.backend_build_dir().await?;
+        let backend_artifact_path = builder.build_backend().await?;
+
+        let backend_build_dir = build_dir.join("backend");
+        let frontend_build_dir = build_dir.join("frontend");
+
+        if backend_build_dir.exists() {
+            fs::remove_dir_all(&backend_build_dir)
+                .await
+                .context("failed to clean past backend builds.")?;
+        }
+
+        fs::create_dir_all(&backend_build_dir)
+            .await
+            .context("failed to create backend build directory.")?;
+
+        if frontend_build_dir.exists() {
+            fs::remove_dir_all(&frontend_build_dir)
+                .await
+                .context("failed to clean past frontend builds.")?;
+        }
+
+        fs::create_dir_all(&frontend_build_dir)
+            .await
+            .context("failed to create frontend build directory.")?;
+
+        fs::copy(
+            &backend_artifact_path,
+            backend_build_dir.join(
+                backend_artifact_path
+                    .file_name()
+                    .context("failed to find backend binary name")?,
+            ),
+        )
+        .await
+        .context("failed to copy backend")?;
+
+        {
+            let frontend_artifact_dir = frontend_artifact_dir.to_owned();
+            let frontend_build_dir = frontend_build_dir.to_owned();
+
+            spawn_blocking(move || {
+                use fs_extra::dir::{copy, CopyOptions};
+
+                copy(
+                    frontend_artifact_dir,
+                    frontend_build_dir,
+                    &CopyOptions::new(),
+                )
+            })
+        }
+        .await
+        .context("failed to copy frontend")?
+        .context("failed to copy frontend")?;
+
+        fs::remove_dir_all(backend_artifact_dir)
+            .await
+            .context("failed to remove backend temporary artifacts.")?;
+        fs::remove_dir_all(frontend_artifact_dir)
+            .await
+            .context("failed to remove frontend temporary artifacts.")?;
 
         let time_taken_in_f64 =
             f64::try_from(i32::try_from(start_time.elapsed()?.as_millis())?)? / 1000.0;
