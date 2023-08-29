@@ -1,12 +1,10 @@
 [package]
 name = "stellation-backend"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
-authors = [
-    "Kaede Hoshiakwa <futursolo@icloud.com>",
-]
+authors = ["Kaede Hoshiakwa <futursolo@icloud.com>"]
 description = "The framework experience for Yew."
 keywords = ["web", "wasm", "yew", "framework", "ssr"]
 categories = ["wasm", "web-programming"]
@@ -25,8 +23,8 @@ anymap2 = "0.13.0"
 http = "0.2.9"
 
 # Stellation Components
-stellation-bridge = { version = "0.2.0", path = "../stellation-bridge" }
-stellation-core = { version = "0.2.0", path = "../stellation-core" }
+stellation-bridge = { version = "0.3.0", path = "../stellation-bridge" }
+stellation-core = { version = "0.3.0", path = "../stellation-core" }
 
 # Yew / Component Related
 yew = { version = "0.20", features = ["ssr"] }
