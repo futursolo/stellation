@@ -11,14 +11,20 @@ yew = "0.20.0"
 gloo = "0.10"
 
 # Stellation Components
-stellation-frontend = { version = "0.2.0", path = "../../../crates/stellation-frontend" }
-stellation-stylist = { version = "0.2.0", path = "../../../crates/stellation-stylist", features = ["frontend"] }
+stellation-frontend = { path = "../../../crates/stellation-frontend" }
+stellation-stylist = { path = "../../../crates/stellation-stylist", features = [
+    "frontend",
+] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3.17", default-features = false, features = ["time", "std", "fmt", "ansi"] }
+tracing-subscriber = { version = "0.3.17", default-features = false, features = [
+    "time",
+    "std",
+    "fmt",
+    "ansi",
+] }
 
 # Example Workspace
 example-fullstack-view = { path = "../view" }
 example-fullstack-api = { path = "../api" }
-

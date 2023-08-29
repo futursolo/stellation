@@ -1,12 +1,10 @@
 [package]
 name = "stellation-bridge"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.66"
 repository = "https://github.com/futursolo/stellation"
-authors = [
-    "Kaede Hoshiakwa <futursolo@icloud.com>",
-]
+authors = ["Kaede Hoshiakwa <futursolo@icloud.com>"]
 description = "The framework experience for Yew."
 keywords = ["web", "wasm", "yew", "framework", "ssr"]
 categories = ["wasm", "web-programming"]
