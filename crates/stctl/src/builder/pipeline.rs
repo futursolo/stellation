@@ -225,6 +225,7 @@ impl Pipeline {
     where
         P: Into<PathBuf>,
     {
+        // TODO: make backend compile into a pipeline as well.
         let asset_pipeline = RustApp::new(self.config.clone())
             .chain(CopyDir::new(self.config.clone()))
             .chain(CopyFile::new(self.config.clone()))
