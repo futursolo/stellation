@@ -22,6 +22,14 @@ impl Profile {
         }
     }
 
+    pub fn should_optimize(&self) -> bool {
+        match self.name() {
+            "debug" => false,
+            "release" => true,
+            _ => true,
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

@@ -47,6 +47,7 @@ use tokio::task::spawn_blocking;
 use tokio::time::sleep;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::Level;
+use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
@@ -478,7 +479,13 @@ impl Stctl {
 /// This is the main function for a vendored copy of stctl.
 pub async fn main() -> Result<()> {
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer().pretty())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .pretty()
+                .with_filter(filter_fn(|metadata| {
+                    !metadata.target().starts_with("trunk_")
+                })),
+        )
         .with(
             EnvFilter::builder()
                 .with_default_directive(Level::INFO.into())

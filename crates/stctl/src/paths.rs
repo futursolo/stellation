@@ -14,9 +14,6 @@ pub(crate) struct Paths {
 
     frontend_builds_dir: OnceCell<PathBuf>,
     backend_builds_dir: OnceCell<PathBuf>,
-
-    frontend_logs_dir: OnceCell<PathBuf>,
-    backend_logs_dir: OnceCell<PathBuf>,
 }
 
 impl Paths {
@@ -41,8 +38,6 @@ impl Paths {
             backend_data_dir: OnceCell::new(),
             frontend_builds_dir: OnceCell::new(),
             backend_builds_dir: OnceCell::new(),
-            frontend_logs_dir: OnceCell::new(),
-            backend_logs_dir: OnceCell::new(),
         })
     }
 
@@ -169,44 +164,6 @@ impl Paths {
                 fs::create_dir_all(&dir)
                     .await
                     .context("failed to create builds directory for backend build.")?;
-
-                Ok(dir)
-            })
-            .await
-            .map(|m| m.as_ref())
-    }
-
-    /// Creates and returns the path of the frontend logs directory.
-    ///
-    /// This is the `.stellation/frontend/logs` directory in the same parent directory as
-    /// `stellation.toml`.
-    pub async fn frontend_logs_dir(&self) -> Result<&Path> {
-        self.frontend_logs_dir
-            .get_or_try_init(|| async {
-                let dir = self.frontend_data_dir().await?.join("logs");
-
-                fs::create_dir_all(&dir)
-                    .await
-                    .context("failed to create logs directory for frontend build.")?;
-
-                Ok(dir)
-            })
-            .await
-            .map(|m| m.as_ref())
-    }
-
-    /// Creates and returns the path of the backend logs directory.
-    ///
-    /// This is the `.stellation/backend/logs` directory in the same parent directory as
-    /// `stellation.toml`.
-    pub async fn backend_logs_dir(&self) -> Result<&Path> {
-        self.backend_logs_dir
-            .get_or_try_init(|| async {
-                let dir = self.backend_data_dir().await?.join("logs");
-
-                fs::create_dir_all(&dir)
-                    .await
-                    .context("failed to create logs directory for backend build.")?;
 
                 Ok(dir)
             })
