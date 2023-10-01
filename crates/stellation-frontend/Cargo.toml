@@ -13,7 +13,7 @@ homepage = "https://github.com/futursolo/stellation"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-yew = { version = "0.20", features = ["csr", "hydration"] }
+yew = { version = "0.21", features = ["csr", "hydration"] }
 bounce = { version = "0.8", features = ["helmet"] }
 yew-router = "0.17"
 tracing = "0.1"

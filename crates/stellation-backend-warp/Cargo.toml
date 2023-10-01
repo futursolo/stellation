@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Yew / Component Related
-yew = { version = "0.20", features = ["ssr"] }
+yew = { version = "0.21", features = ["ssr"] }
 yew-router = "0.17"
 bounce = { version = "0.8", features = ["helmet", "ssr"] }
 

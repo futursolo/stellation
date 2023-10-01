@@ -20,7 +20,7 @@ stellation-core = { version = "0.3.0", path = "../stellation-core" }
 stellation-bridge = { version = "0.3.0", path = "../stellation-bridge" }
 
 # Yew / Component Related
-yew = { version = "0.20", features = ["ssr"] }
+yew = { version = "0.21", features = ["ssr"] }
 
 # Other Deps
 anyhow = { version = "1" }

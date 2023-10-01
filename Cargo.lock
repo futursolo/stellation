@@ -200,7 +200,7 @@ dependencies = [
  "tracing",
  "wasm-bindgen",
  "web-sys",
- "yew",
+ "yew 0.20.0",
 ]
 
 [[package]]
@@ -575,7 +575,7 @@ dependencies = [
  "stellation-stylist",
  "tracing",
  "tracing-subscriber",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -592,7 +592,7 @@ dependencies = [
  "stellation-stylist",
  "tokio",
  "tracing",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -606,7 +606,7 @@ dependencies = [
  "time",
  "tracing",
  "web-sys",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -1367,6 +1367,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "implicit-clone"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af3d77000817fd9e7db159e8d52ed9b5941a2cdbfbdc8ca646e59887ae2b2dd1"
+dependencies = [
+ "indexmap 2.0.0",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1894,6 +1903,16 @@ checksum = "6c8646e95016a7a6c4adea95bafa8a16baab64b583356217f2c85db4a39d9a86"
 dependencies = [
  "proc-macro2",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "prettyplease"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c64d9ba0963cdcea2e1b2230fbae2bab30eb25a174be395c41e764bfb65dd62"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.29",
 ]
 
 [[package]]
@@ -2580,7 +2599,7 @@ dependencies = [
  "stellation-core",
  "thiserror",
  "thread_local",
- "yew",
+ "yew 0.21.0",
  "yew-router",
 ]
 
@@ -2600,7 +2619,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "typed-builder",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -2615,7 +2634,7 @@ dependencies = [
  "tokio",
  "tower",
  "warp",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -2638,7 +2657,7 @@ dependencies = [
  "tokio",
  "tracing",
  "warp",
- "yew",
+ "yew 0.21.0",
  "yew-router",
 ]
 
@@ -2655,7 +2674,7 @@ dependencies = [
  "serde",
  "thiserror",
  "typed-builder",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -2677,7 +2696,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-web",
  "web-sys",
- "yew",
+ "yew 0.21.0",
  "yew-router",
 ]
 
@@ -2687,7 +2706,7 @@ version = "0.3.0"
 dependencies = [
  "stellation-backend",
  "stylist",
- "yew",
+ "yew 0.21.0",
 ]
 
 [[package]]
@@ -2712,7 +2731,7 @@ dependencies = [
  "stylist-macros",
  "wasm-bindgen",
  "web-sys",
- "yew",
+ "yew 0.20.0",
 ]
 
 [[package]]
@@ -3558,13 +3577,10 @@ version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5dbecfe44343b70cc2932c3eb445425969ae21754a8ab3a0966981c1cf7af1cc"
 dependencies = [
- "base64ct",
- "bincode",
  "console_error_panic_hook",
  "futures",
  "gloo 0.8.1",
- "html-escape",
- "implicit-clone",
+ "implicit-clone 0.3.6",
  "indexmap 1.9.3",
  "js-sys",
  "prokio",
@@ -3577,7 +3593,35 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "yew-macro",
+ "yew-macro 0.20.0",
+]
+
+[[package]]
+name = "yew"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f1a03f255c70c7aa3e9c62e15292f142ede0564123543c1cc0c7a4f31660cac"
+dependencies = [
+ "base64ct",
+ "bincode",
+ "console_error_panic_hook",
+ "futures",
+ "gloo 0.10.0",
+ "html-escape",
+ "implicit-clone 0.4.1",
+ "indexmap 2.0.0",
+ "js-sys",
+ "prokio",
+ "rustversion",
+ "serde",
+ "slab",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "yew-macro 0.21.0",
 ]
 
 [[package]]
@@ -3588,11 +3632,26 @@ checksum = "b64c253c1d401f1ea868ca9988db63958cfa15a69f739101f338d6f05eea8301"
 dependencies = [
  "boolinator",
  "once_cell",
- "prettyplease",
+ "prettyplease 0.1.25",
  "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "yew-macro"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02fd8ca5166d69e59f796500a2ce432ff751edecbbb308ca59fd3fe4d0343de2"
+dependencies = [
+ "boolinator",
+ "once_cell",
+ "prettyplease 0.2.12",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.29",
 ]
 
 [[package]]
@@ -3609,7 +3668,7 @@ dependencies = [
  "tracing",
  "wasm-bindgen",
  "web-sys",
- "yew",
+ "yew 0.20.0",
  "yew-router-macro",
 ]
 
