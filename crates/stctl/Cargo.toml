@@ -25,7 +25,7 @@ futures = { version = "0.3", features = [
     "std",
     "async-await",
 ], default-features = false }
-cargo_metadata = "0.17"
+cargo_metadata = "0.18"
 serde_json = "1.0.105"
 dotenvy = "0.15.7"
 time = "0.3"
