@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 stylist = { version = "0.12.1", features = ["yew_integration"] }
-yew = "0.20"
+yew = "0.21"
 
 # Stellation Components
 stellation-backend = { version = "0.3.0", path = "../stellation-backend", optional = true }

@@ -7,7 +7,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-yew = { version = "0.20.0" }
+yew = { version = "0.21.0" }
 example-fullstack-api = { path = "../api" }
 stellation-bridge = { path = "../../../crates/stellation-bridge" }
 time = { version = "0.3", features = [

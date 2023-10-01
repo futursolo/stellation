@@ -27,7 +27,7 @@ stellation-bridge = { version = "0.3.0", path = "../stellation-bridge" }
 stellation-core = { version = "0.3.0", path = "../stellation-core" }
 
 # Yew / Component Related
-yew = { version = "0.20", features = ["ssr"] }
+yew = { version = "0.21", features = ["ssr"] }
 bounce = { version = "0.8", features = ["helmet", "ssr"] }
 yew-router = "0.17"
 
